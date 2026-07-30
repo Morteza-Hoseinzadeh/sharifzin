@@ -30,9 +30,11 @@ export default function ChildrenLayout({ children }) {
   return (
     <>
       <Box ref={animatedRef} sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Navbar />
-        <Box sx={{ margin: 2 }}>{children}</Box>
-        {/* <Footer /> */}
+        <Box sx={{ margin: '8px 16px' }}>
+          <Navbar />
+          {children}
+          {/* <Footer /> */}
+        </Box>
       </Box>
 
       <MemoSnackbar open={snackbarState.open} onClose={closeSnackbar} autoHideDuration={5000} variant={snackbarState.variant}>

@@ -9,17 +9,6 @@ import CustomSnackbar from '@/components/custom/CustomSnackbar';
 
 export default function page() {
   const [snackbar, setSnackbar] = useState({ variant: '', open: false, message: '' });
-  const [isLoading, setIsLoading] = useState(true);
-
-  if (isLoading) {
-    return (
-      <ChildrenLayout>
-        <Box py={10} textAlign="center">
-          در حال بارگذاری محتوای صفحه اصلی...
-        </Box>
-      </ChildrenLayout>
-    );
-  }
 
   return (
     <ChildrenLayout>

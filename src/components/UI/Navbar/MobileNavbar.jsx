@@ -128,7 +128,7 @@ export default function MobileNavbar() {
           </IconButton>
 
           <a href="/">
-            <Image src="/assets/logo/sharifzin-typo.webp" alt="شریف زین" width={160} height={45} priority fetchPriority="high" />
+            <Image src="/assets/logo/sharifzin-logo.webp" alt="شریف زین" width={75} height={75} priority fetchPriority="high" />
           </a>
 
           <Box sx={styles.iconBtn} component={'a'} href="/cart">
@@ -170,12 +170,6 @@ export default function MobileNavbar() {
               <Box key={link.title}>
                 <ListItem disablePadding onMouseEnter={() => setHoveredIndex(index)} onMouseLeave={() => setHoveredIndex(null)}>
                   <ListItemButton component={link.href ? Link : 'div'} href={link.href || undefined} onClick={handleClick} sx={styles.listItem(isActive, isHovered)}>
-                    <ListItemIcon sx={styles.listItemIcon}>
-                      {React.cloneElement(link.icon, {
-                        color: isActive || isHovered ? theme.palette.primary.main : theme.palette.text.secondary,
-                      })}
-                    </ListItemIcon>
-
                     <ListItemText primary={link.title} primaryTypographyProps={{ fontWeight: isActive ? 700 : 600 }} sx={styles.listItemText} />
 
                     {hasDropdown && <ArrowRight2 size={20} variant="Bulk" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', marginRight: '8px', transition: '0.25s ease', color: theme.palette.text.secondary }} />}

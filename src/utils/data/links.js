@@ -1,13 +1,13 @@
 import { Home, Shop, DocumentText, MessageQuestion, Box2, UserOctagon, Mobile, Gameboy, Cpu, Headphone, Airpods, Watch, Box1, TruckFast, ShieldTick, WalletMoney, Refresh2, MonitorMobbile } from 'iconsax-reactjs';
 
 export const links = [
-  { title: 'صفحه اصلی', icon: null, href: '/', hasDropdown: false },
-  { title: 'محصولات', icon: null, href: null, megaKey: 'products', hasDropdown: true },
-  { title: 'برندها', icon: null, href: '/shop', hasDropdown: false },
-  { title: 'خدمات', icon: null, href: '/faq', hasDropdown: false },
-  { title: 'مقاله', icon: null, href: '/blog', hasDropdown: false },
-  { title: 'درباره ی ما', icon: null, href: '/about', hasDropdown: false },
-  { title: 'تماس با ما', icon: null, href: '/about', hasDropdown: false },
+  { title: 'صفحه اصلی', href: '/', hasDropdown: false },
+  { title: 'محصولات', href: null, megaKey: 'products', hasDropdown: true },
+  { title: 'برندها', href: '/shop', hasDropdown: false },
+  { title: 'خدمات', href: '/faq', hasDropdown: false },
+  { title: 'مقاله', href: '/blog', hasDropdown: false },
+  { title: 'درباره ی ما', href: '/about', hasDropdown: false },
+  { title: 'تماس با ما', href: '/about', hasDropdown: false },
 ];
 
 export const categories = [
