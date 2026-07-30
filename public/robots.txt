@@ -1,0 +1,5 @@
+User-agent: *
+
+Allow: /
+
+Sitemap:https://sharifzin.ir/sitemap.xml
