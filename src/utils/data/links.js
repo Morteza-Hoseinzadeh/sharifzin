@@ -10,14 +10,6 @@ export const links = [
   { title: 'تماس با ما', href: '/contact' },
 ];
 
-export const categories = [
-  { title: 'تلفن همراه', href: '/category/mobile', src: '/assets/categories/iphone.webp' },
-  { title: 'تبلت', href: '/category/tablet', src: '/assets/categories/tablet.webp' },
-  { title: 'ساعت و مچ بند', href: '/category/smart-watch', src: '/assets/categories/watch.webp' },
-  { title: 'ایرپاد', href: '/category/airpods', src: '/assets/categories/airpod.webp' },
-  { title: 'کالای دیجیتال', href: '/category/digital-products', src: '/assets/categories/charger.webp' },
-];
-
 export const storeDetials = [
   {
     icon: TruckFast,
