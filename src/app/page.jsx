@@ -9,6 +9,7 @@ import CustomSnackbar from '@/components/custom/CustomSnackbar';
 import HeroSection from '@/components/pages/home/HeroSection';
 import Brands from '@/components/pages/home/Brands';
 import CategorySection from '@/components/pages/home/CategorySection';
+import ProductsCardContianer from '@/components/pages/home/ProductsCardContianer';
 
 export default function page() {
   const [snackbar, setSnackbar] = useState({ variant: '', open: false, message: '' });
@@ -25,6 +26,10 @@ export default function page() {
 
       <Box py={2}>
         <CategorySection />
+      </Box>
+
+      <Box py={6}>
+        <ProductsCardContianer />
       </Box>
 
       <CustomSnackbar open={snackbar.open} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))} variant={snackbar.variant}>
