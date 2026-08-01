@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useTheme, alpha, useMediaQuery, Button, Collapse } from '@mui/material';
+import { Box, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, useTheme, alpha, useMediaQuery } from '@mui/material';
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
-import { ArrowRight2, CloseSquare, LoginCurve, ShoppingCart, HamburgerMenu, UserOctagon, Receipt1, LocationDiscover, Mobile } from 'iconsax-reactjs';
+import { ArrowRight2, CloseSquare, ShoppingCart, HamburgerMenu, UserOctagon, Receipt1 } from 'iconsax-reactjs';
 
 import { links } from '@/utils/data/links';
 import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
@@ -29,8 +28,8 @@ export default function MobileNavbar() {
       color: 'secondary.main',
       bgcolor: alpha(theme.palette.secondary.main, 0.08),
       borderRadius: '12px',
-      width: 48,
-      height: 48,
+      width: { xs: 42, sm: 48, md: 52 },
+      height: { xs: 42, sm: 48, md: 52 },
       transition: 'all ease-in-out 0.2s',
       '&:hover': {
         bgcolor: alpha(theme.palette.secondary.main, 0.16),
@@ -38,7 +37,8 @@ export default function MobileNavbar() {
     },
 
     drawerPaper: {
-      width: 350,
+      width: { xs: '84vw', sm: 350, md: 380 },
+      maxWidth: 380,
       backgroundColor: theme.palette.background.paper,
       backdropFilter: 'blur(12px)',
       borderTopLeftRadius: '16px',
@@ -56,16 +56,10 @@ export default function MobileNavbar() {
       },
     }),
 
-    listItemIcon: {
-      minWidth: 'auto',
-      mr: 2,
-      color: 'inherit',
-    },
-
     listItemText: {
       '& .MuiTypography-root': {
         fontWeight: 600,
-        fontSize: '0.98rem',
+        fontSize: { xs: '0.92rem', sm: '0.98rem' },
       },
     },
 
@@ -81,81 +75,40 @@ export default function MobileNavbar() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      width: 45,
-      height: 45,
+      width: { xs: 40, sm: 45, md: 48 },
+      height: { xs: 40, sm: 45, md: 48 },
       borderRadius: '10px',
       cursor: 'pointer',
       transition: '0.2s',
       color: theme.palette.primary.contrastText,
     },
-
-    categoryBtn: {
-      borderRadius: '14px',
-      background: `linear-gradient(135deg,${theme.palette.primary.light},${theme.palette.primary.main},${theme.palette.primary.dark})`,
-      color: theme.palette.primary.contrastText,
-      boxShadow: 'none',
-      fontWeight: '600',
-
-      px: 2,
-      py: 1,
-      textTransform: 'none',
-      '&:hover': {
-        backgroundColor: theme.palette.primary.dark,
-      },
-    },
-
-    submenu: {
-      pl: 7,
-      pr: 2,
-      py: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 1,
-      borderLeft: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
-      marginLeft: 2,
-    },
   };
 
   return (
-    <Box m={'0 auto'} width={'100%'} maxWidth={1200} p={2}>
+    <Box m={'0 auto'} width={'100%'} maxWidth={1200} p={{ xs: 1.5, sm: 2 }}>
       {/* TOP BAR */}
       {isMobile && (
-        <Box width="100%" flexDirection={'column-reverse'} alignItems={'center'} justifyContent={'space-between'} gap={2}>
-          <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'} mb={2}>
-            <Box display={'flex'} alignItems={'center'} flexDirection={'row-reverse'} gap={2}>
-              <Box>
-                <LocationDiscover variant="Bulk" size={32} color={theme.palette.primary.main} />
-              </Box>
-              <Box>
-                <Box sx={{ width: '1px', height: 30, backgroundColor: alpha(theme.palette.text.disabled, 0.1), display: 'inline-block' }} />
-              </Box>
-              <Box display={'flex'} flexDirection={'column'}>
-                <Typography variant="body2" color="secondary.main">
-                  ایران، تهران، میدان رازی (کمرگ)، خیابان مولوی،
-                </Typography>
-                <Typography variant="body2" color="text.disabled">
-                  روبه روی پاساژ بهمن، کوچه خسجته، پلاک 6 ، طبقه بالا
-                </Typography>
-              </Box>
+        <Box width="100%" display="flex" flexDirection={'column'} alignItems={'stretch'} justifyContent={'space-between'} gap={{ xs: 1.5, sm: 2 }}>
+          {/* Contact info: stacked on phones, side-by-side once there's room at sm/md */}
+          <Box width="100%" display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'center', sm: 'flex-start' }} justifyContent={{ xs: 'center', sm: 'space-between' }} gap={{ xs: 1.5, sm: 2 }}>
+            <Box display={'flex'} alignItems={'center'} gap={{ xs: 1, sm: 1.5 }}>
+              <Typography variant="body1" sx={{ fontSize: { xs: 14, sm: 15, md: 16 }, fontWeight: 600 }}>
+                <a href="tel:02199887766" style={{ color: theme.palette.secondary.main, textDecoration: 'none' }}>
+                  {ConvertToPersianDigit('021-99887766')}
+                </a>
+              </Typography>
+              <Typography variant="caption" color="text.disabled" sx={{ fontSize: { xs: 11, sm: 12 } }}>
+                آماده پاسخ گویی 24 ساعته
+              </Typography>
             </Box>
 
-            <Box display={'flex'} alignItems={'center'} flexDirection={'row-reverse'} gap={2}>
-              <Box>
-                <Mobile variant="Bulk" size={32} color={theme.palette.primary.main} />
-              </Box>
-              <Box>
-                <Box sx={{ width: '1px', height: 30, backgroundColor: alpha(theme.palette.text.disabled, 0.1), display: 'inline-block' }} />
-              </Box>
-              <Box>
-                <Typography variant="body1">
-                  <a href="tel:02199887766" style={{ color: theme.palette.secondary.main, textDecoration: 'none' }}>
-                    {ConvertToPersianDigit('021-99887766')}
-                  </a>
-                </Typography>
-                <Typography variant="caption" color="text.disabled">
-                  آماده پاسخ گویی 24 ساعته
-                </Typography>
-              </Box>
+            <Box textAlign={{ xs: 'center', sm: 'right' }} display={'flex'} flexDirection={'column'}>
+              <Typography variant="body2" color="secondary.main" sx={{ fontSize: { xs: 12, sm: 13, md: 14 } }}>
+                ایران، تهران، میدان رازی (کمرگ)، خیابان مولوی،
+              </Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ fontSize: { xs: 11, sm: 12 } }}>
+                روبه روی پاساژ بهمن، کوچه خسجته، پلاک 6 ، طبقه بالا
+              </Typography>
             </Box>
           </Box>
 
@@ -164,7 +117,7 @@ export default function MobileNavbar() {
               <HamburgerMenu size={28} variant="Bulk" color={theme.palette.secondary.main} />
             </IconButton>
 
-            <Box display={'flex'} alignItems={'center'} gap={1}>
+            <Box display={'flex'} alignItems={'center'} gap={{ xs: 0.75, sm: 1 }}>
               <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.primary.main }} component={'a'} href="https://example.com">
                 <Receipt1 size={21} variant="Bulk" />
               </Box>

@@ -9,7 +9,7 @@ export default function HeroSection() {
   const theme = useTheme();
 
   return (
-    <Box component="section" sx={{ py: 4, pb: { xs: 4, lg: 8 }, position: 'relative', overflow: 'hidden' }}>
+    <Box component="section" sx={{ py: 4, pb: { xs: 0, lg: 8 }, position: 'relative', overflow: 'hidden' }}>
       <Box sx={{ width: '100%' }}>
         <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: { xs: 4, lg: 8 }, height: { xs: 380, sm: 420, md: 480, lg: 520 } }}>
           <Image src="/assets/banner/hero-section.webp" alt="شریف زین" fill priority style={{ objectFit: 'cover', filter: 'blur(8px)' }} />
@@ -47,35 +47,8 @@ export default function HeroSection() {
       </Box>
 
       {/* Stats bar: in-flow + 2-column grid on mobile, floating overlap + 4-column row from lg up */}
-      <Box
-        sx={{
-          position: { xs: 'static', lg: 'absolute' },
-          width: { xs: '100%', lg: '90%' },
-          left: 0,
-          right: 0,
-          bottom: { lg: 15 },
-          mx: { xs: 0, lg: 'auto' },
-          mt: { xs: 3, lg: 0 },
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 2,
-        }}
-      >
-        <Box
-          sx={{
-            width: '100%',
-            height: { xs: 'auto', lg: 100 },
-            py: { xs: 2, lg: 0 },
-            borderRadius: { xs: '20px', lg: '32px' },
-            background: theme.palette.background.paper,
-            boxShadow: '0 0px 20px rgba(0,0,0,.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            px: 2,
-          }}
-        >
+      <Box sx={{ position: { xs: 'static', lg: 'absolute' }, width: { xs: '100%', lg: '90%' }, left: 0, right: 0, bottom: { lg: 15 }, mx: { xs: 0, lg: 'auto' }, mt: { xs: 3, lg: 0 }, display: { xs: 'none', lg: 'flex' }, justifyContent: 'center', zIndex: 2 }}>
+        <Box sx={{ width: '100%', height: { xs: 'auto', lg: 100 }, py: { xs: 2, lg: 0 }, borderRadius: { xs: '20px', lg: '32px' }, background: theme.palette.background.paper, boxShadow: '0 0px 20px rgba(0,0,0,.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', px: 2 }}>
           {storeDetials.map((item, index) => {
             const isOdd = index % 2 !== 0;
 
