@@ -7,10 +7,11 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import { ArrowRight2, CloseSquare, LoginCurve, ShoppingCart, HamburgerMenu, UserOctagon } from 'iconsax-reactjs';
+import { ArrowRight2, CloseSquare, LoginCurve, ShoppingCart, HamburgerMenu, UserOctagon, Receipt1, LocationDiscover, Mobile } from 'iconsax-reactjs';
 
 import { links } from '@/utils/data/links';
 import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
+import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 
 export default function MobileNavbar() {
   const { isLoggedIn } = useCheckUserRole();
@@ -85,10 +86,7 @@ export default function MobileNavbar() {
       borderRadius: '10px',
       cursor: 'pointer',
       transition: '0.2s',
-      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-      '&:hover': {
-        backgroundColor: alpha(theme.palette.primary.main, 0.2),
-      },
+      color: theme.palette.primary.contrastText,
     },
 
     categoryBtn: {
@@ -119,20 +117,64 @@ export default function MobileNavbar() {
   };
 
   return (
-    <Box m={2}>
+    <Box m={'0 auto'} width={'100%'} maxWidth={1200} p={2}>
       {/* TOP BAR */}
       {isMobile && (
-        <Box width="100%" display="flex" alignItems="center" justifyContent="space-between">
-          <IconButton onClick={() => setDrawerOpen(true)} sx={styles.triggerButton} aria-label="open menu">
-            <HamburgerMenu size={28} variant="Bulk" color={theme.palette.secondary.main} />
-          </IconButton>
+        <Box width="100%" flexDirection={'column-reverse'} alignItems={'center'} justifyContent={'space-between'} gap={2}>
+          <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'} mb={2}>
+            <Box display={'flex'} alignItems={'center'} flexDirection={'row-reverse'} gap={2}>
+              <Box>
+                <LocationDiscover variant="Bulk" size={32} color={theme.palette.primary.main} />
+              </Box>
+              <Box>
+                <Box sx={{ width: '1px', height: 30, backgroundColor: alpha(theme.palette.text.disabled, 0.1), display: 'inline-block' }} />
+              </Box>
+              <Box display={'flex'} flexDirection={'column'}>
+                <Typography variant="body2" color="secondary.main">
+                  ایران، تهران، میدان رازی (کمرگ)، خیابان مولوی،
+                </Typography>
+                <Typography variant="body2" color="text.disabled">
+                  روبه روی پاساژ بهمن، کوچه خسجته، پلاک 6 ، طبقه بالا
+                </Typography>
+              </Box>
+            </Box>
 
-          <a href="/">
-            <Image src="/assets/logo/sharifzin-logo.webp" alt="شریف زین" width={75} height={75} priority fetchPriority="high" />
-          </a>
+            <Box display={'flex'} alignItems={'center'} flexDirection={'row-reverse'} gap={2}>
+              <Box>
+                <Mobile variant="Bulk" size={32} color={theme.palette.primary.main} />
+              </Box>
+              <Box>
+                <Box sx={{ width: '1px', height: 30, backgroundColor: alpha(theme.palette.text.disabled, 0.1), display: 'inline-block' }} />
+              </Box>
+              <Box>
+                <Typography variant="body1">
+                  <a href="tel:02199887766" style={{ color: theme.palette.secondary.main, textDecoration: 'none' }}>
+                    {ConvertToPersianDigit('021-99887766')}
+                  </a>
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  آماده پاسخ گویی 24 ساعته
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
 
-          <Box sx={styles.iconBtn} component={'a'} href="/cart">
-            <ShoppingCart size={21} variant="Bulk" color={theme.palette.secondary.main} />
+          <Box width="100%" display="flex" alignItems="center" justifyContent="space-between">
+            <IconButton onClick={() => setDrawerOpen(true)} sx={styles.triggerButton} aria-label="open menu">
+              <HamburgerMenu size={28} variant="Bulk" color={theme.palette.secondary.main} />
+            </IconButton>
+
+            <Box display={'flex'} alignItems={'center'} gap={1}>
+              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.primary.main }} component={'a'} href="https://example.com">
+                <Receipt1 size={21} variant="Bulk" />
+              </Box>
+              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.secondary.main }} component={'a'} href="/cart">
+                <ShoppingCart size={21} variant="Bulk" />
+              </Box>
+              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.text.primary }} component={'a'} href="/auth/account">
+                <UserOctagon size={26} variant="Bulk" />
+              </Box>
+            </Box>
           </Box>
         </Box>
       )}
@@ -175,41 +217,9 @@ export default function MobileNavbar() {
                     {hasDropdown && <ArrowRight2 size={20} variant="Bulk" style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', marginRight: '8px', transition: '0.25s ease', color: theme.palette.text.secondary }} />}
                   </ListItemButton>
                 </ListItem>
-
-                {/* ACCORDION (FIXED - REAL UNDER ITEM) */}
-                {hasDropdown && (
-                  <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                    <Box sx={styles.submenu}>
-                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                        زیرمنو 1
-                      </Typography>
-
-                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                        زیرمنو 2
-                      </Typography>
-
-                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                        زیرمنو 3
-                      </Typography>
-                    </Box>
-                  </Collapse>
-                )}
               </Box>
             );
           })}
-
-          {/* LOGIN BUTTON */}
-          <Box mx={2} mt={2}>
-            {isLoggedIn ? (
-              <Button fullWidth href="/account/dashboard" variant="contained" size="large" startIcon={<UserOctagon size={22} variant="Bulk" color={theme.palette.primary.contrastText} style={{ marginLeft: 12 }} />} sx={styles.categoryBtn}>
-                پنل کاربری
-              </Button>
-            ) : (
-              <Button fullWidth href="/auth/account" variant="contained" size="large" startIcon={<LoginCurve size={22} variant="Bulk" color={theme.palette.primary.contrastText} style={{ marginLeft: 12 }} />} sx={styles.categoryBtn}>
-                ورود / ثبت نام
-              </Button>
-            )}
-          </Box>
         </List>
       </Drawer>
     </Box>
