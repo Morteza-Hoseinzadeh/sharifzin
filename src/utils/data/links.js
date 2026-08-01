@@ -18,7 +18,7 @@ export const categories = [
   { title: 'کالای دیجیتال', href: '/category/digital-products', src: '/assets/categories/charger.webp' },
 ];
 
-export const items = [
+export const storeDetials = [
   {
     icon: TruckFast,
     title: 'تحویل اکسپرس',

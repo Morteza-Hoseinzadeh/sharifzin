@@ -1,11 +1,9 @@
 'use client';
 
 import React from 'react';
-import dynamic from 'next/dynamic';
 import { useMediaQuery, useTheme } from '@mui/material';
-
-const MobileNavbar = dynamic(() => import('./MobileNavbar'), { ssr: false });
-const DesktopNavbar = dynamic(() => import('./DesktopNavbar'), { ssr: false });
+import MobileNavbar from './MobileNavbar';
+import DesktopNavbar from './DesktopNavbar';
 
 // Lazy load Navbar (good)
 export default function Navbar() {
