@@ -1,190 +1,178 @@
+'use client';
+
 import { links } from '@/utils/data/links';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
-import { alpha, Box, Button, IconButton, InputBase, Typography, useTheme } from '@mui/material';
-import { ArrowCircleUp2, ArrowUp, Instagram, Message, Whatsapp } from 'iconsax-reactjs';
+import { alpha, Box, IconButton, InputBase, Typography, useTheme } from '@mui/material';
+import { ArrowUp2, Call, Sms } from 'iconsax-reactjs';
 import Image from 'next/image';
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function Footer() {
   const theme = useTheme();
+  const [phone, setPhone] = useState('');
 
   const handleScrollToTop = () => {
-    return window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   };
 
+  const handleNewsletterSubmit = () => {
+    if (!phone) return;
+    // TODO: wire up to actual newsletter API
+    console.log('subscribe:', phone);
+  };
+
+  const s = styles(theme);
+
   return (
-    <Box width={'100%'} display={'flex'} alignItems={'center'} flexDirection={'column'} justifyContent={'center'} gap={2}>
-      <Box width="100%" display="flex" justifyContent={{ xs: 'center', lg: 'center' }} mt={4}>
-        <Button
-          onClick={handleScrollToTop}
-          endIcon={<ArrowCircleUp2 variant="Bulk" size={22} style={{ marginRight: 10 }} />}
-          sx={(theme) => ({
-            px: 3,
-            py: 1.4,
-            borderRadius: '18px',
-            color: theme.palette.primary.contrastText,
-            background: `linear-gradient( 135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 45%, ${theme.palette.primary.light} 100% )`,
-            border: `1px solid ${theme.palette.divider}`,
-            boxShadow: `0 10px 35px ${theme.palette.primary.main}55`,
-            fontWeight: 700,
-            fontSize: '0.95rem',
-            transition: theme.transitions.create(['transform', 'box-shadow', 'background'], { duration: theme.transitions.duration.standard }),
-            '& svg': { transition: theme.transitions.create('transform') },
-            '&:hover': { transform: 'translateY(-4px)', background: `linear-gradient(135deg,${theme.palette.primary.main},${theme.palette.primary.light})`, boxShadow: `0 18px 45px ${theme.palette.primary.main}80`, '& svg': { transform: 'translateY(-3px)' } },
-            '&:active': { transform: 'scale(.98)' },
-          })}
-        >
-          بازگشت به بالا
-        </Button>
-      </Box>
-      <Box sx={styles(theme).wrapper} display={'flex'} alignItems={'center'} justifyContent={'space-between'} flexWrap={'wrap'}>
-        {/* Logo & Brand */}
-        <Box mt={{ xs: 3, sm: 2, lg: 0 }} sx={styles(theme).logoSection}>
-          <Box display={'flex'} alignItems={'center'} gap={1.5}>
-            <Box sx={styles(theme).logoWrapper}>
-              <Image src="/assets/logo/sharifzin.webp" alt="sharifzin" fill priority style={{ objectFit: 'contain' }} />
-            </Box>
+    <Box component="footer" sx={s.outer}>
+      <Box sx={s.wrapper}>
+        {/* Rivet — scroll to top, sits astride the top seam */}
+        <IconButton onClick={handleScrollToTop} aria-label="بازگشت به بالا" sx={s.rivet}>
+          <ArrowUp2 size={26} variant="Bold" color={theme.palette.primary.contrastText} />
+        </IconButton>
 
-            <Box sx={styles(theme).brandText}>
-              <Typography component="h1" variant="h6" sx={styles(theme).brandName}>
-                شریف زین
-              </Typography>
-              <Typography variant="caption" sx={styles(theme).brandSlogan}>
-                فروشگاه تخصصی محصولات دیجیتال و گجت‌های هوشمند
-              </Typography>
+        <Box sx={s.grid}>
+          {/* Brand */}
+          <Box sx={s.col}>
+            <Typography variant="h6" sx={s.brandName}>
+              شریف‌زین
+            </Typography>
+            <Typography variant="caption" sx={s.eyebrow}>
+              زین‌سازی تخصصی موتورسیکلت، دست‌دوز و اصیل
+            </Typography>
+
+            <Typography variant="body2" sx={s.brandDesc}>
+              شریف‌زین با تکیه بر تجربه صنعتگرانی که هر بخیه را با دست می‌زنند، زین‌هایی طراحی می‌کند که هم به بدنه موتور وفادارند و هم به راحتی سرنشین. تضمین اصالت چرم، دوخت دستی و ارسال سریع، همراه هر سفارش شریف‌زین است.
+            </Typography>
+
+            <Box sx={s.socialRow}>
+              <IconButton href="https://www.instagram.com/sharifzin/" sx={s.socialBtn}>
+                <img src="/assets/icon/instagram.svg" alt="آدرس اینستاگرام شریف‌زین" width={22} height={22} />
+              </IconButton>
+              <IconButton href="https://wa.me/989101941207" sx={s.socialBtn}>
+                <img src="/assets/icon/whatsapp.svg" alt="آدرس واتساپ شریف‌زین" width={22} height={22} />
+              </IconButton>
+              <IconButton href="https://t.me/sharifzin" sx={s.socialBtn}>
+                <img src="/assets/icon/telegram.svg" alt="آدرس تلگرام شریف‌زین" width={22} height={22} />
+              </IconButton>
+              <IconButton href="https://bale.ai/sharifzin" sx={s.socialBtn}>
+                <img src="/assets/icon/bale.png" alt="آدرس بله شریف‌زین" width={18} />
+              </IconButton>
             </Box>
           </Box>
 
-          <Box maxWidth={500} textAlign={'right'}>
-            <Typography variant="body2" sx={{ ...styles(theme).brandSlogan, color: '#eee', fontSize: '.95rem', lineHeight: 1.5 }}>
-              شریف زین با هدف ارائه تجربه‌ای سریع، مطمئن و حرفه‌ای در خرید محصولات دیجیتال راه‌اندازی شده است. ما مجموعه‌ای از گوشی موبایل، لپ‌تاپ، تبلت، ساعت هوشمند، هدفون و لوازم جانبی اورجینال را با ضمانت اصالت کالا، قیمت رقابتی و ارسال سریع ارائه می‌کنیم.{' '}
-            </Typography>
-          </Box>
+          <Box sx={s.seam} />
 
-          <Box width={'100%'} display={'flex'} alignItems={'center'} gap={4} mt={2}>
-            <IconButton href="https://www.instagram.com/sharifzin/" sx={{ width: 52, height: 52, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', backdropFilter: 'blur(16px)', transition: '.35s', '&:hover': { background: 'primary.main', transform: 'translateY(-6px) scale(1.08)', boxShadow: '0 10px 25px rgba(0,0,0,.35)', rotate: '8deg' } }}>
-              <img src="/assets/icon/instagram.svg" alt="آدرس اینستاگرام شریف زین" width={26} height={26} />
-            </IconButton>
-            <IconButton href="https://wa.me/989101941207" sx={{ width: 52, height: 52, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', backdropFilter: 'blur(16px)', transition: '.35s', '&:hover': { background: 'primary.main', transform: 'translateY(-6px) scale(1.08)', boxShadow: '0 10px 25px rgba(0,0,0,.35)', rotate: '8deg' } }}>
-              <img src="/assets/icon/whatsapp.svg" alt="آدرس واتساپ شریف زین" width={26} height={26} />
-            </IconButton>
-            <IconButton href="https://t.me/sharifzin" sx={{ width: 52, height: 52, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', backdropFilter: 'blur(16px)', transition: '.35s', '&:hover': { background: 'primary.main', transform: 'translateY(-6px) scale(1.08)', boxShadow: '0 10px 25px rgba(0,0,0,.35)', rotate: '8deg' } }}>
-              <img src="/assets/icon/telegram.svg" alt="آدرس تلگرام شریف زین" width={26} height={26} />
-            </IconButton>
-            <IconButton href="https://bale.ai/sharifzin" sx={{ width: 52, height: 52, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.08)', backdropFilter: 'blur(16px)', transition: '.35s', '&:hover': { background: 'primary.main', transform: 'translateY(-6px) scale(1.08)', boxShadow: '0 10px 25px rgba(0,0,0,.35)', rotate: '8deg' } }}>
-              <img src="/assets/icon/bale.png" alt="آدرس بله شریف زین" width={20} />
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Links Container */}
-        <Box mt={{ xs: 3, sm: 2, lg: 0 }} display={'flex'} alignItems={'flex-start'} flexDirection={'column'} gap={2}>
-          <Box display={'flex'} alignItems={'center'} gap={1}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: theme.palette.primary.main }} />
-            <Typography variant="h6" color={theme.palette.primary.contrastText} fontWeight={900}>
-              دسترسی سریع
-            </Typography>
-          </Box>
-
-          <Box component={'ul'} display={'flex'} flexDirection={'column'} gap={1}>
-            {links?.map((link, index) => {
-              const url = link?.href !== null;
-              return (
-                <Box key={index} component={'li'} sx={{ cursor: 'pointer', listStyleType: 'none' }}>
-                  <Box component="a" href={link?.href} sx={{ color: url ? '#fff' : '#ffffff50', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 1, transition: '.25s', '&:before': { content: '"›"', opacity: 0.4 }, '&:hover': { color: 'primary.main', transform: 'translateX(-8px)' } }}>
-                    {link.title}
+          {/* Quick links */}
+          <Box sx={s.col}>
+            <Box sx={s.sectionHeader}>
+              <Box sx={s.stitchMark}>×</Box>
+              <Typography variant="subtitle1" sx={s.sectionTitle}>
+                دسترسی سریع
+              </Typography>
+            </Box>
+            <Box component="ul" sx={s.linkList}>
+              {links?.map((link, index) => {
+                const hasHref = Boolean(link?.href);
+                return (
+                  <Box key={index} component="li" sx={{ listStyleType: 'none' }}>
+                    <Box component="a" href={link?.href} sx={{ ...s.link, color: hasHref ? s.textOnDark.color : alpha(s.textOnDark.color, 0.35) }}>
+                      {link.title}
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })}
-          </Box>
-        </Box>
-
-        {/* Infoes */}
-        <Box mt={{ xs: 3, sm: 2, lg: 0 }} display={'flex'} alignItems={'flex-start'} flexDirection={'column'} gap={2}>
-          <Box display={'flex'} alignItems={'center'} gap={1}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: theme.palette.primary.main }} />
-            <Typography variant="h6" color={theme.palette.primary.contrastText} fontWeight={900}>
-              ارتباط با ما
-            </Typography>
+                );
+              })}
+            </Box>
           </Box>
 
-          <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
-            <Typography variant="body2" color="#fff">
-              سوالات متداول:
-            </Typography>
-            <Typography variant="body2" color="#fff">
-              {ConvertToPersianDigit('09101941207')}
-            </Typography>
+          <Box sx={s.seam} />
+
+          {/* Contact */}
+          <Box sx={s.col}>
+            <Box sx={s.sectionHeader}>
+              <Box sx={s.stitchMark}>×</Box>
+              <Typography variant="subtitle1" sx={s.sectionTitle}>
+                ارتباط با ما
+              </Typography>
+            </Box>
+
+            <Box sx={s.infoRow}>
+              <Typography variant="body2" sx={s.textOnDark}>
+                پشتیبانی
+              </Typography>
+              <Typography variant="body2" sx={s.textOnDark}>
+                {ConvertToPersianDigit('09101941207')}
+              </Typography>
+            </Box>
+            <Box sx={s.infoRow}>
+              <Typography variant="body2" sx={s.textOnDark}>
+                ایمیل
+              </Typography>
+              <Typography variant="body2" sx={s.textOnDark}>
+                info@sharifzin.ir
+              </Typography>
+            </Box>
+            <Box sx={s.infoRow}>
+              <Typography variant="body2" sx={s.textOnDark}>
+                آدرس:
+              </Typography>
+              <Typography variant="body2" sx={s.textOnDark}>
+                ایران، تهران، میدان رازی (کمرگ)، خیابان مولوی، روبه روی پاساژ بهمن، کوچه خسجته، پلاک 6 ، طبقه بالا{' '}
+              </Typography>
+            </Box>
           </Box>
-          <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
-            <Typography variant="body2" color="#fff">
-              آدرس ایمیل:
-            </Typography>
-            <Typography variant="body2" color="#fff">
-              lobosop.ir@info.com
-            </Typography>
-          </Box>
-          <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
-            <Typography variant="body2" color="#fff">
-              آدرس:
-            </Typography>
-            <Typography variant="body2" color="#fff">
-              (شعبه تهران به زودی)
-            </Typography>
-          </Box>
-          <Box width={'100%'} display={'flex'} flexDirection={'column'}>
-            <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'} gap={2}>
-              <Typography variant="body2" color="#fff" fontWeight={900}>
+
+          <Box sx={s.seam} />
+
+          {/* Newsletter */}
+          <Box sx={s.col}>
+            <Box sx={s.sectionHeader}>
+              <Box sx={s.stitchMark}>×</Box>
+              <Typography variant="subtitle1" sx={s.sectionTitle}>
                 خبرنامه
               </Typography>
-              <Typography variant="body2" color="#fff">
-                جهت عضویت در خبرنامه از کادر زیر اقدام کنید
-              </Typography>
             </Box>
-            <Box sx={styles(theme).searchArea} mt={3}>
-              <Box width={'100%'} position={'relative'}>
-                <InputBase
-                  placeholder="شماره تلفن خود را وارد کنید"
-                  inputProps={{ 'aria-label': 'شماره تلفن خود را وارد کنید' }}
-                  startAdornment={
-                    <Box sx={styles(theme).inputIcon}>
-                      <Message size={22} color={theme.palette.primary.main} variant="Bulk" />
-                    </Box>
-                  }
-                  sx={styles(theme).searchInput}
-                />
-                <Box position={'absolute'} top={1} left={-1}>
-                  <Button variant="contained" size="medium" sx={{ boxShadow: 'none', height: '100%', borderRadius: '12px 0 0 12px', '& hover': { backgroundColor: 'primary.dark' } }}>
-                    ثبت
-                  </Button>
-                </Box>
-              </Box>
+            <Typography variant="body2" sx={{ ...s.textOnDark, opacity: 0.75, mb: 2 }}>
+              جهت عضویت در خبرنامه، شماره تلفن خود را وارد کنید
+            </Typography>
+
+            <Box sx={{ position: 'relative' }}>
+              <InputBase
+                placeholder="۰۹۱۲ ۰۰۰ ۰۰۰۰"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                inputProps={{ 'aria-label': 'شماره تلفن خود را وارد کنید' }}
+                startAdornment={
+                  <Box sx={{ pl: 1, display: 'flex', color: theme.palette.primary.main }}>
+                    <Call size={18} variant="Bold" />
+                  </Box>
+                }
+                sx={s.searchInput}
+              />
+            </Box>
+            <Box component="button" onClick={handleNewsletterSubmit} sx={s.subscribeBtn}>
+              <Sms size={16} variant="Bold" />
+              ثبت‌نام
             </Box>
           </Box>
         </Box>
-
-        {/* Certificates */}
-        {/* <Box mt={{ xs: 3, sm: 2, xl: 0 }} width={{ xs: '100%', lg: 'fit-content' }} display={'flex'} alignItems={'center'} flexDirection={{ xs: 'row', md: 'column' }} flexWrap={'wrap'} gap={2}>
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'primary.main', borderRadius: '16px', padding: 1.5, '& img': { borderRadius: '12px' } }}>
-            <img src="/assets/certificates/zarinpal.png" alt="درگاه امن پرداخت زرین پال شریف زین" width={65} height={65} />
-          </Box>
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'primary.main', borderRadius: '16px', padding: 1.5, '& img': { borderRadius: '12px' } }}>
-            <img src="/assets/certificates/zarinpal.png" alt="درگاه امن پرداخت زرین پال شریف زین" width={65} height={65} />
-          </Box>
-          <Box sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'primary.main', borderRadius: '16px', padding: 1.5, '& img': { borderRadius: '12px' } }}>
-            <img src="/assets/certificates/zarinpal.png" alt="درگاه امن پرداخت زرین پال شریف زین" width={65} height={65} />
-          </Box>
-        </Box> */}
       </Box>
 
-      <Box sx={{ ...styles(theme).wrapper, padding: '24px' }} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
-        <Typography variant="caption" color="#fff" component={'span'}>
-          تمامی مطالب و حقوق متعلق به فروشگاه شریف زین میباشد
+      {/* Bottom bar */}
+      <Box sx={s.bottomBar}>
+        <Typography variant="caption" sx={s.textOnDark}>
+          تمامی مطالب و حقوق متعلق به فروشگاه شریف‌زین می‌باشد
         </Typography>
+
+        <a href="https://www.zarinpal.com/verify/sharifzin" target="_blank" rel="noopener noreferrer">
+          <Box sx={s.trustBadge}>
+            <img src="/assets/trust-symbols/zarinpal.png" alt="نماد اعتماد الکترونیکی زرین‌پال شریف‌زین" width={40} height={40} />
+          </Box>
+        </a>
+
         <a href="https://vortexwebteam.ir" style={{ textDecoration: 'none' }}>
-          <Typography variant="caption" color="#fff" component={'span'}>
-            🔷 توسعه یافته شده توسط تیم طراحی سایت ورتکس 🔷
+          <Typography variant="caption" sx={{ ...s.textOnDark, opacity: 0.7 }}>
+            توسعه‌یافته توسط تیم طراحی سایت ورتکس
           </Typography>
         </a>
       </Box>
@@ -192,133 +180,264 @@ export default function Footer() {
   );
 }
 
-const styles = (theme) => ({
-  wrapper: {
-    width: '100%',
-    padding: { xs: '28px', md: '32px' },
-    borderRadius: '48px',
+const styles = (theme) => {
+  const base = theme.palette.text.primary; // #0B1D30 — deepest tone in the palette, used as footer bg
+  const baseDeep = theme.palette.secondary.dark; // #1E3A8A — for gradient depth
+  const accent = theme.palette.primary.main; // #F97516
+  const thread = theme.palette.secondary.light; // #3B82F6 — second thread color for seams/hang-tag hole
+  const onDark = theme.palette.primary.contrastText; // #FFFFFF
 
-    background: `
-    radial-gradient(circle at top right, rgba(0,122,255,.12), transparent 35%),
-    radial-gradient(circle at bottom left, rgba(59,130,246,.08), transparent 45%),
-    linear-gradient(
-      180deg,
-      #1A1F2E 0%,
-      #131722 50%,
-      #0B0F17 100%
-    )
-  `,
-    border: '1px solid rgba(255,255,255,.08)',
-    boxShadow: `
-    0 25px 80px rgba(0,0,0,.45),
-    inset 0 1px 0 rgba(255,255,255,.05),
-    0 0 80px rgba(0,122,255,.08)
-  `,
-    backdropFilter: 'blur(30px)',
-    overflow: 'hidden',
-    position: 'relative',
-  },
-
-  logoSection: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    flexDirection: 'column',
-    gap: 1,
-  },
-
-  // Mobile grid template (two rows)
-  mobileGrid: {
-    gridTemplateColumns: '1fr auto',
-    gridTemplateAreas: '"logo actions" ' + '"search search"',
-    alignItems: 'center',
-  },
-
-  logoArea: {
-    gridArea: 'logo',
-    display: 'flex',
-    alignItems: 'center',
-    gap: { xs: 1.5, sm: 2 },
-  },
-
-  logoWrapper: {
-    position: 'relative',
-    width: {
-      xs: 70,
-      md: 82,
+  return {
+    outer: {
+      width: '100%',
+      mt: 6,
     },
-    height: {
-      xs: 70,
-      md: 82,
+
+    wrapper: {
+      position: 'relative',
+      width: '100%',
+      padding: { xs: '32px 24px', md: '48px 56px 40px' },
+      borderRadius: '32px',
+      background: `
+        radial-gradient(circle at 15% 20%, ${alpha(thread, 0.1)}, transparent 40%),
+        radial-gradient(circle at 85% 80%, ${alpha(accent, 0.12)}, transparent 45%),
+        linear-gradient(180deg, ${base} 0%, ${baseDeep} 100%)
+      `,
+      borderTop: `2px dashed ${alpha(thread, 0.35)}`,
+      overflow: 'visible',
     },
-    borderRadius: '20px',
-    background: 'rgba(255,255,255,.04)',
-    border: '1px solid rgba(255,255,255,.06)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: '.35s',
-    '&:hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: '0 10px 35px rgba(0,0,0,.4)',
+
+    rivet: {
+      position: 'absolute',
+      top: 0,
+      right: '50%',
+      transform: 'translate(50%, -50%)',
+      borderRadius: '18px',
+      width: 52,
+      height: 52,
+      background: theme.palette.primary.main,
+      transition: 'all ease 0.2s',
+      '&:hover': { transform: 'translate(50%, -55%)', background: theme.palette.primary.dark },
+      '&:active': { transform: 'translate(50%, -48%)' },
     },
-  },
 
-  brandText: {
-    display: 'block',
-  },
+    hangTag: {
+      position: 'absolute',
+      top: -26,
+      right: { xs: 24, md: 56 },
+      width: 92,
+      height: 108,
+      backgroundColor: theme.palette.background.paper, // #EEEEEE
+      borderRadius: '6px',
+      border: `1px solid ${alpha(base, 0.15)}`,
+      boxShadow: `0 10px 20px ${alpha('#000', 0.35)}`,
+      transform: 'rotate(-6deg)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 0.5,
+      pt: 1.5,
+    },
 
-  brandName: {
-    fontWeight: 800,
-    color: 'primary.contrastText',
-    letterSpacing: '0.5px',
-    lineHeight: 1.1,
-  },
+    hangTagHole: {
+      position: 'absolute',
+      top: 8,
+      width: 10,
+      height: 10,
+      borderRadius: '50%',
+      backgroundColor: base,
+      boxShadow: `inset 0 1px 2px ${alpha('#000', 0.5)}`,
+    },
 
-  brandSlogan: {
-    fontSize: '0.78rem',
-    color: '#fff',
-    mt: 0.25,
-  },
-  searchArea: {
-    gridArea: 'search',
-    position: 'relative',
-    display: 'flex',
-    justifyContent: 'center',
-  },
+    hangTagLogo: {
+      mt: 1,
+    },
 
-  searchInput: {
-    width: '100%',
-    pl: 6,
-    pr: 6,
-    py: 0.5,
-    fontSize: { xs: '0.75rem', sm: '0.85rem' },
-    color: 'text.primary',
-    borderRadius: '16px',
-    background: 'rgba(255,255,255,.05)',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255,255,255,.08)',
-    transition: '.35s',
-    color: 'text.disabled',
+    hangTagText: {
+      fontSize: '0.68rem',
+      fontWeight: 800,
+      color: theme.palette.text.primary,
+    },
 
-    '&:hover': {
-      borderColor: 'primary.main',
-      '&.Mui-focused': {
-        borderColor: 'primary.main',
-        boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.18)}`,
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: { xs: '1fr', md: '1.4fr 1px 0.8fr 1px 1fr 1px 1.1fr' },
+      gap: { xs: 4, md: 0 },
+      mt: { xs: 4, md: 2 },
+    },
+
+    col: {
+      px: { xs: 0, md: 4 },
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'start',
+    },
+
+    seam: {
+      display: { xs: 'none', md: 'block' },
+      width: 1,
+      backgroundImage: `repeating-linear-gradient(180deg, ${alpha(thread, 0.45)} 0 8px, transparent 8px 16px)`,
+    },
+
+    brandName: {
+      fontWeight: 800,
+      color: onDark,
+      mb: 0.5,
+    },
+
+    eyebrow: {
+      color: theme.palette.primary.light,
+      fontSize: '0.78rem',
+      letterSpacing: 0.3,
+      mb: 2,
+    },
+
+    brandDesc: {
+      color: alpha(onDark, 0.65),
+      fontSize: '0.85rem',
+      lineHeight: 1.9,
+      mb: 3,
+    },
+
+    socialRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1.5,
+    },
+
+    socialBtn: {
+      width: 42,
+      height: 42,
+      backgroundColor: alpha(onDark, 0.06),
+      border: `1px solid ${alpha(onDark, 0.1)}`,
+      transition: '.25s',
+      '&:hover': {
+        backgroundColor: 'primary.main',
+        transform: 'translateY(-3px)',
       },
-      '& input::placeholder': {
-        color: 'primary.main',
-        opacity: 0.85,
+    },
+
+    sectionHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+      mb: 2.5,
+    },
+
+    stitchMark: {
+      width: 20,
+      height: 20,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: theme.palette.primary.main,
+      fontWeight: 800,
+      fontSize: '1rem',
+    },
+
+    sectionTitle: {
+      color: onDark,
+      fontWeight: 800,
+    },
+
+    linkList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 1.2,
+      p: 0,
+      m: 0,
+    },
+
+    link: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+      textDecoration: 'none',
+      fontSize: '0.88rem',
+      transition: '.2s',
+      '&:before': { content: '"›"', opacity: 0.5 },
+      '&:hover': { color: 'primary.main', transform: 'translateX(-6px)' },
+    },
+
+    infoRow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      py: 0.8,
+      borderBottom: `1px dashed ${alpha(onDark, 0.1)}`,
+      gap: 5,
+    },
+
+    textOnDark: {
+      color: onDark,
+    },
+
+    searchInput: {
+      width: '100%',
+      px: 1.5,
+      py: 1,
+      fontSize: '0.85rem',
+      color: onDark,
+      borderRadius: '10px',
+      backgroundColor: alpha(onDark, 0.06),
+      border: `1px solid ${alpha(onDark, 0.12)}`,
+      transition: '.25s',
+      '& input::placeholder': { color: alpha(onDark, 0.4) },
+      '&:hover, &.Mui-focused': {
+        borderColor: theme.palette.primary.main,
       },
     },
-  },
 
-  inputIcon: {
-    position: 'absolute',
-    right: 16,
-    top: '55%',
-    transform: 'translateY(-50%)',
-    color: 'text.disabled',
-    pointerEvents: 'none',
-  },
-});
+    subscribeBtn: {
+      mt: 1.5,
+      width: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 1,
+      py: 1.1,
+      border: 'none',
+      borderRadius: '10px',
+      backgroundColor: theme.palette.primary.main,
+      color: theme.palette.primary.contrastText,
+      fontWeight: 700,
+      fontSize: '0.85rem',
+      fontFamily: 'Dana',
+      cursor: 'pointer',
+      transition: '.2s',
+      '&:hover': { backgroundColor: theme.palette.primary.dark },
+    },
+
+    trustBadge: {
+      width: 48,
+      height: 48,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: alpha(onDark, 0.9),
+      borderRadius: '10px',
+      padding: 0.75,
+      transition: '.25s',
+      '&:hover': {
+        transform: 'translateY(-3px)',
+        boxShadow: `0 8px 20px ${alpha('#000', 0.3)}`,
+      },
+    },
+
+    bottomBar: {
+      width: '100%',
+      mt: 1,
+      px: { xs: 3, md: 7 },
+      py: 2.5,
+      borderRadius: '24px',
+      backgroundColor: base,
+      borderTop: `1px solid ${alpha(thread, 0.2)}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 2,
+    },
+  };
+};

@@ -11,6 +11,8 @@ import Brands from '@/components/pages/home/Brands';
 import CategorySection from '@/components/pages/home/CategorySection';
 import ProductsCardContianer from '@/components/pages/home/ProductsCardContianer';
 import HowToSubmitOrderSection from '@/components/pages/home/HowToSubmitOrderSection';
+import About from '@/components/pages/home/About';
+import Footer from '@/components/UI/Footer/Footer';
 
 export default function page() {
   const [snackbar, setSnackbar] = useState({ variant: '', open: false, message: '' });
@@ -35,6 +37,14 @@ export default function page() {
 
       <Box py={2}>
         <HowToSubmitOrderSection />
+      </Box>
+
+      <Box py={2}>
+        <About />
+      </Box>
+
+      <Box py={2}>
+        <Footer />
       </Box>
 
       <CustomSnackbar open={snackbar.open} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))} variant={snackbar.variant}>
