@@ -1,12 +1,10 @@
 'use client';
 
 import { Box, IconButton, Typography, useTheme } from '@mui/material';
-import { ArrowRight2 } from 'iconsax-reactjs';
+import { ArrowDown2 } from 'iconsax-reactjs';
 
 export default function CategoryCard({ item }) {
   const theme = useTheme();
-
-  const overlay = '/assets/svg-overlays/hero-section-center.svg';
 
   const { title, alt, src, href = '/' } = item;
 
@@ -29,10 +27,8 @@ export default function CategoryCard({ item }) {
 
         {/* Overlay */}
         <Box sx={{ position: 'absolute', left: -15, bottom: 22, width: 140, height: 90 }}>
-          <img src={overlay} alt="" style={{ width: 125, display: 'block' }} />
-
-          <IconButton sx={{ position: 'absolute', top: 60, left: 65, borderRadius: '16px', transform: 'translate(-50%, -50%)', width: 64, height: 64, bgcolor: 'common.white', color: 'secondary.main', '&:hover': { bgcolor: 'grey.100' } }}>
-            <ArrowRight2 size={36} variant="Bulk" color={theme.palette.secondary.main} style={{ transform: 'rotate(-225deg)' }} />
+          <IconButton sx={{ position: 'absolute', top: 60, left: 65, p: 1.5, borderRadius: '16px', transform: 'translate(-50%, -50%)', bgcolor: 'secondary.main', '&:hover': { bgcolor: 'grey.300' } }}>
+            <ArrowDown2 size={36} variant="Bulk" color={theme.palette.primary.contrastText} style={{ transform: 'rotate(45deg)' }} />
           </IconButton>
         </Box>
       </Box>

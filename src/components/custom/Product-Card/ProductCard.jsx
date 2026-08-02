@@ -1,4 +1,4 @@
-import { alpha, Box, IconButton, Typography, useTheme } from '@mui/material';
+import { alpha, Box, IconButton, Tooltip, Typography, useTheme } from '@mui/material';
 import { Share } from 'iconsax-reactjs';
 import React from 'react';
 
@@ -10,7 +10,7 @@ export default function ProductCard({ item }) {
     <Box display="flex" flexDirection="column" gap={2} sx={{ width: '100%', backgroundColor: '#fff', borderRadius: '32px', py: 1, px: 1.5, boxShadow: '0 0 30px #00000015' }}>
       <Box sx={{ backgroundColor: '#D7E0E6', p: 2, borderRadius: '24px' }}>
         <Box sx={{ backgroundColor: '#fff', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={item?.thumbnail} alt={item?.title} width="100%" style={{ maxWidth: 250 }} />
+          <img src={item?.thumbnail} alt={item?.title} width="100%" style={{ maxWidth: 250, maxHeight: 250 }} />
         </Box>
 
         <Box width={'100%'} position={'relative'}>
@@ -38,9 +38,11 @@ export default function ProductCard({ item }) {
               <img src={overlay} alt={`${item?.title} اشتراک گذاری محصول`} style={{ maxWidth: 85 }} />
             </Box>
             <Box position={'absolute'} bottom={-5} left={-15} zIndex={2}>
-              <IconButton sx={{ backgroundColor: theme.palette.primary.main, borderRadius: '16px', width: 55, height: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all ease 0.2s', '&:hover': { backgroundColor: theme.palette.primary.dark } }}>
-                <Share size={26} variant="Bulk" color="#fff" />
-              </IconButton>
+              <Tooltip title="اشتراک گذاری محصول" placement="top" arrow>
+                <IconButton sx={{ backgroundColor: theme.palette.primary.main, borderRadius: '16px', width: 55, height: 55, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all ease 0.2s', '&:hover': { backgroundColor: theme.palette.primary.dark } }}>
+                  <Share size={26} variant="Bulk" color="#fff" />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
         </Box>

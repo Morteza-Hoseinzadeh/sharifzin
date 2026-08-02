@@ -7,6 +7,7 @@ const ContentSecurityPolicy = `
   img-src 'self' data: blob: http://localhost:3000;
   font-src 'self' data:;
   connect-src 'self' http://localhost:3000 https:;
+  frame-src 'self' https://www.instagram.com https://www.vortexwebteam.ir;
   frame-ancestors 'none';
 `;
 
