@@ -43,10 +43,6 @@ export default function page() {
         <About />
       </Box>
 
-      <Box py={2}>
-        <Footer />
-      </Box>
-
       <CustomSnackbar open={snackbar.open} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))} variant={snackbar.variant}>
         <span>{snackbar.message}</span>
       </CustomSnackbar>

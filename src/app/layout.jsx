@@ -1,6 +1,6 @@
 import '@/utils/styles/globals.css';
 
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 
 import ClientWrapper from './ClientWrapper';
 
@@ -15,7 +15,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#06B6D4',
+  themeColor: '#EEEEEE',
 };
 
 export const metadata = {
@@ -54,6 +54,8 @@ export const metadata = {
     apple: siteConfig.icons.apple,
   },
 
+  manifest: '/favicon/site.webmanifest',
+
   openGraph: {
     type: 'website',
     locale: 'fa_IR',
@@ -66,7 +68,7 @@ export const metadata = {
         url: `${siteConfig.domain}/assets/logo/sharifzin.webp`,
         width: 1200,
         height: 630,
-        alt: 'شریف زین',
+        alt: 'شریف‌زین',
       },
     ],
   },
@@ -80,12 +82,34 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: siteConfig.name,
+    url: siteConfig.domain,
+    logo: `${siteConfig.domain}/assets/logo/sharifzin.webp`,
+    sameAs: ['https://instagram.com/sharifzin', 'https://t.me/sharifzin'],
+  };
+
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteConfig.name,
+    url: siteConfig.domain,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${siteConfig.domain}/products?search={search_term_string}`,
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html lang="fa" dir="rtl" className={dana.variable}>
       <head>
         <link rel="dns-prefetch" href="//api.sharifzin.ir" />
-        <link rel="manifest" href="/public/favicon/site.webmanifest.json" />
         <meta name="format-detection" content="telephone=yes,email=yes" />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
 
       <body>

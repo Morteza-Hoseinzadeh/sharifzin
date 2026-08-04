@@ -24,7 +24,7 @@ export default function ChildrenLayout({ children }) {
         <Box sx={{ margin: '8px 16px' }}>
           <Navbar />
           {children}
-          {/* <Footer /> */}
+          <Footer />
         </Box>
       </Box>
 

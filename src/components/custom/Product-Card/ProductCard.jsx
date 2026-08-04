@@ -6,8 +6,10 @@ export default function ProductCard({ item }) {
   const theme = useTheme();
   const overlay = '/assets/svg-overlays/product-card.svg';
 
+  const buildPageHref = () => `/product/${item?.category}/${item?.slug}`;
+
   return (
-    <Box display="flex" flexDirection="column" gap={2} sx={{ width: '100%', backgroundColor: '#fff', borderRadius: '32px', py: 1, px: 1.5, boxShadow: '0 0 30px #00000015' }}>
+    <Box display="flex" flexDirection="column" gap={2} sx={{ width: '100%', backgroundColor: '#fff', borderRadius: '32px', py: 1, px: 1.5, boxShadow: '0 0 30px #00000020' }}>
       <Box sx={{ backgroundColor: '#D7E0E6', p: 2, borderRadius: '24px' }}>
         <Box sx={{ backgroundColor: '#fff', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <img src={item?.thumbnail} alt={item?.title} width="100%" style={{ maxWidth: 250, maxHeight: 250 }} />
@@ -49,11 +51,13 @@ export default function ProductCard({ item }) {
       </Box>
 
       <Box width="100%" textAlign="right" p={1} display="flex" flexDirection="column">
-        <Typography variant="h6" component="h1" fontWeight={700}>
-          {item?.title}
-        </Typography>
+        <a href={buildPageHref()} style={{ color: theme.palette.text.primary, textDecoration: 'none' }}>
+          <Typography variant="h6" component="h1" fontWeight={700} sx={{ transition: 'all ease-in-out 0.2s', '&:hover': { color: 'primary.main' } }}>
+            {item?.title}
+          </Typography>
+        </a>
         <Typography variant="body2" component="span" color="text.disabled">
-          {item?.description}
+          {item?.description?.length > 65 ? `${item?.description?.slice(0, 65)}...` : item?.description}
         </Typography>
 
         <Box my={1.5}>

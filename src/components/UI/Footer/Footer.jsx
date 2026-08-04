@@ -46,7 +46,7 @@ export default function Footer() {
             </Typography>
 
             <Box sx={s.socialRow}>
-              <IconButton href="https://www.instagram.com/sharifzin/" sx={s.socialBtn}>
+              <IconButton href="https://www.instagram.com/sharifzin_/" sx={s.socialBtn}>
                 <img src="/assets/icon/instagram.svg" alt="آدرس اینستاگرام شریف‌زین" width={22} height={22} />
               </IconButton>
               <IconButton href="https://wa.me/989101941207" sx={s.socialBtn}>

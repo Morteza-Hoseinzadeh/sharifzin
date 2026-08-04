@@ -18,7 +18,7 @@ export default function CardsTitle({ en_title, fa_title, desc, color }) {
       </Box>
 
       <Box textAlign={'center'}>
-        <Typography variant="h4" color="text.primary" sx={{ fontSize: { xs: 22, sm: 28, md: 34 }, lineHeight: { xs: 1.4, md: 1.3 } }}>
+        <Typography variant="h4" component={'h1'} color="text.primary" sx={{ fontSize: { xs: 22, sm: 28, md: 34 }, lineHeight: { xs: 1.4, md: 1.3 } }}>
           {txt1}
           {txt2 && '، '}
           {txt2 && (
