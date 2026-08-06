@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Typography, Stack, Avatar, IconButton, useMediaQuery, Divider } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
-import { Category, Bag2, Profile2User, Chart, Setting2, Logout, CloseCircle, Home2, TicketDiscount, MessageText, Box1, Menu } from 'iconsax-reactjs';
+import { Category, Bag2, Profile2User, Chart, Setting2, Logout, Home2, TicketDiscount, MessageText, Box1, Menu } from 'iconsax-reactjs';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 

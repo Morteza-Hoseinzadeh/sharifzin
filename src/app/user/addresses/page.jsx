@@ -239,7 +239,7 @@ export default function AddressesPage() {
               <Stack direction="row" gap={1.5}>
                 <Button
                   component={Link}
-                  href="/user"
+                  href="/user/dashboard"
                   endIcon={<ArrowLeft2 size={16} style={{ marginRight: '8px' }} />}
                   sx={{
                     px: 2,

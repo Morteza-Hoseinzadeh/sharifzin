@@ -195,7 +195,7 @@ export default function WishlistPage() {
 
               <Button
                 component={Link}
-                href="/user"
+                href="/user/dashboard"
                 endIcon={<ArrowLeft2 size={16} style={{ marginRight: '8px' }} />}
                 sx={{
                   px: 2,

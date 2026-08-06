@@ -84,7 +84,7 @@ export default function ProfilePage() {
                 </Box>
               </Stack>
 
-              <Button component={Link} href="/user" endIcon={<ArrowLeft2 size={16} style={{ marginRight: '8px' }} />} sx={{ px: 2, py: 1, borderRadius: '12px', fontWeight: 600, fontSize: 13, color: INK, ...neoSoft }}>
+              <Button component={Link} href="/user/dashboard" endIcon={<ArrowLeft2 size={16} style={{ marginRight: '8px' }} />} sx={{ px: 2, py: 1, borderRadius: '12px', fontWeight: 600, fontSize: 13, color: INK, ...neoSoft }}>
                 بازگشت
               </Button>
             </Stack>
