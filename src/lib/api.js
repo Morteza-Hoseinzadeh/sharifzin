@@ -7,3 +7,7 @@ export function getProducts() {
 export function getCategories() {
   return products;
 }
+
+export function getCurrentProduct(slug) {
+  return products?.filter((item) => item?.slug === slug);
+}

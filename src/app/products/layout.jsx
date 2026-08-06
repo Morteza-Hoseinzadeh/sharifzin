@@ -1,7 +1,7 @@
 // app/products/layout.jsx
 
 import { siteConfig } from '@/config/seo.config';
-import { products } from '@/utils/data/productsMock';
+import { products } from '../../utils/data/productsMock';
 import { dana } from '../fonts/font';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter';
 import ClientWrapper from '../ClientWrapper';

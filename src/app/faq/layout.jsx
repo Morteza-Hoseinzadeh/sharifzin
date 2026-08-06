@@ -1,14 +1,10 @@
 import '@/utils/styles/globals.css';
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-
-import ClientWrapper from './ClientWrapper';
-
+import ClientWrapper from '../ClientWrapper';
 import { siteConfig } from '@/config/seo.config';
-
-import { CartSnackbarProvider } from '../utils/context/CartSnackbarContext';
-
-import { dana } from './fonts/font';
+import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
+import { dana } from '../fonts/font';
 
 export const viewport = {
   width: 'device-width',
@@ -22,12 +18,13 @@ export const metadata = {
   metadataBase: new URL(siteConfig.domain),
 
   title: {
-    default: siteConfig.defaultTitle,
-    template: `%s | ${siteConfig.name}`,
+    default: 'سوالات متداول',
+    template: `%s | سوالات متداول شریف‌زین`,
   },
 
-  description: siteConfig.defaultDescription,
-  keywords: siteConfig.keywords,
+  description: 'پاسخ به سوالات متداول درباره زین‌سازی، گارانتی، نحوه سفارش، زمان تحویل، مرجوعی کالا و خدمات تخصصی شریف‌زین.',
+
+  keywords: ['سوالات متداول شریف‌زین', 'پرسش و پاسخ زین موتور', 'گارانتی زین', 'نحوه سفارش زین', 'زمان تحویل زین', 'مرجوعی کالا شریف‌زین', 'FAQ شریف‌زین'],
 
   robots: {
     index: true,
@@ -42,9 +39,9 @@ export const metadata = {
   },
 
   alternates: {
-    canonical: siteConfig.domain,
+    canonical: `${siteConfig.domain}/faq`,
     languages: {
-      'fa-IR': siteConfig.domain,
+      'fa-IR': `${siteConfig.domain}/faq`,
     },
   },
 
@@ -59,57 +56,34 @@ export const metadata = {
   openGraph: {
     type: 'website',
     locale: 'fa_IR',
-    url: siteConfig.domain,
+    url: `${siteConfig.domain}/faq`,
     siteName: siteConfig.name,
-    title: siteConfig.defaultTitle,
-    description: siteConfig.defaultDescription,
+    title: 'سوالات متداول',
+    description: 'پاسخ به رایج‌ترین سوالات درباره محصولات، خدمات، گارانتی و نحوه سفارش در شریف‌زین.',
     images: [
       {
         url: `${siteConfig.domain}/assets/logo/sharifzin.webp`,
         width: 1200,
         height: 630,
-        alt: 'شریف‌زین',
+        alt: 'سوالات متداول شریف‌زین',
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: siteConfig.defaultTitle,
-    description: siteConfig.defaultDescription,
+    title: 'سوالات متداول',
+    description: 'پاسخ به سوالات متداول درباره زین‌سازی، گارانتی، سفارش و خدمات شریف‌زین.',
     images: [`${siteConfig.domain}/assets/logo/sharifzin.webp`],
   },
 };
 
-export default function RootLayout({ children }) {
-  const organizationSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: siteConfig.name,
-    url: siteConfig.domain,
-    logo: `${siteConfig.domain}/assets/logo/sharifzin.webp`,
-    sameAs: ['https://instagram.com/sharifzin_', 'https://t.me/sharifzin'],
-  };
-
-  const websiteSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: siteConfig.name,
-    url: siteConfig.domain,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${siteConfig.domain}/products?search={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
-  };
-
+export default function FaqLayout({ children }) {
   return (
     <html lang="fa" dir="rtl" className={dana.variable}>
       <head>
         <link rel="dns-prefetch" href="//api.sharifzin.ir" />
         <meta name="format-detection" content="telephone=yes,email=yes" />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
       </head>
 
       <body>

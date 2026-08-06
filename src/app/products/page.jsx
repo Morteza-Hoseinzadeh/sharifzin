@@ -11,10 +11,10 @@ import ChildrenLayout from '@/components/ChildrenLayout';
 import ProductCard from '@/components/custom/Product-Card/ProductCard';
 import ProductsFilters from '@/components/pages/products/productsFilters';
 
-import { products as ALL_PRODUCTS, products } from '@/utils/data/productsMock';
-import theme from '@/utils/theme/theme';
+import { products as ALL_PRODUCTS, products } from '../../utils/data/productsMock';
+import theme from '../../utils/theme/theme';
 import CardsTitle from '@/components/custom/Cards-Title/CardsTitle';
-import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
+import ConvertToPersianDigit from '../../utils/functions/convertToPersianDigit';
 
 import { FormControl, InputLabel, Select, MenuItem } from '@mui/material';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -91,7 +91,7 @@ function ListPreview() {
   return (
     <Box display={'flex'} alignItems={'center'} gap={1}>
       <label style={{ fontFamily: 'Dana', fontSize: 16, color: '#6b6b6b', whiteSpace: 'nowrap' }}>نمایش:</label>
-      <IconButton sx={{ borderRadius: '8px', backgroundColor: 'primary.main', p: 1 }}>
+      <IconButton sx={{ borderRadius: '8px', backgroundColor: 'primary.main', p: 1, '&:hover': { backgroundColor: 'priamry.dark' } }}>
         <Menu variant="Bulk" color={theme.palette.primary.contrastText} size={18} />
       </IconButton>
     </Box>

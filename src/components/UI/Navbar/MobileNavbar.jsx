@@ -124,7 +124,7 @@ export default function MobileNavbar() {
               <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.secondary.main }} component={'a'} href="/cart">
                 <ShoppingCart size={21} variant="Bulk" />
               </Box>
-              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.text.primary }} component={'a'} href="/auth/account">
+              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.text.primary }} component={'a'} href="/auth/sign-up">
                 <UserOctagon size={26} variant="Bulk" />
               </Box>
             </Box>

@@ -10,7 +10,7 @@ import { Snackbar, Alert, Box, Tooltip, IconButton, Typography } from '@mui/mate
 import { ShoppingCart } from 'iconsax-reactjs';
 
 // Utils
-import axiosInstance from '@/utils/API/axiosInstance';
+import axiosInstance from '../../utils/API/axiosInstance';
 
 const CartSnackbarContext = createContext(undefined);
 

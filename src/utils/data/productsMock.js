@@ -12,9 +12,10 @@ export const products = [
     discount: 15,
     finalPrice: 833000,
     thumbnail: '/assets/products/cg125/1.webp',
-    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/2.webp', '/assets/products/cg125/3.webp', '/assets/products/cg125/4.webp'],
+    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp'],
     colors: ['مشکی', 'مشکی سفید', 'قهوه‌ای'],
     material: 'چرم مصنوعی درجه یک',
+    best_for: ['راحتی ستون فقرات'],
     description: 'زین طبی مناسب هوندا CG125 با فوم سرد، دوخت صنعتی و روکش ضدآب.',
     features: ['فوم سرد طبی', 'دوخت CNC', 'روکش ضد آب', 'مقاوم در برابر نور خورشید', 'نصب آسان', 'مناسب استفاده روزانه'],
     specifications: {
@@ -37,10 +38,11 @@ export const products = [
     price: 1650000,
     discount: 10,
     finalPrice: 1485000,
-    thumbnail: '/assets/products/nmax/1.webp',
-    images: ['/assets/products/nmax/1.webp', '/assets/products/nmax/2.webp', '/assets/products/nmax/3.webp'],
+    thumbnail: '/assets/products/cg125/1.webp',
+    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp'],
     colors: ['مشکی', 'طوسی', 'قرمز'],
     material: 'چرم ایتالیایی',
+    best_for: ['راحتی ستون فقرات'],
     description: 'زین اسپرت و راحت مناسب یاماها NMAX با طراحی ارگونومیک.',
     features: ['فوم طبی', 'چرم ضد آب', 'دوخت CNC', 'مقاوم در برابر سایش'],
     specifications: {
@@ -63,10 +65,11 @@ export const products = [
     price: 1850000,
     discount: 0,
     finalPrice: 1850000,
-    thumbnail: '/assets/products/pcx/1.webp',
-    images: ['/assets/products/pcx/1.webp', '/assets/products/pcx/2.webp'],
+    thumbnail: '/assets/products/cg125/1.webp',
+    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp'],
     colors: ['مشکی', 'مشکی قرمز'],
     material: 'چرم ضد خش',
+    best_for: ['راحتی ستون فقرات'],
     description: 'زین اسپرت مخصوص هوندا PCX با طراحی ارگونومیک و فوم نرم.',
     features: ['طراحی اسپرت', 'فوم سرد', 'ضد آب', 'دوخت صنعتی'],
     specifications: {
@@ -89,9 +92,10 @@ export const products = [
     discount: 15,
     finalPrice: 833000,
     thumbnail: '/assets/products/cg125/1.webp',
-    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/2.webp', '/assets/products/cg125/3.webp', '/assets/products/cg125/4.webp'],
+    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp'],
     colors: ['مشکی', 'مشکی سفید', 'قهوه‌ای'],
     material: 'چرم مصنوعی درجه یک',
+    best_for: ['راحتی ستون فقرات'],
     description: 'زین طبی مناسب هوندا CG125 با فوم سرد، دوخت صنعتی و روکش ضدآب.',
     features: ['فوم سرد طبی', 'دوخت CNC', 'روکش ضد آب', 'مقاوم در برابر نور خورشید', 'نصب آسان', 'مناسب استفاده روزانه'],
     specifications: {
@@ -114,10 +118,11 @@ export const products = [
     price: 1650000,
     discount: 10,
     finalPrice: 1485000,
-    thumbnail: '/assets/products/nmax/1.webp',
-    images: ['/assets/products/nmax/1.webp', '/assets/products/nmax/2.webp', '/assets/products/nmax/3.webp'],
+    thumbnail: '/assets/products/cg125/1.webp',
+    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp'],
     colors: ['مشکی', 'طوسی', 'قرمز'],
     material: 'چرم ایتالیایی',
+    best_for: ['راحتی ستون فقرات'],
     description: 'زین اسپرت و راحت مناسب یاماها NMAX با طراحی ارگونومیک.',
     features: ['فوم طبی', 'چرم ضد آب', 'دوخت CNC', 'مقاوم در برابر سایش'],
     specifications: {
@@ -140,10 +145,11 @@ export const products = [
     price: 1850000,
     discount: 0,
     finalPrice: 1850000,
-    thumbnail: '/assets/products/pcx/1.webp',
-    images: ['/assets/products/pcx/1.webp', '/assets/products/pcx/2.webp'],
+    thumbnail: '/assets/products/cg125/1.webp',
+    images: ['/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp', '/assets/products/cg125/1.webp'],
     colors: ['مشکی', 'مشکی قرمز'],
     material: 'چرم ضد خش',
+    best_for: ['راحتی ستون فقرات'],
     description: 'زین اسپرت مخصوص هوندا PCX با طراحی ارگونومیک و فوم نرم.',
     features: ['طراحی اسپرت', 'فوم سرد', 'ضد آب', 'دوخت صنعتی'],
     specifications: {
@@ -170,4 +176,82 @@ export const categories = [
   { title: 'زین چریکی', src: '/assets/category/zin-cheriki.png', href: '/category/zin-cheriki', alt: 'زین چریکی هندا' },
   { title: 'زین چریکی', src: '/assets/category/zin-cheriki.png', href: '/category/zin-cheriki', alt: 'زین چریکی هندا' },
   { title: 'زین چریکی', src: '/assets/category/zin-cheriki.png', href: '/category/zin-cheriki', alt: 'زین چریکی هندا' },
+];
+
+export const productFQ = [
+  {
+    question: 'آیا این محصول ضد آب است؟',
+    answer: 'بله، این محصول دارای پوشش ضد آب است و برای استفاده در شرایط مرطوب مناسب می‌باشد.',
+    date: '۲ روز پیش',
+  },
+  {
+    question: 'گارانتی محصول چند ماه است؟',
+    answer: 'این محصول دارای ۱۲ ماه گارانتی اصالت و سلامت کالا می‌باشد.',
+    date: '۵ روز پیش',
+  },
+  {
+    question: 'وزن تقریبی محصول چقدر است؟',
+    answer: 'وزن این محصول حدود ۲٫۴ کیلوگرم است و برای استفاده طولانی‌مدت طراحی شده است.',
+    date: '۱ هفته پیش',
+  },
+  {
+    question: 'آیا رنگ دوخت قابل انتخاب است؟',
+    answer: 'بله، شما می‌توانید از بین چندین رنگ دوخت موجود، رنگ مورد نظر خود را انتخاب کنید.',
+    date: '۱ هفته پیش',
+  },
+  {
+    question: 'جنس فوم استفاده شده چیست؟',
+    answer: 'در ساخت این محصول از فوم سرد با کیفیت بالا استفاده شده که دوام و راحتی بالایی دارد.',
+    date: '۱۰ روز پیش',
+  },
+  {
+    question: 'آیا امکان بازگشت کالا وجود دارد؟',
+    answer: 'بله، تا ۷ روز پس از دریافت کالا در صورت عدم رضایت می‌توانید آن را مرجوع کنید.',
+    date: '۲ هفته پیش',
+  },
+  {
+    question: 'زمان تحویل سفارش چقدر است؟',
+    answer: 'در تهران تحویل اکسپرس کمتر از ۲ ساعت و در سایر شهرها بین ۱ تا ۳ روز کاری انجام می‌شود.',
+    date: '۲ هفته پیش',
+  },
+  {
+    question: 'آیا محصول برای موتورهای سنگین مناسب است؟',
+    answer: 'بله، این محصول برای انواع موتورسیکلت‌های سبک و سنگین طراحی و تقویت شده است.',
+    date: '۳ هفته پیش',
+  },
+  {
+    question: 'نحوه نگهداری و تمیز کردن محصول چگونه است؟',
+    answer: 'برای تمیز کردن کافی است با دستمال مرطوب و مواد شوینده ملایم پاک کنید. از مواد شیمیایی قوی استفاده نکنید.',
+    date: '۳ هفته پیش',
+  },
+  {
+    question: 'آیا نصب محصول نیاز به تخصص دارد؟',
+    answer: 'نصب این محصول نسبتاً ساده است و با ابزار معمولی قابل انجام می‌باشد. در صورت نیاز می‌توانید از خدمات نصب ما استفاده کنید.',
+    date: '۱ ماه پیش',
+  },
+  {
+    question: 'تفاوت این مدل با مدل‌های قبلی چیست؟',
+    answer: 'در این مدل از فوم سرد با تراکم بالاتر، دوخت مقاوم‌تر و پوشش ضد آب بهبود یافته استفاده شده است.',
+    date: '۱ ماه پیش',
+  },
+  {
+    question: 'آیا امکان سفارش با رنگ خاص وجود دارد؟',
+    answer: 'در حال حاضر رنگ‌های موجود در سایت قابل انتخاب هستند. برای رنگ‌های سفارشی با پشتیبانی تماس بگیرید.',
+    date: '۱ ماه پیش',
+  },
+  {
+    question: 'آیا محصول دارای گواهی استاندارد است؟',
+    answer: 'بله، این محصول دارای گواهی اصالت کالا و استانداردهای لازم کیفیت می‌باشد.',
+    date: '۱ ماه پیش',
+  },
+  {
+    question: 'حداکثر تحمل وزن محصول چقدر است؟',
+    answer: 'این محصول تا وزن ۱۲۰ کیلوگرم را به راحتی تحمل می‌کند و برای استفاده روزمره کاملاً مناسب است.',
+    date: '۵ هفته پیش',
+  },
+  {
+    question: 'آیا در فصل زمستان هم قابل استفاده است؟',
+    answer: 'بله، به دلیل استفاده از مواد باکیفیت و طراحی مناسب، در تمام فصول سال قابل استفاده است.',
+    date: '۶ هفته پیش',
+  },
 ];

@@ -17,7 +17,7 @@ function SubHeader() {
   return (
     <Box width={'100%'} display={'flex'} alignItems={'center'} justifyContent={'space-between'}>
       <Box width={'100%'} display={'flex'} alignItems={'center'} gap={2}>
-        <Box>
+        <Box component={'a'} href="/">
           <Image src="/assets/logo/sharifzin-logo.webp" alt="خرید زین موتور - شریف زین" width={80} height={80} priority />
         </Box>
         <Box width={400}>
@@ -71,9 +71,11 @@ function Navbar() {
   const pathname = usePathname();
 
   const actions = [
+    // TODO: Replace with instagram reels link
     { title: 'ثبت سفارش', href: 'https://example.com', icon: Receipt1, backgroundColor: theme.palette.primary.main },
-    { title: 'سبد خرید', href: 'https://example.com/cart', icon: ShoppingCart, backgroundColor: theme.palette.secondary.main },
-    { title: null, href: 'https://example.com/account', icon: UserOctagon, backgroundColor: theme.palette.text.primary },
+
+    { title: 'سبد خرید', href: '/cart', icon: ShoppingCart, backgroundColor: theme.palette.secondary.main },
+    { title: null, href: '/auth/sign-up', icon: UserOctagon, backgroundColor: theme.palette.text.primary },
   ];
 
   return (

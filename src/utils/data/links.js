@@ -3,11 +3,10 @@ import { TruckFast, ShieldTick, WalletMoney, Refresh2 } from 'iconsax-reactjs';
 export const links = [
   { title: 'صفحه اصلی', href: '/' },
   { title: 'محصولات', href: '/products' },
-  { title: 'برندها', href: '/shop' },
-  { title: 'خدمات', href: '/faq' },
+  { title: 'خدمات', href: '/services' },
   { title: 'مقاله', href: '/blog' },
   { title: 'درباره ی ما', href: '/about' },
-  { title: 'تماس با ما', href: '/contact' },
+  { title: 'سوالات متداول', href: '/faq' },
 ];
 
 export const storeDetials = [
