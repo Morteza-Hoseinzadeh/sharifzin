@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Grid, Typography, Stack, Tabs, Tab, IconButton, Button, Divider } from '@mui/material';
+import { Box, Grid, Typography, Stack, Tabs, Tab, IconButton, Button } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { ArrowLeft2, ArrowRight2, TickCircle, ShieldTick, Add, Minus, Book1, ShoppingCart } from 'iconsax-reactjs';
+import { TickCircle, Add, Minus, Book1, ShoppingCart } from 'iconsax-reactjs';
 
 import theme from '../../../utils/theme/theme';
 import ConvertToPersianDigit from '../../../utils/functions/convertToPersianDigit';
@@ -220,19 +220,20 @@ export default function ProductView({ product }) {
         </Box>
 
         {/* Trust Badges */}
-        <Box sx={{ ...neoSoft, borderRadius: '24px', mt: 3, overflow: 'hidden', display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, border: `1px solid ${alpha('#FFFFFF', 0.08)}` }}>
+        <Grid container spacing={2} sx={{ ...neoSoft, borderRadius: '24px', mt: 3, overflow: 'hidden', border: `1px solid ${alpha('#FFFFFF', 0.08)}` }}>
           {storeDetials?.map((item, index) => {
             const isOdd = index % 2 !== 0;
             const accent = isOdd ? ACCENT_ORANGE : ACCENT_BLUE;
 
             return (
-              <React.Fragment key={index}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={index}>
                 <TrustBadge label={item?.title} desc={item?.description} accent={accent} Icon={item?.icon} />
                 {index < storeDetials.length - 1 && <Box sx={{ width: { sm: '1px' }, height: { xs: '1px', sm: 'auto' }, bgcolor: alpha('#FFFFFF', 0.08), my: { xs: 0, sm: 2.5 }, mx: { xs: 3, sm: 0 } }} />}
-              </React.Fragment>
+              </Grid>
             );
           })}
-        </Box>
+        </Grid>
+
         {/* Tabs Section */}
         <Box sx={{ ...neoRaised, mt: 3.5, p: { xs: 2.5, md: 3.5 } }}>
           <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 3.5, minHeight: 48, '& .MuiTabs-indicator': { height: 3, borderRadius: '3px', bgcolor: ACCENT_BLUE }, '& .MuiTab-root': { fontSize: 13.5, color: INK_SOFT, minHeight: 48, borderRadius: '12px', mx: 0.5, transition: 'all 0.2s ease' }, '& .Mui-selected': { color: `${ACCENT_BLUE} !important` } }}>

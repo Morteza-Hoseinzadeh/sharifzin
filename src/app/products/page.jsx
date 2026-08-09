@@ -199,7 +199,7 @@ export default function ProductsPage() {
                     نمایش {ConvertToPersianDigit(filtered?.length)} محصول از {ConvertToPersianDigit(products?.length)} محصول
                   </Typography>
                 </Stack>
-                <Stack direction={'row'} alignItems={'center'} gap={4}>
+                <Stack direction={'row'} alignItems={'center'} flexDirection={{ xs: 'column-reverse', md: 'row' }} gap={4}>
                   <ListPreview />
                   <SortSelect />
                 </Stack>
