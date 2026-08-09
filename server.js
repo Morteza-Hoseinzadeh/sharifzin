@@ -24,7 +24,7 @@ app
     server.use(bodyParser.urlencoded({ extended: true }));
 
     // --- API Routes ---
-    server.use('/api', require('./server/api/route'));
+    server.use('/api/v1', require('./server/api/route'));
 
     // --- Custom Next.js Routes ---
     const routes = ['/'];

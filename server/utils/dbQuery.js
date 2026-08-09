@@ -1,5 +1,5 @@
 // Helper function for database queries
-const db = require('../models/dbConnection').promise();
+const db = require('../models/dbConnection');
 
 const query = async (sql, params = []) => {
   try {
