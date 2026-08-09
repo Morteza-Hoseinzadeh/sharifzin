@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, Grid, Button, IconButton, Divider } from '@mui/material';
+import { Box, Container, Typography, Stack, Grid, Button, IconButton, Divider, InputBase } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Add, Minus, Trash, ShoppingCart, ArrowLeft2, TickCircle } from 'iconsax-reactjs';
+import { Add, Minus, Trash, ShoppingCart, ArrowLeft2, TickCircle, DiscountShape, CloseCircle } from 'iconsax-reactjs';
 import Link from 'next/link';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
@@ -15,6 +15,8 @@ const INK = '#2D3748';
 const INK_SOFT = '#718096';
 const ACCENT_ORANGE = '#F57C1F';
 const ACCENT_BLUE = '#3B82F6';
+const ACCENT_GREEN = '#2F9E44';
+const ACCENT_RED = '#E53E3E';
 const SHADOW_LIGHT = 'rgba(255, 255, 255, 0.9)';
 const SHADOW_DARK = 'rgba(163, 177, 198, 0.55)';
 
@@ -56,6 +58,13 @@ const initialCart = [
     thumbnail: '/assets/products/cg125/1.webp',
   },
 ];
+
+// ==================== Mock Discount Codes ====================
+// در پروژه واقعی این بخش باید با یک API چک بشه
+const DISCOUNT_CODES = {
+  SUMMER20: { type: 'percent', value: 20, label: '۲۰٪ تخفیف' },
+  WELCOME50000: { type: 'flat', value: 50000, label: '۵۰,۰۰۰ تومان تخفیف' },
+};
 
 // ==================== Components ====================
 function QuantityControl({ value, onIncrease, onDecrease }) {
@@ -154,9 +163,52 @@ function CartItem({ item, onIncrease, onDecrease, onRemove }) {
   );
 }
 
+// بخش جدید: ورودی کد تخفیف
+function DiscountCodeBox({ discountCode, setDiscountCode, appliedDiscount, discountError, onApply, onRemove }) {
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') onApply();
+  };
+
+  return (
+    <Box sx={{ mb: 4 }}>
+      {!appliedDiscount ? (
+        <Stack direction="row" gap={1} alignItems="center">
+          <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, p: 3, ...neoInset, height: 42 }}>
+            <DiscountShape size={18} color={INK_SOFT} />
+            <InputBase value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} onKeyDown={handleKeyDown} placeholder="کد تخفیف را وارد کنید" sx={{ flex: 1, fontSize: 13.5, color: INK, '& input::placeholder': { color: INK_SOFT, opacity: 1 } }} />
+          </Stack>
+
+          <Button onClick={onApply} sx={{ height: 42, px: 2.5, borderRadius: '14px', fontSize: 13, color: '#fff', bgcolor: ACCENT_ORANGE, whiteSpace: 'nowrap', boxShadow: `4px 4px 10px ${SHADOW_DARK}, -3px -3px 8px ${SHADOW_LIGHT}`, '&:hover': { bgcolor: '#E06B10' } }}>
+            اعمال کد
+          </Button>
+        </Stack>
+      ) : (
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.2, borderRadius: '14px', bgcolor: alpha(ACCENT_GREEN, 0.08), border: `1px solid ${alpha(ACCENT_GREEN, 0.25)}` }}>
+          <Stack direction="row" alignItems="center" gap={1}>
+            <TickCircle size={17} variant="Bold" color={ACCENT_GREEN} />
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: ACCENT_GREEN }}>
+              {appliedDiscount.code} اعمال شد ({appliedDiscount.label})
+            </Typography>
+          </Stack>
+          <IconButton size="small" onClick={onRemove} sx={{ color: ACCENT_RED }}>
+            <CloseCircle size={18} />
+          </IconButton>
+        </Stack>
+      )}
+
+      {discountError && <Typography sx={{ fontSize: 12, color: ACCENT_RED, mt: 1, pr: 0.5 }}>{discountError}</Typography>}
+    </Box>
+  );
+}
+
 // ==================== Main Page ====================
 export default function CartPage() {
   const [cart, setCart] = useState(initialCart);
+
+  // state های کد تخفیف
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [discountError, setDiscountError] = useState('');
 
   const increaseQty = (id) => {
     setCart((prev) => prev.map((item) => (item.id === id ? { ...item, quantity: item.quantity + 1 } : item)));
@@ -172,6 +224,34 @@ export default function CartPage() {
 
   const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // محاسبه مبلغ تخفیف
+  const discountAmount = appliedDiscount ? (appliedDiscount.type === 'percent' ? Math.round((totalPrice * appliedDiscount.value) / 100) : Math.min(appliedDiscount.value, totalPrice)) : 0;
+
+  const payablePrice = totalPrice - discountAmount;
+
+  const handleApplyDiscount = () => {
+    const code = discountCode.trim().toUpperCase();
+    if (!code) {
+      setDiscountError('لطفا کد تخفیف را وارد کنید');
+      return;
+    }
+
+    const found = DISCOUNT_CODES[code];
+    if (!found) {
+      setDiscountError('کد تخفیف نامعتبر است');
+      return;
+    }
+
+    setAppliedDiscount({ code, ...found });
+    setDiscountError('');
+    setDiscountCode('');
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountError('');
+  };
 
   // Empty State
   if (cart.length === 0) {
@@ -247,11 +327,21 @@ export default function CartPage() {
             <Box sx={{ ...neoRaised, p: 3, position: 'sticky', top: 24 }}>
               <Typography sx={{ fontWeight: 700, fontSize: 16, color: INK, mb: 2.5 }}>خلاصه سفارش</Typography>
 
+              {/* بخش کد تخفیف */}
+              <DiscountCodeBox discountCode={discountCode} setDiscountCode={setDiscountCode} appliedDiscount={appliedDiscount} discountError={discountError} onApply={handleApplyDiscount} onRemove={handleRemoveDiscount} />
+
               <Stack gap={1.8} sx={{ mb: 2.5 }}>
                 <Stack direction="row" justifyContent="space-between">
                   <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>جمع کل کالاها</Typography>
                   <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: INK }}>{ConvertToPersianDigit(totalPrice.toLocaleString())} تومان</Typography>
                 </Stack>
+
+                {appliedDiscount && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>تخفیف</Typography>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: ACCENT_GREEN }}>{ConvertToPersianDigit(discountAmount.toLocaleString())}- تومان</Typography>
+                  </Stack>
+                )}
 
                 <Stack direction="row" justifyContent="space-between">
                   <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>هزینه ارسال</Typography>
@@ -264,7 +354,7 @@ export default function CartPage() {
               <Stack direction="row" justifyContent="space-between" sx={{ mb: 3 }}>
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: INK }}>مبلغ قابل پرداخت</Typography>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: INK }}>
-                  {ConvertToPersianDigit(totalPrice.toLocaleString())}
+                  {ConvertToPersianDigit(payablePrice.toLocaleString())}
                   <Typography component="span" sx={{ fontSize: 12, color: INK_SOFT, mr: 0.5 }}>
                     تومان
                   </Typography>
