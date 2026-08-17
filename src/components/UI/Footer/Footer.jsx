@@ -164,11 +164,19 @@ export default function Footer() {
           تمامی مطالب و حقوق متعلق به فروشگاه شریف‌زین می‌باشد
         </Typography>
 
-        <a href="https://www.zarinpal.com/verify/sharifzin" target="_blank" rel="noopener noreferrer">
-          <Box sx={s.trustBadge}>
-            <img src="/assets/trust-symbols/zarinpal.png" alt="نماد اعتماد الکترونیکی زرین‌پال شریف‌زین" width={40} height={40} />
-          </Box>
-        </a>
+        <Box display={'flex'} alignItems={'center'} gap={2}>
+          <a referrerPolicy="origin" target="_blank" href="https://trustseal.enamad.ir/?id=770959&Code=1OO2ZERrsHmx0m5ij037ijBOzYVDhWbM">
+            <Box sx={s.trustBadge}>
+              <img src="/assets/trust-symbols/enamad.jpg" alt="نماد اعتماد الکترونیکی زرین‌پال شریف‌زین" width={40} height={40} />
+            </Box>
+          </a>
+
+          <a href="https://www.zarinpal.com/verify/sharifzin" target="_blank" rel="noopener noreferrer">
+            <Box sx={s.trustBadge}>
+              <img src="/assets/trust-symbols/zarinpal.png" alt="نماد اعتماد الکترونیکی زرین‌پال شریف‌زین" width={40} height={40} />
+            </Box>
+          </a>
+        </Box>
 
         <a href="https://vortexwebteam.ir" style={{ textDecoration: 'none' }}>
           <Typography variant="caption" sx={{ ...s.textOnDark, opacity: 0.7 }}>
@@ -415,7 +423,7 @@ const styles = (theme) => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: alpha(onDark, 0.9),
+      backgroundColor: alpha(onDark, 1),
       borderRadius: '10px',
       padding: 0.75,
       transition: '.25s',
