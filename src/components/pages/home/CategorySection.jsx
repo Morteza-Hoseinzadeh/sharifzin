@@ -1,13 +1,25 @@
 'use client';
 
-import React from 'react';
-import { Box, Grid, useTheme } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Grid, useTheme } from '@mui/material';
 import CategoryCard from '@/components/UI/Category/CategoryCard';
-import { categories } from '@/utils/data/productsMock';
 import CardsTitle from '@/components/custom/Cards-Title/CardsTitle';
+import { getCategories } from '@/lib/api';
 
 export default function CategorySection() {
   const theme = useTheme();
+
+  const [categories, setCategories] = useState(null);
+
+  useEffect(() => {
+    async function getData() {
+      const response = await getCategories();
+      setCategories(response?.data);
+    }
+
+    getData();
+  }, []);
+
   return (
     <Grid container spacing={4}>
       <Grid size={12}>

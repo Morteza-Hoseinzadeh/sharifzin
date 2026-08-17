@@ -6,18 +6,12 @@ import { getCurrentProduct } from '@/lib/api';
 const SITE_NAME = 'خرید و تعویض زین موتور';
 const SITE_URL = 'https://sharifzin.ir';
 
-// Dedupe the fetch across generateMetadata + the layout — React's cache()
-// makes sure getCurrentProduct only runs once per request instead of twice.
-const getProduct = cache(async (rawName) => {
-  const decodedSlug = decodeURIComponent(rawName);
-  const currentProductData = await getCurrentProduct(decodedSlug);
-  return currentProductData?.[0] ?? null;
-});
-
 export async function generateMetadata({ params }) {
   const { category, slug } = await params;
 
-  const product = await getProduct(slug);
+  const decodedSlug = decodeURIComponent(slug);
+  const { data } = await getCurrentProduct(decodedSlug);
+  const product = data[0];
 
   if (!product?.slug) {
     return {
@@ -76,15 +70,18 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductDetailLayout({ params, children }) {
-  const { category, name } = await params;
-  const product = getProduct(name);
+  const { category, slug } = await params;
 
-  if (!product) {
+  const decodedSlug = decodeURIComponent(slug);
+  const { data } = await getCurrentProduct(decodedSlug);
+  const product = data[0];
+
+  if (!product?.length) {
     return <>{children}</>;
   }
 
   const decodedCategory = decodeURIComponent(category);
-  const url = `${SITE_URL}/product/${decodedCategory?.toLowerCase()}/${name?.toLowerCase() || ''}`;
+  const url = `${SITE_URL}/product/${decodedCategory?.toLowerCase()}/${slug?.toLowerCase() || ''}`;
 
   const cleanCategory = product?.category;
   const cleanProductName = product?.title;

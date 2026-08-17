@@ -154,15 +154,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: BG,
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        py: 4,
-      }}
-    >
+    <Box sx={{ bgcolor: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
       <Container maxWidth="sm">
         <Box sx={{ ...neoRaised, p: { xs: 3.5, md: 5 } }}>
           {/* ========== STEP 1: Phone ========== */}
@@ -190,36 +182,12 @@ export default function ForgotPasswordPage() {
                       ),
                     }}
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        ...neoInset,
-                        borderRadius: '14px',
-                        '& fieldset': { border: 'none' },
-                        fontSize: 14,
-                        color: INK,
-                      },
+                      '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK },
                     }}
                   />
                 </Box>
 
-                <Button
-                  fullWidth
-                  onClick={handleSendOtp}
-                  disabled={phone.length < 10}
-                  sx={{
-                    py: 1.8,
-                    borderRadius: '14px',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: '#fff',
-                    bgcolor: ACCENT_ORANGE,
-                    boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`,
-                    '&:hover': { bgcolor: '#E06B10' },
-                    '&.Mui-disabled': {
-                      bgcolor: alpha(ACCENT_ORANGE, 0.4),
-                      color: '#fff',
-                    },
-                  }}
-                >
+                <Button fullWidth onClick={handleSendOtp} disabled={phone.length < 10} sx={{ py: 1.8, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`, '&:hover': { bgcolor: '#E06B10' }, '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.4), color: '#fff' } }}>
                   ارسال کد تایید
                 </Button>
               </Stack>
@@ -253,59 +221,17 @@ export default function ForgotPasswordPage() {
                       </Typography>
                     </Typography>
                   ) : (
-                    <Typography
-                      onClick={handleResendOtp}
-                      sx={{
-                        fontSize: 13.5,
-                        color: ACCENT_ORANGE,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        '&:hover': { textDecoration: 'underline' },
-                      }}
-                    >
+                    <Typography onClick={handleResendOtp} sx={{ fontSize: 13.5, color: ACCENT_ORANGE, fontWeight: 600, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>
                       ارسال مجدد کد
                     </Typography>
                   )}
                 </Box>
 
-                <Button
-                  fullWidth
-                  onClick={handleVerifyOtp}
-                  disabled={otp.length < 5}
-                  sx={{
-                    py: 1.8,
-                    borderRadius: '14px',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: '#fff',
-                    bgcolor: ACCENT_ORANGE,
-                    boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`,
-                    '&:hover': { bgcolor: '#E06B10' },
-                    '&.Mui-disabled': {
-                      bgcolor: alpha(ACCENT_ORANGE, 0.4),
-                      color: '#fff',
-                    },
-                  }}
-                >
+                <Button fullWidth onClick={handleVerifyOtp} disabled={otp.length < 5} sx={{ py: 1.8, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`, '&:hover': { bgcolor: '#E06B10' }, '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.4), color: '#fff' } }}>
                   تایید کد
                 </Button>
 
-                <Button
-                  fullWidth
-                  onClick={() => setStep(1)}
-                  startIcon={<ArrowRight size={18} style={{ marginLeft: '8px' }} />}
-                  sx={{
-                    py: 1.4,
-                    borderRadius: '14px',
-                    fontWeight: 600,
-                    fontSize: 13.5,
-                    color: INK_SOFT,
-                    ...neoSoft,
-                    '&:hover': {
-                      boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}`,
-                    },
-                  }}
-                >
+                <Button fullWidth onClick={() => setStep(1)} startIcon={<ArrowRight size={18} style={{ marginLeft: '8px' }} />} sx={{ py: 1.4, borderRadius: '14px', fontWeight: 600, fontSize: 13.5, color: INK_SOFT, ...neoSoft, '&:hover': { boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}` } }}>
                   تغییر شماره موبایل
                 </Button>
               </Stack>
@@ -344,13 +270,7 @@ export default function ForgotPasswordPage() {
                       ),
                     }}
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        ...neoInset,
-                        borderRadius: '14px',
-                        '& fieldset': { border: 'none' },
-                        fontSize: 14,
-                        color: INK,
-                      },
+                      '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK },
                     }}
                   />
                 </Box>
@@ -378,37 +298,12 @@ export default function ForgotPasswordPage() {
                       ),
                     }}
                     sx={{
-                      '& .MuiOutlinedInput-root': {
-                        ...neoInset,
-                        borderRadius: '14px',
-                        '& fieldset': { border: 'none' },
-                        fontSize: 14,
-                        color: INK,
-                      },
+                      '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK },
                     }}
                   />
                 </Box>
 
-                <Button
-                  fullWidth
-                  onClick={handleResetPassword}
-                  disabled={password.length < 8 || password !== confirmPassword}
-                  sx={{
-                    py: 1.8,
-                    borderRadius: '14px',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: '#fff',
-                    bgcolor: ACCENT_ORANGE,
-                    boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`,
-                    mt: 1,
-                    '&:hover': { bgcolor: '#E06B10' },
-                    '&.Mui-disabled': {
-                      bgcolor: alpha(ACCENT_ORANGE, 0.4),
-                      color: '#fff',
-                    },
-                  }}
-                >
+                <Button fullWidth onClick={handleResetPassword} disabled={password.length < 8 || password !== confirmPassword} sx={{ py: 1.8, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`, mt: 1, '&:hover': { bgcolor: '#E06B10' }, '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.4), color: '#fff' } }}>
                   تغییر رمز عبور
                 </Button>
               </Stack>
@@ -418,42 +313,14 @@ export default function ForgotPasswordPage() {
           {/* ========== STEP 4: Success ========== */}
           {step === 4 && (
             <Box sx={{ textAlign: 'center', py: 2 }}>
-              <Box
-                sx={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mx: 'auto',
-                  mb: 3,
-                  background: SURFACE,
-                  boxShadow: `6px 6px 14px ${SHADOW_DARK}, -6px -6px 14px ${SHADOW_LIGHT}`,
-                  color: '#38A169',
-                }}
-              >
+              <Box sx={{ width: 72, height: 72, borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 3, background: SURFACE, boxShadow: `6px 6px 14px ${SHADOW_DARK}, -6px -6px 14px ${SHADOW_LIGHT}`, color: '#38A169' }}>
                 <TickCircle size={36} variant="Bold" />
               </Box>
 
               <Typography sx={{ fontWeight: 800, fontSize: 22, color: INK, mb: 1.5 }}>رمز عبور با موفقیت تغییر کرد</Typography>
               <Typography sx={{ fontSize: 14, color: INK_SOFT, mb: 3.5, lineHeight: 1.7 }}>اکنون می‌توانید با رمز عبور جدید وارد حساب کاربری خود شوید.</Typography>
 
-              <Button
-                component={Link}
-                href="/auth/sign-in"
-                fullWidth
-                sx={{
-                  py: 1.8,
-                  borderRadius: '14px',
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: '#fff',
-                  bgcolor: ACCENT_ORANGE,
-                  boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`,
-                  '&:hover': { bgcolor: '#E06B10' },
-                }}
-              >
+              <Button component={Link} href="/auth/sign-in" fullWidth sx={{ py: 1.8, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`, '&:hover': { bgcolor: '#E06B10' } }}>
                 ورود به حساب کاربری
               </Button>
             </Box>
@@ -464,16 +331,7 @@ export default function ForgotPasswordPage() {
             <Box sx={{ textAlign: 'center', mt: 3.5 }}>
               <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>
                 رمز عبور خود را به یاد آوردید؟{' '}
-                <Typography
-                  component={Link}
-                  href="/auth/sign-in"
-                  sx={{
-                    color: ACCENT_ORANGE,
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' },
-                  }}
-                >
+                <Typography component={Link} href="/auth/sign-in" sx={{ color: ACCENT_ORANGE, fontWeight: 700, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                   وارد شوید
                 </Typography>
               </Typography>

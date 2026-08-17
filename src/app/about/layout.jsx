@@ -127,23 +127,15 @@ export default function AboutUsLayout({ children }) {
   };
 
   return (
-    <html lang="fa" dir="rtl" className={dana.variable}>
-      <head>
-        <link rel="dns-prefetch" href="//api.sharifzin.ir" />
-        <meta name="format-detection" content="telephone=yes,email=yes" />
-
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutPageSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
-      </head>
-
-      <body>
-        <AppRouterCacheProvider>
-          <ClientWrapper>
-            <CartSnackbarProvider>{children}</CartSnackbarProvider>
-          </ClientWrapper>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
+    <>
+      <AppRouterCacheProvider>
+        <ClientWrapper>
+          <CartSnackbarProvider>{children}</CartSnackbarProvider>
+        </ClientWrapper>
+      </AppRouterCacheProvider>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutPageSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />
+    </>
   );
 }

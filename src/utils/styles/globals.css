@@ -9,7 +9,7 @@
 }
 
 html {
-  font-family: var(--font-dana), sans-serif;
+  font-family: 'Dana', sans-serif;
   min-height: 100%;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;

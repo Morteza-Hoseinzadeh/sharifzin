@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Grid, Typography, Stack, Tabs, Tab, IconButton, Button } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { TickCircle, Add, Minus, Book1, ShoppingCart } from 'iconsax-reactjs';
@@ -9,9 +9,10 @@ import theme from '../../../utils/theme/theme';
 import ConvertToPersianDigit from '../../../utils/functions/convertToPersianDigit';
 import { storeDetials } from '../../../utils/data/links';
 import { getHexFromPersianColor } from '../../../utils/functions/getHexFromPersianColors';
-import { productFQ, products } from '../../../utils/data/productsMock';
+import { productFQ } from '../../../utils/data/productsMock';
 import ProductCard from '../../../components/custom/Product-Card/ProductCard';
 import CardsTitle from '../../../components/custom/Cards-Title/CardsTitle';
+import { getProducts } from '@/lib/api';
 
 // --- Neomorphism Palette ---
 const BG = '#E8ECF1'; // soft base
@@ -107,14 +108,25 @@ function CheckListItem({ text, accent }) {
 }
 
 export default function ProductView({ product }) {
-  const { title, brand, category, description, price, discountedPrice, images = [], features = [], colors = [], best_for = [], specifications = {} } = product;
+  const [products, setProducts] = useState(null);
+
+  useEffect(() => {
+    async function getData() {
+      const response = await getProducts();
+      setProducts(response?.data);
+    }
+
+    getData();
+  }, []);
+
+  const { title = null, brand = null, category_fa = null, description = null, price = null, discountedPrice = null, images = [] || null, features = [] || null, colors = [] || null, best_for = [] || null, specifications = {} || null } = product;
 
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(colors[0] ?? null);
   const [activeTab, setActiveTab] = useState('description');
 
-  const finalPrice = discountedPrice ?? price;
+  const final_price = discountedPrice ?? price;
 
   return (
     <>
@@ -139,7 +151,7 @@ export default function ProductView({ product }) {
 
             {/* Info */}
             <Grid size={{ xs: 12, md: 7 }} order={{ xs: 2, lg: 1 }}>
-              {category && brand && (
+              {category_fa && brand && (
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
                   <Stack direction="row" alignItems="center" gap={1}>
                     <Typography sx={{ fontSize: 14, color: INK_SOFT }}>برند:</Typography>
@@ -147,7 +159,7 @@ export default function ProductView({ product }) {
                   </Stack>
                   <Stack direction="row" alignItems="center" gap={1}>
                     <Typography sx={{ fontSize: 14, color: INK_SOFT }}>دسته‌بندی:</Typography>
-                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: ACCENT_BLUE }}>{category}</Typography>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: ACCENT_BLUE }}>{category_fa}</Typography>
                   </Stack>
                 </Stack>
               )}
@@ -163,7 +175,7 @@ export default function ProductView({ product }) {
                 <Typography sx={{ fontSize: 15, color: INK_SOFT }}>قیمت:</Typography>
                 <Stack direction="row" alignItems="center" gap={1}>
                   <Typography variant="h5" fontWeight={800} sx={{ color: INK }}>
-                    {ConvertToPersianDigit(finalPrice?.toLocaleString?.() ?? finalPrice)}
+                    {ConvertToPersianDigit(Number(final_price)?.toLocaleString?.('fa-IR') ?? final_price)}
                   </Typography>
                   <img src="/assets/svg-overlays/toman-overlay.svg" width={22} height={22} alt="تومان" />
                 </Stack>
@@ -332,7 +344,7 @@ export default function ProductView({ product }) {
         <CardsTitle fa_title={'محصولات پرفروش زین موتور، شریف زین'} en_title={"MOST SALE PRODUCT'S IN SHARIFZIN"} desc={'تضمین قیمت، تضمین کیفیت به همراه ماندگاری بالا'} />
         <Grid container spacing={4}>
           {products?.slice(0, 13).map((item) => (
-            <Grid size={{ xs: 12, sm: 6, lg: 4, xl: 3 }} key={item.id}>
+            <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item.id}>
               <ProductCard item={item} />
             </Grid>
           ))}

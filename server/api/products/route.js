@@ -11,4 +11,14 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const result = await query('SELECT * FROM products WHERE slug = ?', [slug]);
+    if (result) return res.status(200).json({ message: 'اطلاعات با موفقیت دریافت شد', data: result });
+  } catch (error) {
+    return res.status(500).json({ message_fa: 'خطا در دریافت اطلاعات', message_en: error.message, error });
+  }
+});
+
 module.exports = router;

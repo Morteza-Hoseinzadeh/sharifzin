@@ -79,45 +79,11 @@ export const metadata = {
 };
 
 export default function BlogLayout({ children }) {
-  const blogSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Blog',
-    name: 'بلاگ شریف‌زین',
-    description: 'مقالات تخصصی زین‌سازی، نگهداری و دنیای موتورسیکلت',
-    url: `${siteConfig.domain}/blog`,
-    publisher: {
-      '@type': 'Organization',
-      name: siteConfig.name,
-      logo: {
-        '@type': 'ImageObject',
-        url: `${siteConfig.domain}/assets/logo/sharifzin.webp`,
-      },
-    },
-  };
-
-  const organizationSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: siteConfig.name,
-    url: siteConfig.domain,
-    logo: `${siteConfig.domain}/assets/logo/sharifzin.webp`,
-    sameAs: ['https://instagram.com/sharifzin', 'https://t.me/sharifzin'],
-  };
-
   return (
-    <html lang="fa" dir="rtl" className={dana.variable}>
-      <head>
-        <link rel="dns-prefetch" href="//api.sharifzin.ir" />
-        <meta name="format-detection" content="telephone=yes,email=yes" />
-      </head>
-
-      <body>
-        <AppRouterCacheProvider>
-          <ClientWrapper>
-            <CartSnackbarProvider>{children}</CartSnackbarProvider>
-          </ClientWrapper>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
+    <AppRouterCacheProvider>
+      <ClientWrapper>
+        <CartSnackbarProvider>{children}</CartSnackbarProvider>
+      </ClientWrapper>
+    </AppRouterCacheProvider>
   );
 }

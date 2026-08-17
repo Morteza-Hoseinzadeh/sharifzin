@@ -6,7 +6,9 @@ export async function getProducts() {
     if (response.status === 200) {
       return response.data;
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export async function getCategories() {
@@ -15,9 +17,40 @@ export async function getCategories() {
     if (response.status === 200) {
       return response.data;
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error(error);
+  }
 }
 
-export function getCurrentProduct(slug) {
-  return products?.filter((item) => item?.slug === slug);
+export async function getBlogs() {
+  try {
+    const response = await axiosInstance.get('/api/v1/blogs');
+    if (response.status === 200) {
+      return response.data;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export async function getCurrentProduct(slug) {
+  try {
+    const response = await axiosInstance.get(`/api/v1/products/${slug}`);
+    if (response.status === 200) {
+      return response.data;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export async function getBlogBySlug(slug) {
+  try {
+    const response = await axiosInstance.get(`/api/v1/blogs/${slug}`);
+    if (response.status === 200) {
+      return response.data;
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }

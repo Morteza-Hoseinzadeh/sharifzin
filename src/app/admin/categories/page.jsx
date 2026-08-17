@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Typography, Stack, Button, TextField, IconButton, Grid } from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { Box, Typography, Stack, Button, TextField, IconButton, Grid, alpha } from '@mui/material';
 import { Add, Edit2, Trash, Category } from 'iconsax-reactjs';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import AdminLayout from '@/components/admin/AdminLayout';

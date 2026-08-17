@@ -4,6 +4,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { siteConfig } from '@/config/seo.config';
 import { dana } from '../fonts/font';
 import ClientWrapper from '../ClientWrapper';
+import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
 
 export const viewport = {
   width: 'device-width',
@@ -117,17 +118,10 @@ export default function RootLayout({ children }) {
   };
 
   return (
-    <html lang="fa" dir="rtl" className={dana.variable}>
-      <head>
-        <link rel="dns-prefetch" href="//api.sharifzin.ir" />
-        <meta name="format-detection" content="telephone=yes,email=yes" />
-      </head>
-
-      <body>
-        <AppRouterCacheProvider>
-          <ClientWrapper>{children}</ClientWrapper>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
+    <AppRouterCacheProvider>
+      <ClientWrapper>
+        <CartSnackbarProvider>{children}</CartSnackbarProvider>
+      </ClientWrapper>
+    </AppRouterCacheProvider>
   );
 }

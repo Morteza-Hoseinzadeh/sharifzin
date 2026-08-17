@@ -12,7 +12,6 @@ import CategorySection from '@/components/pages/home/CategorySection';
 import ProductsCardContianer from '@/components/pages/home/ProductsCardContianer';
 import HowToSubmitOrderSection from '@/components/pages/home/HowToSubmitOrderSection';
 import About from '@/components/pages/home/About';
-import Footer from '@/components/UI/Footer/Footer';
 
 export default function page() {
   const [snackbar, setSnackbar] = useState({ variant: '', open: false, message: '' });

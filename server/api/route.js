@@ -8,6 +8,9 @@ router.use('/products', productsRoute);
 const categoriesRoute = require('./categories/route');
 router.use('/categories', categoriesRoute);
 
+const blogRoutes = require('./blog/route');
+router.use('/blogs', blogRoutes);
+
 // ----------------------------------------------------------------------------------------------------------- //
 
 // PRIVARE ROUTES

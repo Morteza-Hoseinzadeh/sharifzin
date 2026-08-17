@@ -80,19 +80,10 @@ export const metadata = {
 
 export default function FaqLayout({ children }) {
   return (
-    <html lang="fa" dir="rtl" className={dana.variable}>
-      <head>
-        <link rel="dns-prefetch" href="//api.sharifzin.ir" />
-        <meta name="format-detection" content="telephone=yes,email=yes" />
-      </head>
-
-      <body>
-        <AppRouterCacheProvider>
-          <ClientWrapper>
-            <CartSnackbarProvider>{children}</CartSnackbarProvider>
-          </ClientWrapper>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
+    <AppRouterCacheProvider>
+      <ClientWrapper>
+        <CartSnackbarProvider>{children}</CartSnackbarProvider>
+      </ClientWrapper>
+    </AppRouterCacheProvider>
   );
 }

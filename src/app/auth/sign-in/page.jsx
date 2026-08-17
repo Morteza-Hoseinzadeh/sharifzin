@@ -43,29 +43,12 @@ export default function SignInPage() {
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: BG,
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        py: 4,
-      }}
-    >
+    <Box sx={{ bgcolor: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
       <Container maxWidth="sm">
         <Box sx={{ ...neoRaised, p: { xs: 3.5, md: 5 } }}>
           {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography
-              sx={{
-                fontWeight: 800,
-                fontSize: { xs: 24, md: 28 },
-                color: INK,
-                mb: 1,
-              }}
-            >
-              ورود به حساب کاربری
-            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: { xs: 24, md: 28 }, color: INK, mb: 1 }}>ورود به حساب کاربری</Typography>
             <Typography sx={{ fontSize: 14, color: INK_SOFT }}>به فروشگاه شریف‌زین خوش آمدید</Typography>
           </Box>
 
@@ -82,19 +65,13 @@ export default function SignInPage() {
                 placeholder="۰۹۱۲۳۴۵۶۷۸۹"
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
+                    <InputAdornment sx={{ marginRight: '20px' }}>
                       <Sms size={18} color={INK_SOFT} />
                     </InputAdornment>
                   ),
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    ...neoInset,
-                    borderRadius: '14px',
-                    '& fieldset': { border: 'none' },
-                    fontSize: 14,
-                    color: INK,
-                  },
+                  '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK },
                 }}
               />
             </Box>
@@ -111,12 +88,12 @@ export default function SignInPage() {
                 placeholder="رمز عبور خود را وارد کنید"
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
+                    <InputAdornment position="start" sx={{ marginLeft: '14px' }}>
                       <Lock size={18} color={INK_SOFT} />
                     </InputAdornment>
                   ),
                   endAdornment: (
-                    <InputAdornment position="end">
+                    <InputAdornment>
                       <IconButton size="small" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeSlash size={18} color={INK_SOFT} /> : <Eye size={18} color={INK_SOFT} />}
                       </IconButton>

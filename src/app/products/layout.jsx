@@ -1,12 +1,20 @@
 // app/products/layout.jsx
 
 import { siteConfig } from '@/config/seo.config';
-import { products } from '../../utils/data/productsMock';
-import { dana } from '../fonts/font';
+import { getProducts } from '@/lib/api';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter';
 import ClientWrapper from '../ClientWrapper';
+import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
 
-const getAllProducts = () => products;
+const getAllProducts = async () => {
+  try {
+    const res = await getProducts();
+    return res?.data || [];
+  } catch (err) {
+    console.error('Failed to fetch products for /products layout metadata:', err);
+    return [];
+  }
+};
 
 export async function generateMetadata() {
   const url = `${siteConfig.domain}/products`;
@@ -22,6 +30,12 @@ export async function generateMetadata() {
     alternates: { canonical: url },
 
     robots: { index: true, follow: true },
+
+    // moved out of a manual <link>/<meta> in <head>
+    formatDetection: { telephone: true, email: true },
+    other: {
+      'dns-prefetch': '//api.sharifzin.ir',
+    },
 
     openGraph: {
       title: pageTitle,
@@ -87,7 +101,7 @@ export default async function ProductsLayout({ children }) {
         },
         offers: {
           '@type': 'Offer',
-          price: String(product.finalPrice ?? product.price),
+          price: String(product.final_price ?? product.price),
           priceCurrency: 'IRR',
           availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         },
@@ -106,21 +120,16 @@ export default async function ProductsLayout({ children }) {
   };
 
   return (
-    <html lang="fa" dir="rtl" className={dana.variable}>
-      <head>
-        <link rel="dns-prefetch" href="//api.sharifzin.ir" />
-        <meta name="format-detection" content="telephone=yes,email=yes" />
-      </head>
+    <>
+      <AppRouterCacheProvider>
+        <ClientWrapper>
+          <CartSnackbarProvider>{children}</CartSnackbarProvider>
+        </ClientWrapper>
+      </AppRouterCacheProvider>
 
-      <body>
-        <AppRouterCacheProvider>
-          <ClientWrapper>{children}</ClientWrapper>
-        </AppRouterCacheProvider>
-
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
-      </body>
-    </html>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+    </>
   );
 }

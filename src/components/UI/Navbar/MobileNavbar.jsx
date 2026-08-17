@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, useTheme, alpha, useMediaQuery } from '@mui/material';
+import { Box, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText, useTheme, alpha, useMediaQuery, Tooltip, Button } from '@mui/material';
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-import { ArrowRight2, CloseSquare, ShoppingCart, HamburgerMenu, UserOctagon, Receipt1 } from 'iconsax-reactjs';
+import { ArrowRight2, CloseSquare, HamburgerMenu } from 'iconsax-reactjs';
 
-import { links } from '@/utils/data/links';
+import { actions, links } from '@/utils/data/links';
 import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 
@@ -90,7 +90,7 @@ export default function MobileNavbar() {
       {isMobile && (
         <Box width="100%" display="flex" flexDirection={'column'} alignItems={'stretch'} justifyContent={'space-between'} gap={{ xs: 1.5, sm: 2 }}>
           {/* Contact info: stacked on phones, side-by-side once there's room at sm/md */}
-          <Box width="100%" display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'center', sm: 'flex-start' }} justifyContent={{ xs: 'center', sm: 'space-between' }} gap={{ xs: 1.5, sm: 2 }}>
+          <Box width="100%" display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'center', sm: 'flex-start' }} justifyContent={{ xs: 'center', sm: 'space-between' }} gap={{ xs: 1.5, sm: 2 }} mb={2}>
             <Box display={'flex'} alignItems={'center'} gap={{ xs: 1, sm: 1.5 }}>
               <Typography variant="body1" sx={{ fontSize: { xs: 14, sm: 15, md: 16 }, fontWeight: 600 }}>
                 <a href="tel:02199887766" style={{ color: theme.palette.secondary.main, textDecoration: 'none' }}>
@@ -118,15 +118,19 @@ export default function MobileNavbar() {
             </IconButton>
 
             <Box display={'flex'} alignItems={'center'} gap={{ xs: 0.75, sm: 1 }}>
-              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.primary.main }} component={'a'} href="https://example.com">
-                <Receipt1 size={21} variant="Bulk" />
-              </Box>
-              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.secondary.main }} component={'a'} href="/cart">
-                <ShoppingCart size={21} variant="Bulk" />
-              </Box>
-              <Box sx={{ ...styles.iconBtn, backgroundColor: theme.palette.text.primary }} component={'a'} href="/auth/sign-up">
-                <UserOctagon size={26} variant="Bulk" />
-              </Box>
+              {actions.map((action, index) => {
+                const contrastColor = theme.palette.primary.contrastText;
+                const hasTitle = Boolean(action.title);
+                const icon = React.createElement(action.icon, { size: 22, color: contrastColor, variant: 'Bulk' });
+
+                return (
+                  <Tooltip title={action.title} key={index}>
+                    <Button size={'large'} href={action.href} sx={{ boxShadow: `0 0 30px ${alpha(action.backgroundColor, 0.5)}`, color: contrastColor, backgroundColor: action.backgroundColor, '&:hover': { backgroundColor: alpha(action.backgroundColor, 0.8) }, borderRadius: 2, padding: '10px 16px', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: hasTitle ? undefined : 0 }}>
+                      {icon}
+                    </Button>
+                  </Tooltip>
+                );
+              })}
             </Box>
           </Box>
         </Box>

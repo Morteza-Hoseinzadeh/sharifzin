@@ -82,7 +82,7 @@ export default function SignUpPage() {
                 placeholder="مثال: علی رضایی"
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
+                    <InputAdornment sx={{ marginRight: '20px' }}>
                       <User size={18} color={INK_SOFT} />
                     </InputAdornment>
                   ),
@@ -110,19 +110,13 @@ export default function SignUpPage() {
                 placeholder="۰۹۱۲۳۴۵۶۷۸۹"
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
+                    <InputAdornment sx={{ marginRight: '20px' }}>
                       <Call size={18} color={INK_SOFT} />
                     </InputAdornment>
                   ),
                 }}
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    ...neoInset,
-                    borderRadius: '14px',
-                    '& fieldset': { border: 'none' },
-                    fontSize: 14,
-                    color: INK,
-                  },
+                  '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK },
                 }}
               />
             </Box>
@@ -139,12 +133,12 @@ export default function SignUpPage() {
                 placeholder="حداقل ۸ کاراکتر"
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
+                    <InputAdornment sx={{ marginLeft: '18px' }} position="start">
                       <Lock size={18} color={INK_SOFT} />
                     </InputAdornment>
                   ),
                   endAdornment: (
-                    <InputAdornment position="end">
+                    <InputAdornment>
                       <IconButton size="small" onClick={() => setShowPassword(!showPassword)}>
                         {showPassword ? <EyeSlash size={18} color={INK_SOFT} /> : <Eye size={18} color={INK_SOFT} />}
                       </IconButton>
@@ -175,12 +169,12 @@ export default function SignUpPage() {
                 placeholder="رمز عبور را تکرار کنید"
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">
+                    <InputAdornment sx={{ marginLeft: '18px' }} position="start">
                       <Lock size={18} color={INK_SOFT} />
                     </InputAdornment>
                   ),
                   endAdornment: (
-                    <InputAdornment position="end">
+                    <InputAdornment>
                       <IconButton size="small" onClick={() => setShowConfirm(!showConfirm)}>
                         {showConfirm ? <EyeSlash size={18} color={INK_SOFT} /> : <Eye size={18} color={INK_SOFT} />}
                       </IconButton>

@@ -19,7 +19,10 @@ app
 
     // --- Middleware ---
     server.use('/assets/products', express.static(path.join(__dirname, './server/public/assets/products')));
+    server.use('/assets/blog_posts', express.static(path.join(__dirname, './server/public/assets/blog_posts')));
+
     server.use(cors({ origin: true, credentials: true }));
+
     server.use(bodyParser.json());
     server.use(bodyParser.urlencoded({ extended: true }));
 

@@ -9,7 +9,7 @@ export default function ProductCard({ item }) {
   const buildPageHref = () => `/product/${item?.category}/${item?.slug}`;
 
   return (
-    <Box display="flex" flexDirection="column" gap={2} sx={{ width: '100%', backgroundColor: '#fff', borderRadius: '32px', py: 1, px: 1.5, boxShadow: '0 0 30px #00000020' }}>
+    <Box display="flex" flexDirection="column" gap={2} sx={{ width: '100%', height: '100%', backgroundColor: '#fff', borderRadius: '32px', py: 1, px: 1.5, boxShadow: '0 0 30px #00000020' }}>
       <Box sx={{ backgroundColor: '#D7E0E6', p: 2, borderRadius: '24px' }}>
         <Box sx={{ backgroundColor: '#fff', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <img src={item?.thumbnail} alt={item?.title} width="100%" style={{ maxWidth: 250, maxHeight: 250 }} />
@@ -22,7 +22,7 @@ export default function ProductCard({ item }) {
                 دسته‌بندی
               </Typography>
               <Typography variant="body2" fontWeight={500} noWrap>
-                {item?.category}
+                {item?.category_fa}
               </Typography>
             </Box>
 
@@ -69,8 +69,8 @@ export default function ProductCard({ item }) {
             قیمت:
           </Typography>
           <Box display="flex" alignItems="center" justifyContent="flex-end" gap={1}>
-            <Typography variant="h5" fontWeight={700}>
-              {item?.finalPrice?.toLocaleString('fa-IR')}
+            <Typography variant="h5" fontWeight={900}>
+              {item?.final_price != null ? Number(item.final_price).toLocaleString('fa-IR') : '—'}
             </Typography>
             <img src="/assets/svg-overlays/toman-overlay.svg" width={22} height={22} alt="تومان" />
           </Box>

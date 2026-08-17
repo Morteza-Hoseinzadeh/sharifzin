@@ -1,4 +1,5 @@
-import { TruckFast, ShieldTick, WalletMoney, Refresh2 } from 'iconsax-reactjs';
+import theme from '../theme/theme';
+import { TruckFast, ShieldTick, WalletMoney, Refresh2, ShoppingCart, UserOctagon, Receipt1 } from 'iconsax-reactjs';
 
 export const links = [
   { title: 'صفحه اصلی', href: '/' },
@@ -30,4 +31,11 @@ export const storeDetials = [
     title: 'بازگشت کالا',
     description: '۷ روز ضمانت بازگشت',
   },
+];
+
+export const actions = [
+  // TODO: Replace with instagram reels link
+  { title: 'ثبت سفارش', href: 'https://instagram.com', icon: Receipt1, backgroundColor: theme.palette.primary.main },
+  { title: 'سبد خرید', href: '/cart', icon: ShoppingCart, backgroundColor: theme.palette.secondary.main },
+  { title: null, href: '/auth/sign-up', icon: UserOctagon, backgroundColor: theme.palette.text.primary },
 ];

@@ -46,8 +46,6 @@ export default function ProductsFilters({ facets = EMPTY_FACETS, counts = {} }) 
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState('');
 
-  // Defensive: even if a caller passes a partial object (e.g. {} ), fall back per-field
-  // so `facets.minPrice` etc. can never be read off `undefined`.
   facets = { ...EMPTY_FACETS, ...facets };
 
   const current = {
@@ -70,7 +68,7 @@ export default function ProductsFilters({ facets = EMPTY_FACETS, counts = {} }) 
         params.set(key, String(value));
       }
     });
-    params.delete('page'); // reset pagination whenever a filter changes
+    params.delete('page');
     startTransition(() => router.push(`${pathname}?${params.toString()}`));
   };
 
@@ -84,13 +82,14 @@ export default function ProductsFilters({ facets = EMPTY_FACETS, counts = {} }) 
     startTransition(() => router.push(pathname));
   };
 
-  const visibleCategories = useMemo(() => facets.categories.filter((c) => c.toLowerCase().includes(search.trim().toLowerCase())), [facets.categories, search]);
+  // facets.categories is now [{ slug, label }] — search & match on the
+  // Persian `label`, but keep filtering/URL state on `slug`.
+  const visibleCategories = useMemo(() => facets.categories.filter((c) => c.label.toLowerCase().includes(search.trim().toLowerCase())), [facets.categories, search]);
 
   const line = alpha(theme.palette.divider, 0.2);
 
   return (
     <Box sx={{ position: { md: 'sticky' }, top: 16, opacity: isPending ? 0.6 : 1, transition: 'opacity .15s', borderRadius: 2, p: 2.5 }}>
-      {/* Header */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2.5}>
         <Box display="flex" alignItems="center" gap={1}>
           <Filter size={18} variant="Bold" color={theme.palette.primary.main} />
@@ -103,22 +102,20 @@ export default function ProductsFilters({ facets = EMPTY_FACETS, counts = {} }) 
         </Button>
       </Box>
 
-      {/* Search within filters */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1, mb: 2.5, borderRadius: '10px', bgcolor: theme.palette.background.default, border: `1px solid ${line}` }}>
         <SearchNormal1 size={16} color={theme.palette.text.disabled} />
-        <InputBase placeholder="جستجو در برندها" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ fontSize: '0.85rem', width: '100%', color: theme.palette.text.primary }} />
+        <InputBase placeholder="جستجو در دسته‌بندی‌ها" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ fontSize: '0.85rem', width: '100%', color: theme.palette.text.primary }} />
       </Box>
 
-      {/* Category (checkbox list) */}
       <Box mb={2.5}>
-        <SectionHeader theme={theme}>برند موتور</SectionHeader>
+        <SectionHeader theme={theme}>دسته‌بندی</SectionHeader>
         <Box display="flex" flexDirection="column">
           {visibleCategories.length === 0 ? (
             <Typography variant="caption" sx={{ color: theme.palette.text.disabled }}>
               موردی یافت نشد
             </Typography>
           ) : (
-            visibleCategories.map((c) => <CheckRow key={c} label={c} checked={current.category === c} onClick={() => toggleChip('category', c)} count={counts?.categories?.[c]} theme={theme} />)
+            visibleCategories.map((c) => <CheckRow key={c.slug} label={c.label} checked={current.category === c.slug} onClick={() => toggleChip('category', c.slug)} count={counts?.categories?.[c.slug]} theme={theme} />)
           )}
         </Box>
       </Box>
@@ -170,7 +167,6 @@ export default function ProductsFilters({ facets = EMPTY_FACETS, counts = {} }) 
 
       <Box sx={{ borderTop: `1px solid ${line}`, my: 2.5 }} />
 
-      {/* Price */}
       <Box mb={1}>
         <SectionHeader theme={theme}>محدوده قیمت (تومان)</SectionHeader>
         <Slider
@@ -208,7 +204,6 @@ export default function ProductsFilters({ facets = EMPTY_FACETS, counts = {} }) 
         sx={{ mb: 2 }}
       />
 
-      {/* Apply / Clear */}
       <Button fullWidth variant="contained" onClick={applyPriceRange} sx={{ borderRadius: '10px', py: 1.1, fontWeight: 700, bgcolor: theme.palette.primary.main, '&:hover': { bgcolor: theme.palette.primary.dark } }}>
         اعمال فیلتر
       </Button>
