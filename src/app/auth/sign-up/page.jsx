@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, TextField, Button, IconButton, InputAdornment, Divider } from '@mui/material';
+import { Box, Container, Typography, Stack, TextField, Button, IconButton, InputAdornment, Divider, Alert } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Eye, EyeSlash, Sms, Lock, User, Call } from 'iconsax-reactjs';
+import { Eye, EyeSlash, User, Call, Lock } from 'iconsax-reactjs';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import axiosInstance from '@/utils/API/axiosInstance';
 
 // ==================== Neomorphism Tokens ====================
 const BG = '#E8ECF1';
@@ -28,46 +30,63 @@ const neoInset = {
   boxShadow: `inset 4px 4px 8px ${SHADOW_DARK}, inset -4px -4px 8px ${SHADOW_LIGHT}`,
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
 export default function SignUpPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [form, setForm] = useState({
-    fullName: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const [form, setForm] = useState({ fullName: '', phone: '', password: '', confirmPassword: '' });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (errorMsg) setErrorMsg('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!form.fullName || !form.phone || !form.password || !form.confirmPassword) {
+      setErrorMsg('همه فیلدها الزامی هستند');
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setErrorMsg('رمز عبور و تکرار آن یکسان نیستند');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      await axiosInstance.post('/api/v1/auth/register', form);
+      // Registered (or resent) — the backend already sent an OTP.
+      router.push(`/auth/verify-otp?phone=${encodeURIComponent(form.phone)}`);
+    } catch (err) {
+      console.log(err);
+      setErrorMsg('ارتباط با سرور برقرار نشد');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: BG,
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        py: 4,
-      }}
-    >
+    <Box sx={{ bgcolor: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
       <Container maxWidth="sm">
-        <Box sx={{ ...neoRaised, p: { xs: 3.5, md: 5 } }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ ...neoRaised, p: { xs: 3.5, md: 5 } }}>
           {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography
-              sx={{
-                fontWeight: 800,
-                fontSize: { xs: 24, md: 28 },
-                color: INK,
-                mb: 1,
-              }}
-            >
-              ایجاد حساب کاربری
-            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: { xs: 24, md: 28 }, color: INK, mb: 1 }}>ایجاد حساب کاربری</Typography>
             <Typography sx={{ fontSize: 14, color: INK_SOFT }}>به جمع مشتریان شریف‌زین بپیوندید</Typography>
           </Box>
+
+          {errorMsg && (
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: '14px' }}>
+              {errorMsg}
+            </Alert>
+          )}
 
           {/* Form */}
           <Stack gap={2.2}>
@@ -87,15 +106,7 @@ export default function SignUpPage() {
                     </InputAdornment>
                   ),
                 }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    ...neoInset,
-                    borderRadius: '14px',
-                    '& fieldset': { border: 'none' },
-                    fontSize: 14,
-                    color: INK,
-                  },
-                }}
+                sx={{ '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK } }}
               />
             </Box>
 
@@ -108,6 +119,7 @@ export default function SignUpPage() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                inputProps={{ inputMode: 'tel', dir: 'ltr' }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment sx={{ marginRight: '20px' }}>
@@ -115,9 +127,7 @@ export default function SignUpPage() {
                     </InputAdornment>
                   ),
                 }}
-                sx={{
-                  '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK },
-                }}
+                sx={{ '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK } }}
               />
             </Box>
 
@@ -145,15 +155,7 @@ export default function SignUpPage() {
                     </InputAdornment>
                   ),
                 }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    ...neoInset,
-                    borderRadius: '14px',
-                    '& fieldset': { border: 'none' },
-                    fontSize: 14,
-                    color: INK,
-                  },
-                }}
+                sx={{ '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK } }}
               />
             </Box>
 
@@ -181,21 +183,15 @@ export default function SignUpPage() {
                     </InputAdornment>
                   ),
                 }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    ...neoInset,
-                    borderRadius: '14px',
-                    '& fieldset': { border: 'none' },
-                    fontSize: 14,
-                    color: INK,
-                  },
-                }}
+                sx={{ '& .MuiOutlinedInput-root': { ...neoInset, borderRadius: '14px', '& fieldset': { border: 'none' }, fontSize: 14, color: INK } }}
               />
             </Box>
 
             {/* Submit */}
             <Button
               fullWidth
+              type="submit"
+              disabled={loading}
               sx={{
                 py: 1.8,
                 borderRadius: '14px',
@@ -206,9 +202,10 @@ export default function SignUpPage() {
                 boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`,
                 mt: 1,
                 '&:hover': { bgcolor: '#E06B10' },
+                '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.6), color: '#fff' },
               }}
             >
-              ثبت‌نام
+              {loading ? 'در حال ثبت‌نام...' : 'ثبت‌نام'}
             </Button>
           </Stack>
 
@@ -223,16 +220,7 @@ export default function SignUpPage() {
           <Box sx={{ textAlign: 'center' }}>
             <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>
               قبلاً ثبت‌نام کرده‌اید؟{' '}
-              <Typography
-                component={Link}
-                href="/auth/sign-in"
-                sx={{
-                  color: ACCENT_ORANGE,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
+              <Typography component={Link} href="/auth/sign-in" sx={{ color: ACCENT_ORANGE, fontWeight: 700, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                 وارد شوید
               </Typography>
             </Typography>

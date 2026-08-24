@@ -1,5 +1,5 @@
-const { verifyToken } = require('../utils/authUtils');
-const { query } = require('../utils/dbQuery');
+const { verifyToken } = require('../verfiyToken');
+const { query } = require('../../utils/dbQuery');
 
 /**
  * Reads `Authorization: Bearer <token>`, verifies it, loads the user

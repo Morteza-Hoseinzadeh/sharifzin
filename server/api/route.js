@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 // PUBLIC ROUTES
+const authRoutes = require('./auth/route');
+router.use('/auth', authRoutes);
+
 const productsRoute = require('./products/route');
 router.use('/products', productsRoute);
 

@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, TextField, Button, IconButton, InputAdornment, Divider } from '@mui/material';
+import { Box, Container, Typography, Stack, TextField, Button, IconButton, InputAdornment, Divider, Alert } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Eye, EyeSlash, Sms, Lock, ArrowLeft2 } from 'iconsax-reactjs';
+import { Eye, EyeSlash, Sms, Lock } from 'iconsax-reactjs';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import axiosInstance from '@/utils/API/axiosInstance';
 
 // ==================== Neomorphism Tokens ====================
 const BG = '#E8ECF1';
@@ -28,29 +30,68 @@ const neoInset = {
   boxShadow: `inset 4px 4px 8px ${SHADOW_DARK}, inset -4px -4px 8px ${SHADOW_LIGHT}`,
 };
 
-const neoSoft = {
-  background: SURFACE,
-  borderRadius: '14px',
-  boxShadow: `5px 5px 12px ${SHADOW_DARK}, -5px -5px 12px ${SHADOW_LIGHT}`,
-};
+// Point this at your actual API base URL (env var recommended).
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 export default function SignInPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ phone: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (errorMsg) setErrorMsg('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.phone || !form.password) {
+      setErrorMsg('شماره موبایل و رمز عبور الزامی است');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      const { data } = await axiosInstance.post('/api/v1/auth/login', { phone: form.phone, password: form.password });
+
+      if (!data) {
+        // e.g. unverified phone -> send them to verify instead of a dead end
+        if (data.status === 403 && data.message_fa?.includes('تایید')) {
+          router.push(`/auth/verify-otp?phone=${encodeURIComponent(form.phone)}`);
+          return;
+        }
+        setErrorMsg(data.message_fa || 'خطا در ورود');
+        return;
+      }
+
+      localStorage.setItem('sharifzin-auth-token', data.data.token);
+      router.push('/');
+    } catch (err) {
+      setErrorMsg('ارتباط با سرور برقرار نشد');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Box sx={{ bgcolor: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', py: 4 }}>
       <Container maxWidth="sm">
-        <Box sx={{ ...neoRaised, p: { xs: 3.5, md: 5 } }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ ...neoRaised, p: { xs: 3.5, md: 5 } }}>
           {/* Header */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Typography sx={{ fontWeight: 800, fontSize: { xs: 24, md: 28 }, color: INK, mb: 1 }}>ورود به حساب کاربری</Typography>
             <Typography sx={{ fontSize: 14, color: INK_SOFT }}>به فروشگاه شریف‌زین خوش آمدید</Typography>
           </Box>
+
+          {errorMsg && (
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: '14px' }}>
+              {errorMsg}
+            </Alert>
+          )}
 
           {/* Form */}
           <Stack gap={2.5}>
@@ -63,6 +104,7 @@ export default function SignInPage() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                inputProps={{ inputMode: 'tel', dir: 'ltr' }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment sx={{ marginRight: '20px' }}>
@@ -132,6 +174,8 @@ export default function SignInPage() {
             {/* Submit */}
             <Button
               fullWidth
+              type="submit"
+              disabled={loading}
               sx={{
                 py: 1.8,
                 borderRadius: '14px',
@@ -142,9 +186,10 @@ export default function SignInPage() {
                 boxShadow: `6px 6px 16px ${SHADOW_DARK}, -4px -4px 12px ${SHADOW_LIGHT}`,
                 mt: 1,
                 '&:hover': { bgcolor: '#E06B10' },
+                '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.6), color: '#fff' },
               }}
             >
-              ورود به حساب
+              {loading ? 'در حال ورود...' : 'ورود به حساب'}
             </Button>
           </Stack>
 
@@ -159,16 +204,7 @@ export default function SignInPage() {
           <Box sx={{ textAlign: 'center' }}>
             <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>
               حساب کاربری ندارید؟{' '}
-              <Typography
-                component={Link}
-                href="/auth/sign-up"
-                sx={{
-                  color: ACCENT_ORANGE,
-                  fontWeight: 700,
-                  textDecoration: 'none',
-                  '&:hover': { textDecoration: 'underline' },
-                }}
-              >
+              <Typography component={Link} href="/auth/sign-up" sx={{ color: ACCENT_ORANGE, fontWeight: 700, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
                 ثبت‌نام کنید
               </Typography>
             </Typography>
