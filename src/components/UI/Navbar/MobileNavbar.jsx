@@ -13,7 +13,7 @@ import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 
 export default function MobileNavbar() {
-  const { isLoggedIn } = useCheckUserRole();
+  const { isLoggedIn, user } = useCheckUserRole();
 
   const theme = useTheme();
   const pathname = usePathname();
@@ -125,7 +125,7 @@ export default function MobileNavbar() {
 
                 return (
                   <Tooltip title={action.title} key={index}>
-                    <Button size={'large'} href={action.href} sx={{ boxShadow: `0 0 30px ${alpha(action.backgroundColor, 0.5)}`, color: contrastColor, backgroundColor: action.backgroundColor, '&:hover': { backgroundColor: alpha(action.backgroundColor, 0.8) }, borderRadius: 2, padding: '10px 16px', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: hasTitle ? undefined : 0 }}>
+                    <Button size={'large'} href={!hasTitle ? (isLoggedIn ? '/user/dashboard' : null) : action.href} sx={{ boxShadow: `0 0 30px ${alpha(action.backgroundColor, 0.5)}`, color: contrastColor, backgroundColor: action.backgroundColor, '&:hover': { backgroundColor: alpha(action.backgroundColor, 0.8) }, borderRadius: 2, padding: '10px 16px', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: hasTitle ? undefined : 0 }}>
                       {icon}
                     </Button>
                   </Tooltip>

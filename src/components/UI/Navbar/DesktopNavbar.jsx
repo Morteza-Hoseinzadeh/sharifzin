@@ -9,6 +9,7 @@ import { LocationDiscover, Mobile, SearchNormal } from 'iconsax-reactjs';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import { actions, links } from '@/utils/data/links';
 import Link from 'next/link';
+import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
 
 function SubHeader() {
   const theme = useTheme();
@@ -70,6 +71,8 @@ function Navbar() {
   const theme = useTheme();
   const pathname = usePathname();
 
+  const { isLoggedIn } = useCheckUserRole();
+
   return (
     <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} gap={4} width={'100%'}>
       <Box display={'flex'} alignItems={'center'} gap={4}>
@@ -90,7 +93,12 @@ function Navbar() {
 
           return (
             <Tooltip title={action.title} key={index}>
-              <Button size={'large'} href={action.href} startIcon={hasTitle ? icon : undefined} sx={{ boxShadow: `0 0 30px ${alpha(action.backgroundColor, 0.5)}`, color: contrastColor, backgroundColor: action.backgroundColor, '&:hover': { backgroundColor: alpha(action.backgroundColor, 0.8) }, borderRadius: 2, padding: '10px 16px', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: hasTitle ? undefined : 0 }}>
+              <Button
+                size={'large'}
+                href={!hasTitle ? (isLoggedIn ? '/user/dashboard' : null) : action.href}
+                startIcon={hasTitle ? icon : undefined}
+                sx={{ boxShadow: `0 0 30px ${alpha(action.backgroundColor, 0.5)}`, color: contrastColor, backgroundColor: action.backgroundColor, '&:hover': { backgroundColor: alpha(action.backgroundColor, 0.8) }, borderRadius: 2, padding: '10px 16px', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: hasTitle ? undefined : 0 }}
+              >
                 {hasTitle ? action.title : icon}
               </Button>
             </Tooltip>

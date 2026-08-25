@@ -47,8 +47,8 @@ function VerifyOtpForm() {
     setInfoMsg('');
     try {
       const { data } = await axiosInstance.post(`/api/v1/auth/verify-otp`, { phone, code });
-      console.log(data);
-      localStorage.setItem('sharifzin-auth-token', data.token);
+
+      localStorage.setItem('sharifzin-auth-token', JSON.stringify(data?.data));
       router.push('/');
     } catch (error) {
       console.log(error);

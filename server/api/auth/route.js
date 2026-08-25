@@ -1,6 +1,6 @@
 const express = require('express');
 const { query } = require('../../utils/dbQuery');
-const { hashPassword, comparePassword, generateOtpCode, getOtpExpiryDate, sendSms, signToken, isValidIranianPhone, OTP_MAX_ATTEMPTS } = require('../../utils/auth/authUtils');
+const { hashPassword, comparePassword, generateOtpCode, getOtpExpiryDate, sendSms, signToken, isValidIranianPhone, OTP_MAX_ATTEMPTS, verifyToken } = require('../../utils/auth/authUtils');
 
 const router = express.Router();
 
@@ -81,6 +81,78 @@ router.post('/register', async (req, res) => {
     return res.status(201).json({ message: 'ثبت‌نام انجام شد، کد تایید برای شما پیامک شد' });
   } catch (error) {
     return fail(res, 500, 'خطا در ثبت‌نام', error, 'register');
+  }
+});
+
+router.get('/verify', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        message_fa: 'توکن احراز هویت ارسال نشده است',
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    let decoded;
+
+    try {
+      decoded = verifyToken(token);
+    } catch (error) {
+      return res.status(401).json({
+        message_fa: 'توکن نامعتبر یا منقضی شده است',
+      });
+    }
+
+    if (!decoded?.id) {
+      return res.status(401).json({
+        message_fa: 'اطلاعات توکن نامعتبر است',
+      });
+    }
+
+    const userRows = await query(
+      `
+        SELECT
+          id,
+          full_name,
+          phone,
+          email,
+          role,
+          status,
+          phone_verified_at
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [decoded.id]
+    );
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({
+        message_fa: 'کاربر یافت نشد',
+      });
+    }
+
+    const user = userRows[0];
+
+    if (user.status && user.status !== 'active') {
+      return res.status(403).json({
+        message_fa: 'حساب کاربری شما فعال نیست',
+      });
+    }
+
+    return res.status(200).json({
+      message: 'احراز هویت موفق بود',
+      user,
+    });
+  } catch (error) {
+    console.error('AUTH VERIFY ERROR:', error);
+
+    return res.status(500).json({
+      message_fa: 'خطا در بررسی احراز هویت',
+    });
   }
 });
 

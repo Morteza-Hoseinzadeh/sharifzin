@@ -68,7 +68,7 @@ export default function SignInPage() {
         return;
       }
 
-      localStorage.setItem('sharifzin-auth-token', data.data.token);
+      localStorage.setItem('sharifzin-auth-token', JSON.stringify(data?.data));
       router.push('/');
     } catch (err) {
       setErrorMsg('ارتباط با سرور برقرار نشد');

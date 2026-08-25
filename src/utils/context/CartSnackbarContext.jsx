@@ -37,7 +37,7 @@ export function CartSnackbarProvider({ children }) {
 
     try {
       if (!cart_uuid) {
-        const { user } = JSON.parse(localStorage.getItem('sharifzin_auth_token') || '{}');
+        const { user } = JSON.parse(localStorage.getItem('sharifzin-auth-token') || '{}');
         const initResponse = await axiosInstance.post('/api/cart/init', { user_id: user?.id || null });
 
         if (initResponse.data?.cart_uuid) {
