@@ -1,17 +1,25 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Grid, Typography, Stack, Tabs, Tab, IconButton, Button } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { TickCircle, Add, Minus, Book1, ShoppingCart } from 'iconsax-reactjs';
+
+// Mui imports
+import { alpha, Box, Grid, Typography, Stack, Tabs, Tab, IconButton, Button, CircularProgress, Snackbar, Alert } from '@mui/material';
+// Mui
+import { TickCircle, Add, Minus, Book1, ShoppingCart, Share, Heart } from 'iconsax-reactjs';
 
 import theme from '../../../utils/theme/theme';
 import ConvertToPersianDigit from '../../../utils/functions/convertToPersianDigit';
 import { storeDetials } from '../../../utils/data/links';
 import { getHexFromPersianColor } from '../../../utils/functions/getHexFromPersianColors';
 import { productFQ } from '../../../utils/data/productsMock';
+import { useCart } from '@/utils/context/CartSnackbarContext';
+
+// Custom components
 import ProductCard from '../../../components/custom/Product-Card/ProductCard';
 import CardsTitle from '../../../components/custom/Cards-Title/CardsTitle';
+import ProductShareModal from '@/components/custom/Product-Share-modal/ProductShareModal';
+
+// API CALLING
 import { getProducts } from '@/lib/api';
 
 // --- Neomorphism Palette ---
@@ -108,7 +116,14 @@ function CheckListItem({ text, accent }) {
 }
 
 export default function ProductView({ product }) {
+  const { addToCart, isAdding } = useCart();
+
   const [products, setProducts] = useState(null);
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({ open: false, severity: 'success', message: '' });
 
   useEffect(() => {
     async function getData() {
@@ -127,6 +142,24 @@ export default function ProductView({ product }) {
   const [activeTab, setActiveTab] = useState('description');
 
   const final_price = discountedPrice ?? price;
+
+  const handleAddToCart = async () => {
+    if (!product?.id) {
+      setSnackbar({ open: true, severity: 'error', message: 'شناسه محصول پیدا نشد.' });
+
+      return;
+    }
+
+    const result = await addToCart({ productId: product.id, quantity, color: selectedColor, product });
+
+    if (!result?.success) {
+      setSnackbar({ open: true, severity: 'error', message: result?.error || 'افزودن محصول به سبد خرید انجام نشد.' });
+
+      return;
+    }
+
+    setSnackbar({ open: true, severity: 'success', message: `${title || 'محصول'} با موفقیت به سبد خرید اضافه شد.` });
+  };
 
   return (
     <>
@@ -149,34 +182,90 @@ export default function ProductView({ product }) {
               </Stack>
             </Grid>
 
-            {/* Info */}
             <Grid size={{ xs: 12, md: 7 }} order={{ xs: 2, lg: 1 }}>
+              {/* Top Actions */}
+              <Stack direction="row" justifyContent="flex-start" alignItems="center" gap={1.2} sx={{ mb: 2.5 }}>
+                {/* Share Button */}
+                <Button
+                  onClick={() => setShareOpen(true)}
+                  startIcon={<Share style={{ marginLeft: 8 }} size={21} variant="Bulk" />}
+                  sx={{
+                    minWidth: 0,
+                    px: 2,
+                    py: 1,
+                    borderRadius: '14px',
+                    color: ACCENT_BLUE,
+                    backgroundColor: '#fff',
+                    border: `1px solid ${alpha(ACCENT_BLUE, 0.12)}`,
+                    boxShadow: `5px 5px 12px ${SHADOW_DARK},-4px -4px 10px ${SHADOW_LIGHT}`,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    transition: 'all 0.2s ease',
+                    '&:hover': { backgroundColor: '#fff', transform: 'translateY(-1px)', boxShadow: `7px 7px 15px ${SHADOW_DARK},-5px -5px 12px ${SHADOW_LIGHT}` },
+                    '&:active': { boxShadow: `inset 3px 3px 7px ${SHADOW_DARK},inset -3px -3px 7px ${SHADOW_LIGHT}`, transform: 'translateY(0)' },
+                  }}
+                >
+                  اشتراک‌گذاری
+                </Button>
+
+                {/* Favorite Button */}
+                <Button
+                  onClick={() => setIsFavorite((prev) => !prev)}
+                  startIcon={<Heart style={{ marginLeft: 8 }} size={21} variant={isFavorite ? 'Bold' : 'Bulk'} color={isFavorite ? ACCENT_ORANGE : ACCENT_BLUE} />}
+                  sx={{
+                    minWidth: 0,
+                    px: 2,
+                    py: 1,
+                    borderRadius: '14px',
+                    color: isFavorite ? ACCENT_ORANGE : ACCENT_BLUE,
+                    backgroundColor: '#fff',
+                    border: `1px solid ${isFavorite ? alpha(ACCENT_ORANGE, 0.18) : alpha(ACCENT_BLUE, 0.12)}`,
+                    boxShadow: `5px 5px 12px ${SHADOW_DARK},-4px -4px 10px ${SHADOW_LIGHT}`,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    transition: 'all 0.2s ease',
+                    '&:hover': { backgroundColor: '#fff', transform: 'translateY(-1px)', boxShadow: `7px 7px 15px ${SHADOW_DARK},-5px -5px 12px ${SHADOW_LIGHT}` },
+                    '&:active': { boxShadow: `inset 3px 3px 7px ${SHADOW_DARK},inset -3px -3px 7px ${SHADOW_LIGHT}`, transform: 'translateY(0)' },
+                  }}
+                >
+                  {isFavorite ? 'حذف از علاقه‌مندی' : 'افزودن به علاقه‌مندی'}
+                </Button>
+              </Stack>
+
+              {/* Brand + Category */}
               {category_fa && brand && (
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
                   <Stack direction="row" alignItems="center" gap={1}>
                     <Typography sx={{ fontSize: 14, color: INK_SOFT }}>برند:</Typography>
+
                     <Typography sx={{ fontSize: 14, fontWeight: 600, color: ACCENT_BLUE }}>{brand}</Typography>
                   </Stack>
+
                   <Stack direction="row" alignItems="center" gap={1}>
                     <Typography sx={{ fontSize: 14, color: INK_SOFT }}>دسته‌بندی:</Typography>
+
                     <Typography sx={{ fontSize: 14, fontWeight: 600, color: ACCENT_BLUE }}>{category_fa}</Typography>
                   </Stack>
                 </Stack>
               )}
 
+              {/* Title */}
               <Typography variant="h5" component="h1" sx={{ fontWeight: 800, color: INK, mb: 1.5, letterSpacing: '-0.3px' }}>
                 {title}
               </Typography>
 
+              {/* Description */}
               {description && <Typography sx={{ fontSize: 13.5, color: INK_SOFT, mb: 3, lineHeight: 1.7 }}>{description}</Typography>}
 
               {/* Price */}
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ ...neoInset, px: 2.5, py: 1.8, mb: 2.5 }}>
                 <Typography sx={{ fontSize: 15, color: INK_SOFT }}>قیمت:</Typography>
+
                 <Stack direction="row" alignItems="center" gap={1}>
                   <Typography variant="h5" fontWeight={800} sx={{ color: INK }}>
                     {ConvertToPersianDigit(Number(final_price)?.toLocaleString?.('fa-IR') ?? final_price)}
                   </Typography>
+
                   <img src="/assets/svg-overlays/toman-overlay.svg" width={22} height={22} alt="تومان" />
                 </Stack>
               </Stack>
@@ -184,26 +273,18 @@ export default function ProductView({ product }) {
               {/* Quantity */}
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3.5 }}>
                 <Typography sx={{ fontSize: 15, color: INK_SOFT }}>تعداد:</Typography>
+
                 <QuantityStepper value={quantity} onChange={setQuantity} />
               </Stack>
 
               {/* CTA Buttons */}
               <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.8}>
+                {/* Guide */}
                 <Button
                   fullWidth
                   size="large"
                   startIcon={<Book1 size={22} variant="Bulk" style={{ marginLeft: 8 }} />}
-                  sx={{
-                    py: 2,
-                    fontSize: 15,
-                    borderRadius: '16px',
-                    color: '#fff',
-                    background: `linear-gradient(145deg, ${ACCENT_BLUE}, #2563EB)`,
-                    boxShadow: `0 0 30px ${alpha(theme.palette.secondary.main, 0.5)}`,
-                    transition: 'all 0.2s ease',
-                    '&:hover': { background: `linear-gradient(145deg, #2563EB, ${ACCENT_BLUE})`, boxShadow: `4px 4px 10px ${SHADOW_DARK},-3px -3px 8px ${SHADOW_LIGHT}`, transform: 'translateY(1px)' },
-                    '&:active': { boxShadow: `inset 4px 4px 8px rgba(0,0,0,0.25)` },
-                  }}
+                  sx={{ py: 2, fontSize: 15, borderRadius: '16px', color: '#fff', background: `linear-gradient(145deg,${ACCENT_BLUE},#2563EB)`, boxShadow: `0 0 30px ${alpha(theme.palette.secondary.main, 0.5)}`, transition: 'all 0.2s ease', '&:hover': { background: `linear-gradient(145deg,#2563EB,${ACCENT_BLUE})`, boxShadow: `4px 4px 10px ${SHADOW_DARK},-3px -3px 8px ${SHADOW_LIGHT}`, transform: 'translateY(1px)' }, '&:active': { boxShadow: 'inset 4px 4px 8px rgba(0,0,0,0.25)' } }}
                 >
                   آموزش نحوه ثبت سفارش
                 </Button>
@@ -211,22 +292,28 @@ export default function ProductView({ product }) {
                 <Button
                   fullWidth
                   size="large"
-                  startIcon={<ShoppingCart size={22} variant="Bulk" style={{ marginLeft: 8 }} />}
+                  disabled={isAdding || !product?.id || quantity < 1}
+                  onClick={handleAddToCart}
+                  startIcon={isAdding ? <CircularProgress size={21} sx={{ color: '#fff' }} /> : <ShoppingCart size={22} variant="Bulk" style={{ marginLeft: 8 }} />}
                   sx={{
                     py: 2,
                     fontSize: 15,
                     borderRadius: '16px',
                     color: '#fff',
-                    background: `linear-gradient(145deg, ${ACCENT_ORANGE}, #E86A0C)`,
-                    boxShadow: `0 0 30px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    background: `linear-gradient(145deg,${ACCENT_ORANGE},#E86A0C)`,
+                    boxShadow: `0 0 30px${alpha(theme.palette.primary.main, 0.5)}`,
                     transition: 'all 0.2s ease',
-                    '&:hover': { background: `linear-gradient(145deg, #E86A0C, ${ACCENT_ORANGE})`, boxShadow: `  4px 4px 10px ${SHADOW_DARK},  -3px -3px 8px ${SHADOW_LIGHT}`, transform: 'translateY(1px)' },
-                    '&:active': { boxShadow: `inset 4px 4px 8px rgba(0,0,0,0.25)` },
+                    '&:hover': { background: `linear-gradient(145deg, #E86A0C, ${ACCENT_ORANGE})`, boxShadow: `4px 4px 10px ${SHADOW_DARK},-3px -3px 8px ${SHADOW_LIGHT}`, transform: 'translateY(1px)' },
+                    '&:active': { boxShadow: 'inset 4px 4px 8px rgba(0,0,0,0.25)' },
+                    '&.Mui-disabled': { color: '#fff', opacity: 0.65 },
                   }}
                 >
-                  افزودن به سبد خرید
+                  {isAdding ? 'در حال افزودن...' : 'افزودن به سبد خرید'}
                 </Button>
               </Stack>
+
+              {/* Share Modal */}
+              <ProductShareModal open={shareOpen} onClose={() => setShareOpen(false)} item={product} />
             </Grid>
           </Grid>
         </Box>
@@ -350,6 +437,15 @@ export default function ProductView({ product }) {
           ))}
         </Grid>
       </Box>
+
+      {/* Share Modal */}
+      <ProductShareModal open={shareOpen} onClose={() => setShareOpen(false)} item={product} />
+
+      <Snackbar open={snackbar.open} autoHideDuration={3500} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}>
+        <Alert severity={snackbar.severity} variant="filled" onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))} sx={{ direction: 'rtl', fontFamily: 'inherit' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }

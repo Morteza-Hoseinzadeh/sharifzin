@@ -54,3 +54,27 @@ export async function getBlogBySlug(slug) {
     console.error(error);
   }
 }
+
+// گرفتن سبد
+export async function getCart(cartToken) {
+  const res = await axiosInstance.get('/api/v1/cart', {
+    headers: {
+      'x-cart-token': cartToken,
+    },
+  });
+  return res.data;
+}
+
+// افزودن به سبد
+export async function addToCart({ productId, quantity, color, cartToken }) {
+  const res = await axiosInstance.post(
+    '/api/v1/cart/add',
+    { productId, quantity, color },
+    {
+      headers: {
+        'x-cart-token': cartToken,
+      },
+    }
+  );
+  return res.data;
+}

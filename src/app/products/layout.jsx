@@ -4,7 +4,6 @@ import { siteConfig } from '@/config/seo.config';
 import { getProducts } from '@/lib/api';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter';
 import ClientWrapper from '../ClientWrapper';
-import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
 
 const getAllProducts = async () => {
   try {
@@ -122,9 +121,7 @@ export default async function ProductsLayout({ children }) {
   return (
     <>
       <AppRouterCacheProvider>
-        <ClientWrapper>
-          <CartSnackbarProvider>{children}</CartSnackbarProvider>
-        </ClientWrapper>
+        <ClientWrapper>{children}</ClientWrapper>
       </AppRouterCacheProvider>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }} />

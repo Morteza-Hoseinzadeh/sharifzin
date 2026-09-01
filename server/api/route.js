@@ -5,6 +5,9 @@ const router = express.Router();
 const authRoutes = require('./auth/route');
 router.use('/auth', authRoutes);
 
+const cartRoutes = require('./cart/route');
+router.use('/cart', cartRoutes);
+
 const productsRoute = require('./products/route');
 router.use('/products', productsRoute);
 

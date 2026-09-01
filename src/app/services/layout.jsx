@@ -4,7 +4,6 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import { siteConfig } from '@/config/seo.config';
 import { dana } from '../fonts/font';
 import ClientWrapper from '../ClientWrapper';
-import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
 
 export const viewport = {
   width: 'device-width',
@@ -119,9 +118,7 @@ export default function RootLayout({ children }) {
 
   return (
     <AppRouterCacheProvider>
-      <ClientWrapper>
-        <CartSnackbarProvider>{children}</CartSnackbarProvider>
-      </ClientWrapper>
+      <ClientWrapper>{children}</ClientWrapper>
     </AppRouterCacheProvider>
   );
 }

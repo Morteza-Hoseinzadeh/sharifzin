@@ -6,7 +6,7 @@ import ClientWrapper from './ClientWrapper';
 
 import { siteConfig } from '@/config/seo.config';
 
-import { CartSnackbarProvider } from '../utils/context/CartSnackbarContext';
+import { CartProvider } from '../utils/context/CartSnackbarContext';
 
 import { dana } from './fonts/font';
 
@@ -115,7 +115,7 @@ export default function RootLayout({ children }) {
       <body>
         <AppRouterCacheProvider>
           <ClientWrapper>
-            <CartSnackbarProvider>{children}</CartSnackbarProvider>
+            <CartProvider>{children}</CartProvider>
           </ClientWrapper>
         </AppRouterCacheProvider>
       </body>

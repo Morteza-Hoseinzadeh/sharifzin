@@ -129,9 +129,7 @@ export default function AboutUsLayout({ children }) {
   return (
     <>
       <AppRouterCacheProvider>
-        <ClientWrapper>
-          <CartSnackbarProvider>{children}</CartSnackbarProvider>
-        </ClientWrapper>
+        <ClientWrapper>{children}</ClientWrapper>
       </AppRouterCacheProvider>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutPageSchema) }} />

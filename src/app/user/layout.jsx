@@ -3,7 +3,7 @@ import '@/utils/styles/globals.css';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import ClientWrapper from '../../app/ClientWrapper';
 import { siteConfig } from '@/config/seo.config';
-import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
+
 import { dana } from '../../app/fonts/font';
 
 export const viewport = {
@@ -45,9 +45,7 @@ export default function UserLayout({ children }) {
       </head>
       <body>
         <AppRouterCacheProvider>
-          <ClientWrapper>
-            <CartSnackbarProvider>{children}</CartSnackbarProvider>
-          </ClientWrapper>
+          <ClientWrapper>{children}</ClientWrapper>
         </AppRouterCacheProvider>
       </body>
     </html>

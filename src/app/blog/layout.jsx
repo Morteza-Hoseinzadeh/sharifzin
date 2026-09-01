@@ -3,7 +3,7 @@ import '@/utils/styles/globals.css';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import ClientWrapper from '../ClientWrapper';
 import { siteConfig } from '@/config/seo.config';
-import { CartSnackbarProvider } from '@/utils/context/CartSnackbarContext';
+
 import { dana } from '../fonts/font';
 
 export const viewport = {
@@ -81,9 +81,7 @@ export const metadata = {
 export default function BlogLayout({ children }) {
   return (
     <AppRouterCacheProvider>
-      <ClientWrapper>
-        <CartSnackbarProvider>{children}</CartSnackbarProvider>
-      </ClientWrapper>
+      <ClientWrapper>{children}</ClientWrapper>
     </AppRouterCacheProvider>
   );
 }
