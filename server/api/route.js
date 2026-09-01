@@ -8,6 +8,9 @@ router.use('/auth', authRoutes);
 const cartRoutes = require('./cart/route');
 router.use('/cart', cartRoutes);
 
+const discountRoutes = require('./discount/route');
+router.use('/discount', discountRoutes);
+
 const productsRoute = require('./products/route');
 router.use('/products', productsRoute);
 
