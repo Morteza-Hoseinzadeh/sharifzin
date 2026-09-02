@@ -74,9 +74,9 @@ export default function useCheckUserRole() {
         /*
          * Token is invalid/expired
          */
-        // if (err?.response?.status === 401 || err?.response?.status === 403) {
-        //   localStorage.removeItem(AUTH_STORAGE_KEY);
-        // }
+        if (err?.response?.status === 401 || err?.response?.status === 403) {
+          localStorage.removeItem(AUTH_STORAGE_KEY);
+        }
       } finally {
         setLoading(false);
       }

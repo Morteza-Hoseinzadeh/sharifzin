@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Typography, Stack, Avatar, IconButton, useMediaQuery, Divider } from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { Category, Bag2, Profile2User, Chart, Setting2, Logout, Home2, TicketDiscount, MessageText, Box1, Menu } from 'iconsax-reactjs';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
 
 const BG = '#E8ECF1';
 const SURFACE = '#F0F4F8';
@@ -35,6 +36,18 @@ const menuItems = [
 const DRAWER_WIDTH = 280;
 
 export default function AdminLayout({ children }) {
+  const { isAdmin, loading: checkUserRoleLoading } = useCheckUserRole();
+
+  const router = useRouter();
+  const [loading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isAdmin && !checkUserRoleLoading) {
+      return router.push('/');
+    }
+    setIsLoading(false);
+  }, [checkUserRoleLoading]);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -90,33 +103,43 @@ export default function AdminLayout({ children }) {
     </Box>
   );
 
+  if (checkUserRoleLoading) {
+    return (
+      <Box display={'flex'} alignItems="center" justifyContent="center" width={'100%'} height={'100vh'}>
+        <Typography variant="h6">در حال احراز هویت</Typography>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: BG }}>
-      {/* Main Content */}
-      <Box component="main" sx={{ width: { md: `100%` }, ml: { md: `${DRAWER_WIDTH}px` }, display: 'flex', alignItems: 'flex-start', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
-        {/* Sidebar Desktop */}
-        {!isMobile && <Box sx={{ width: DRAWER_WIDTH, flexShrink: 0, borderRight: `1px solid ${alpha(INK, 0.06)}`, height: '100vh', zIndex: 1200 }}>{drawerContent}</Box>}
+    !checkUserRoleLoading && (
+      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: BG }}>
+        {/* Main Content */}
+        <Box component="main" sx={{ width: { md: `100%` }, ml: { md: `${DRAWER_WIDTH}px` }, display: 'flex', alignItems: 'flex-start', flexDirection: { xs: 'column', md: 'row' }, minHeight: '100vh' }}>
+          {/* Sidebar Desktop */}
+          {!isMobile && <Box sx={{ width: DRAWER_WIDTH, flexShrink: 0, borderRight: `1px solid ${alpha(INK, 0.06)}`, height: '100vh', zIndex: 1200 }}>{drawerContent}</Box>}
 
-        {/* Mobile Drawer */}
-        <Drawer variant="temporary" open={mobileOpen} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', bgcolor: SURFACE } }}>
-          {drawerContent}
-        </Drawer>
+          {/* Mobile Drawer */}
+          <Drawer variant="temporary" open={mobileOpen} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ display: { xs: 'block', md: 'none' }, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', bgcolor: SURFACE } }}>
+            {drawerContent}
+          </Drawer>
 
-        {/* Mobile Header */}
-        {isMobile && (
-          <Box sx={{ ...neoSoft, width: '100%', m: 2, p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <IconButton onClick={() => setMobileOpen(true)}>
-              <Menu size={22} color={INK} />
-            </IconButton>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>پنل مدیریت</Typography>
-            <Box sx={{ width: 40 }} />
+          {/* Mobile Header */}
+          {isMobile && (
+            <Box sx={{ ...neoSoft, width: '100%', m: 2, p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <IconButton onClick={() => setMobileOpen(true)}>
+                <Menu size={22} color={INK} />
+              </IconButton>
+              <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>پنل مدیریت</Typography>
+              <Box sx={{ width: 40 }} />
+            </Box>
+          )}
+
+          <Box minWidth={'100%'} sx={{ p: { xs: 2, md: 3.5 } }}>
+            {children}
           </Box>
-        )}
-
-        <Box minWidth={'100%'} sx={{ p: { xs: 2, md: 3.5 } }}>
-          {children}
         </Box>
       </Box>
-    </Box>
+    )
   );
 }
