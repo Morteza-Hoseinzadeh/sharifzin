@@ -6,6 +6,7 @@ const orderController = require('../../controllers/orderController');
 router.post('/checkout', orderController.checkout);
 router.get('/:code', orderController.getOrderByCode);
 router.post('/:code/pay', orderController.payOrder);
+router.get('/api/v1/payment/callback', orderController.paymentCallback);
 
 // ادمین
 router.get('/', orderController.getAllOrders);

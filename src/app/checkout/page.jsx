@@ -112,20 +112,26 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
-    setLoading(true);
+    if (!orderData?.orderCode) return;
+
+    setPaying(true);
+    setError('');
+
     try {
-      await axiosInstance.post(
-        `/api/v1/orders/${orderCode}/pay`,
-        {},
-        {
-          headers: { 'x-cart-token': localStorage.getItem('cartToken') },
-        }
-      );
-      setActiveStep(2);
+      const token = localStorage.getItem('cartToken');
+
+      const { data } = await axiosInstance.post(`/api/v1/orders/${orderData.orderCode}/pay`, {}, { headers: { 'x-cart-token': token } });
+
+      if (data.paymentUrl) {
+        // هدایت به صفحه پرداخت زرین‌پال
+        window.location.href = data.paymentUrl;
+      } else {
+        setError('خطا در دریافت لینک پرداخت');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'خطا در پرداخت');
+      setError(err?.response?.data?.message || 'خطا در اتصال به درگاه');
     } finally {
-      setLoading(false);
+      setPaying(false);
     }
   };
 

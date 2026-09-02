@@ -1,5 +1,6 @@
 const db = require('../models/dbConnection');
-const crypto = require('crypto'); // ← به‌جای uuid
+const crypto = require('crypto');
+const axios = require('axios');
 
 // ---------- Helpers ----------
 async function getOrCreateCart(cartToken) {
@@ -182,6 +183,155 @@ exports.getOrderByCode = async (req, res) => {
   } catch (error) {
     console.error('Get order error:', error);
     return res.status(500).json({ message: 'خطا در دریافت سفارش' });
+  }
+};
+
+// ---------- Helpers ----------
+async function getOrCreateCart(cartToken) {
+  if (!cartToken) cartToken = crypto.randomUUID();
+
+  const [rows] = await db.query('SELECT * FROM carts WHERE token = ?', [cartToken]);
+  if (rows.length) return rows[0];
+
+  const [result] = await db.query('INSERT INTO carts (token) VALUES (?)', [cartToken]);
+  return { id: result.insertId, token: cartToken };
+}
+
+function generateOrderCode() {
+  const part = Date.now().toString().slice(-8);
+  return `SZ-${part}`;
+}
+
+// ---------- POST /api/v1/orders/checkout ----------
+exports.checkout = async (req, res) => {
+  try {
+    const cartToken = req.headers['x-cart-token'];
+    const { fullName, phone, address, city = 'تهران', postalCode = null, addressNote = null, discountCode = null } = req.body;
+
+    if (!fullName?.trim() || !phone?.trim() || !address?.trim()) {
+      return res.status(400).json({ message: 'نام، شماره تماس و آدرس الزامی است' });
+    }
+
+    const cart = await getOrCreateCart(cartToken);
+    const [items] = await db.query(CART_ITEM_SELECT, [cart.id]);
+
+    if (!items.length) {
+      return res.status(400).json({ message: 'سبد خرید خالی است' });
+    }
+
+    const subtotal = items.reduce((sum, i) => sum + i.quantity * i.price_at_add, 0);
+
+    let discountAmount = 0;
+    let finalDiscountCode = null;
+
+    if (discountCode) {
+      const [discountRows] = await db.query(`SELECT * FROM discount_codes WHERE code = ? AND is_active = 1`, [discountCode.trim().toUpperCase()]);
+
+      if (discountRows.length) {
+        const d = discountRows[0];
+        const expired = d.expires_at && new Date(d.expires_at) < new Date();
+        const overUsed = d.max_uses !== null && d.used_count >= d.max_uses;
+
+        if (!expired && !overUsed && subtotal >= (d.min_order_amount || 0)) {
+          if (d.type === 'percent') {
+            discountAmount = Math.round((subtotal * d.value) / 100);
+          } else {
+            discountAmount = Math.min(d.value, subtotal);
+          }
+          finalDiscountCode = d.code;
+          await db.query('UPDATE discount_codes SET used_count = used_count + 1 WHERE id = ?', [d.id]);
+        }
+      }
+    }
+
+    const payableAmount = Math.max(0, subtotal - discountAmount);
+    const orderCode = generateOrderCode();
+
+    const [orderResult] = await db.query(
+      `INSERT INTO orders (
+        order_code, cart_token, full_name, phone, address, city, postal_code, address_note,
+        subtotal, discount_code, discount_amount, payable_amount, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
+      [orderCode, cart.token, fullName.trim(), phone.trim(), address.trim(), city, postalCode, addressNote, subtotal, finalDiscountCode, discountAmount, payableAmount]
+    );
+
+    const orderId = orderResult.insertId;
+
+    for (const item of items) {
+      await db.query(
+        `INSERT INTO order_items (order_id, product_id, title, color, quantity, unit_price, thumbnail)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, item.product_id, item.title, item.color, item.quantity, item.price_at_add, item.thumbnail]
+      );
+    }
+
+    await db.query('DELETE FROM cart_items WHERE cart_id = ?', [cart.id]);
+
+    return res.status(201).json({
+      success: true,
+      orderCode,
+      payableAmount,
+      status: 'pending_payment',
+      message: 'سفارش با موفقیت ثبت شد. برای تکمیل خرید، به پرداخت بروید.',
+    });
+  } catch (error) {
+    console.error('Checkout error:', error);
+    return res.status(500).json({ message: 'خطا در ثبت سفارش' });
+  }
+};
+
+// ---------- GET /api/v1/payment/callback  ← بازگشت از زرین‌پال ----------
+exports.paymentCallback = async (req, res) => {
+  try {
+    const { Authority, Status, order_code } = req.query;
+
+    if (Status !== 'OK') {
+      // پرداخت ناموفق
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=failed&order=${order_code}`);
+    }
+
+    const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [order_code]);
+    if (!orders.length) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=error`);
+    }
+
+    const order = orders[0];
+
+    // ========== Verify پرداخت ==========
+    const merchantId = process.env.ZARINPAL_MERCHANT_ID;
+    const isSandbox = process.env.ZARINPAL_SANDBOX === 'true';
+
+    const verifyUrl = isSandbox ? 'https://sandbox.zarinpal.com/pg/v4/payment/verify.json' : 'https://api.zarinpal.com/pg/v4/payment/verify.json';
+
+    const verifyData = {
+      merchant_id: merchantId,
+      amount: Math.round(Number(order.payable_amount)),
+      authority: Authority,
+    };
+
+    const { data } = await axios.post(verifyUrl, verifyData, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (data.data && (data.data.code === 100 || data.data.code === 101)) {
+      // پرداخت موفق
+      await db.query(
+        `UPDATE orders SET 
+          status = 'paid', 
+          ref_id = ?, 
+          paid_at = NOW() 
+         WHERE id = ?`,
+        [data.data.ref_id, order.id]
+      );
+
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout/success?order=${order.order_code}&ref=${data.data.ref_id}`);
+    } else {
+      console.error('Verify failed:', data);
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=failed&order=${order_code}`);
+    }
+  } catch (error) {
+    console.error('Callback error:', error);
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=error`);
   }
 };
 
