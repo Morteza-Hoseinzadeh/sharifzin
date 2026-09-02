@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Typography, Stack, Grid, Button, Avatar, Chip, CircularProgress } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Bag2, WalletMoney, Location, Heart, User, ArrowLeft2, Box1, Clock, TickCircle, TruckFast } from 'iconsax-reactjs';
+import { Bag2, WalletMoney, Location, Heart, User, ArrowLeft2, Box1, Clock, TickCircle, TruckFast, UserOctagon } from 'iconsax-reactjs';
 import Link from 'next/link';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
@@ -90,7 +90,7 @@ function OrderItem({ order }) {
 // ==================== Main Page ====================
 export default function DashboardPage() {
   const router = useRouter();
-  const { isLoggedIn, user } = useCheckUserRole();
+  const { isLoggedIn, user, isAdmin } = useCheckUserRole();
 
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
@@ -177,9 +177,16 @@ export default function DashboardPage() {
                 </Box>
               </Stack>
 
-              <Button component={Link} href="/user/profile" endIcon={<ArrowLeft2 size={16} style={{ marginRight: '8px' }} />} sx={{ px: 2.5, py: 1.2, borderRadius: '12px', fontWeight: 600, fontSize: 13, color: INK, ...neoSoft }}>
-                ویرایش پروفایل
-              </Button>
+              <Box display={'flex'} alignItems={'center'} gap={2}>
+                <Button component={Link} href="/user/profile" endIcon={<ArrowLeft2 size={16} style={{ marginRight: '8px' }} />} sx={{ px: 2.5, py: 1.2, borderRadius: '12px', fontWeight: 600, fontSize: 13, color: INK, ...neoSoft }}>
+                  ویرایش پروفایل
+                </Button>
+                {isAdmin && (
+                  <Button component={Link} href="/admin" sx={{ ...neoSoft, px: 2.5, py: 1.2, borderRadius: '12px', fontWeight: 600, fontSize: 13, color: SURFACE, bgcolor: `${ACCENT_ORANGE} !important` }}>
+                    پنل ادمین
+                  </Button>
+                )}
+              </Box>
             </Stack>
           </Box>
 

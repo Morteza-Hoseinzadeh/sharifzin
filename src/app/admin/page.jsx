@@ -90,9 +90,16 @@ export default function AdminDashboard() {
   return (
     <AdminLayout>
       {/* Header */}
-      <Box sx={{ mb: 3.5 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 22, color: INK }}>داشبورد مدیریت</Typography>
-        <Typography sx={{ fontSize: 14, color: INK_SOFT, mt: 0.5 }}>خلاصه وضعیت فروشگاه شریف‌زین</Typography>
+      <Box display={'flex'} alignItems={'center'} justifyContent={'space-between'} width={'100%'} sx={{ mb: 3.5 }}>
+        <Box>
+          <Typography sx={{ fontWeight: 800, fontSize: 22, color: INK }}>داشبورد مدیریت</Typography>
+          <Typography sx={{ fontSize: 14, color: INK_SOFT, mt: 0.5 }}>خلاصه وضعیت فروشگاه شریف‌زین</Typography>
+        </Box>
+        <Box>
+          <Button component={Link} href="/" sx={{ fontSize: 15, fontWeight: 600, color: ACCENT_ORANGE, px: 2 }}>
+            بازگشت به خانه
+          </Button>
+        </Box>
       </Box>
 
       {/* Stats */}
@@ -115,30 +122,11 @@ export default function AdminDashboard() {
                     </Typography>
                     <Stack direction="row" alignItems="center" gap={0.5} sx={{ mt: 1 }}>
                       {item.up ? <ArrowUp size={14} color="#38A169" /> : <ArrowDown size={14} color="#E53E3E" />}
-                      <Typography
-                        sx={{
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          color: item.up ? '#38A169' : '#E53E3E',
-                        }}
-                      >
-                        {item.change}
-                      </Typography>
+                      <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: item.up ? '#38A169' : '#E53E3E' }}>{item.change}</Typography>
                       <Typography sx={{ fontSize: 12, color: INK_SOFT }}>نسبت به دیروز</Typography>
                     </Stack>
                   </Box>
-                  <Box
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '14px',
-                      bgcolor: alpha(item.color, 0.12),
-                      color: item.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <Box sx={{ width: 48, height: 48, borderRadius: '14px', bgcolor: alpha(item.color, 0.12), color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon size={24} variant="Bold" />
                   </Box>
                 </Stack>
@@ -164,18 +152,7 @@ export default function AdminDashboard() {
                 const st = statusMap[order.status];
                 const StatusIcon = st.icon;
                 return (
-                  <Box
-                    key={order.id}
-                    sx={{
-                      ...neoSoft,
-                      p: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 2,
-                      flexWrap: 'wrap',
-                    }}
-                  >
+                  <Box key={order.id} sx={{ ...neoSoft, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
                     <Box>
                       <Typography sx={{ fontWeight: 700, fontSize: 14, color: INK }}>{order.id}</Typography>
                       <Typography sx={{ fontSize: 12.5, color: INK_SOFT }}>
@@ -183,19 +160,7 @@ export default function AdminDashboard() {
                       </Typography>
                     </Box>
                     <Stack direction="row" alignItems="center" gap={2}>
-                      <Chip
-                        icon={<StatusIcon size={14} variant="Bold" color={st.color} style={{ marginRight: 6 }} />}
-                        label={st.label}
-                        size="small"
-                        sx={{
-                          bgcolor: alpha(st.color, 0.1),
-                          color: st.color,
-                          fontWeight: 600,
-                          fontSize: 11.5,
-                          height: 28,
-                          borderRadius: '8px',
-                        }}
-                      />
+                      <Chip icon={<StatusIcon size={14} variant="Bold" color={st.color} style={{ marginRight: 6 }} />} label={st.label} size="small" sx={{ bgcolor: alpha(st.color, 0.1), color: st.color, fontWeight: 600, fontSize: 11.5, height: 28, borderRadius: '8px' }} />
                       <Typography sx={{ fontWeight: 700, fontSize: 14, color: INK, minWidth: 110, textAlign: 'left' }}>
                         {ConvertToPersianDigit(order.total.toLocaleString())}
                         <Typography component="span" sx={{ fontSize: 11, color: INK_SOFT, mr: 0.3 }}>
@@ -221,19 +186,7 @@ export default function AdminDashboard() {
                     <Typography sx={{ fontWeight: 600, fontSize: 13.5, color: INK }}>{p.name}</Typography>
                     <Typography sx={{ fontSize: 12.5, color: INK_SOFT }}>{ConvertToPersianDigit(p.sold)} فروش</Typography>
                   </Stack>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(p.sold / 50) * 100}
-                    sx={{
-                      height: 8,
-                      borderRadius: 4,
-                      bgcolor: alpha(ACCENT_ORANGE, 0.12),
-                      '& .MuiLinearProgress-bar': {
-                        bgcolor: ACCENT_ORANGE,
-                        borderRadius: 4,
-                      },
-                    }}
-                  />
+                  <LinearProgress variant="determinate" value={(p.sold / 50) * 100} sx={{ height: 8, borderRadius: 4, bgcolor: alpha(ACCENT_ORANGE, 0.12), '& .MuiLinearProgress-bar': { bgcolor: ACCENT_ORANGE, borderRadius: 4 } }} />
                   <Typography sx={{ fontSize: 11.5, color: INK_SOFT, mt: 0.5 }}>موجودی: {ConvertToPersianDigit(p.stock)} عدد</Typography>
                 </Box>
               ))}

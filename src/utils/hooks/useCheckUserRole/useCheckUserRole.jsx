@@ -88,13 +88,7 @@ export default function useCheckUserRole() {
   const isLoggedIn = !!user;
   const role = user?.role;
   const isCooperation = role === 'همکار';
+  const isAdmin = role === 'admin';
 
-  return {
-    user,
-    isCooperation,
-    isLoggedIn,
-    role,
-    loading,
-    error,
-  };
+  return { user, isCooperation, isLoggedIn, role, loading, error, isAdmin };
 }
