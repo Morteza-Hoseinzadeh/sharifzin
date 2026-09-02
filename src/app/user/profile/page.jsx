@@ -7,6 +7,8 @@ import { User, ArrowLeft2, Edit2, Call, Calendar, Sms, Lock1, TickCircle } from 
 import Link from 'next/link';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
+import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
+import { handleConvertDate } from '@/utils/functions/convertDate';
 
 // ==================== Neomorphism Tokens ====================
 const BG = '#E8ECF1';
@@ -40,20 +42,10 @@ const neoInset = {
 // ==================== Main Page ====================
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
-  const [form, setForm] = useState({
-    name: 'مرتضی حسین زاده',
-    phone: '۰۹۱۲۳۴۵۶۷۸۹',
-    email: 'ali.rezaei@example.com',
-    joinDate: '۱۴۰۳/۰۸/۱۲',
-  });
+  const { user: form } = useCheckUserRole();
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
-  };
-
-  const handleSave = () => {
-    setIsEditing(false);
-    // TODO: API call
   };
 
   return (
@@ -64,18 +56,7 @@ export default function ProfilePage() {
           <Box sx={{ ...neoRaised, p: { xs: 2.5, md: 3 }, mb: 3 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
               <Stack direction="row" alignItems="center" gap={1.5}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: alpha(ACCENT_BLUE, 0.12),
-                    color: ACCENT_BLUE,
-                  }}
-                >
+                <Box sx={{ width: 44, height: 44, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: alpha(ACCENT_BLUE, 0.12), color: ACCENT_BLUE }}>
                   <User size={22} variant="Bold" />
                 </Box>
                 <Box>
@@ -94,49 +75,14 @@ export default function ProfilePage() {
           <Box sx={{ ...neoRaised, p: { xs: 3, md: 4 } }}>
             {/* Avatar Section */}
             <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" gap={2.5} sx={{ mb: 4 }}>
-              <Avatar
-                sx={{
-                  width: 88,
-                  height: 88,
-                  bgcolor: alpha(ACCENT_ORANGE, 0.15),
-                  color: ACCENT_ORANGE,
-                  fontWeight: 800,
-                  fontSize: 32,
-                  boxShadow: `6px 6px 14px ${SHADOW_DARK}, -6px -6px 14px ${SHADOW_LIGHT}`,
-                }}
-              >
-                {form.name.charAt(0)}
-              </Avatar>
+              <Avatar sx={{ width: 88, height: 88, bgcolor: alpha(ACCENT_ORANGE, 0.15), color: ACCENT_ORANGE, fontWeight: 800, fontSize: 32, boxShadow: `6px 6px 14px ${SHADOW_DARK}, -6px -6px 14px ${SHADOW_LIGHT}` }}>{form?.full_name.charAt(0)}</Avatar>
               <Box sx={{ textAlign: { xs: 'center', sm: 'right' }, flex: 1 }}>
-                <Typography sx={{ fontWeight: 800, fontSize: 20, color: INK }}>{form.name}</Typography>
-                <Typography sx={{ fontSize: 13.5, color: INK_SOFT, mt: 0.5 }}>عضو از {form.joinDate}</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: 20, color: INK }}>{form?.full_name}</Typography>
+                <Typography sx={{ fontSize: 13.5, color: INK_SOFT, mt: 0.5 }}>عضو از {handleConvertDate(form?.phone_verified_at)}</Typography>
               </Box>
-              {!isEditing && (
-                <Button
-                  startIcon={<Edit2 size={16} style={{ marginLeft: '4px' }} />}
-                  onClick={() => setIsEditing(true)}
-                  sx={{
-                    px: 2.5,
-                    py: 1.1,
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    fontSize: 13.5,
-                    color: INK,
-                    ...neoSoft,
-                    boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}`,
-                  }}
-                >
-                  ویرایش اطلاعات
-                </Button>
-              )}
             </Stack>
 
-            <Divider
-              sx={{
-                borderColor: alpha(INK, 0.08),
-                mb: 3.5,
-              }}
-            />
+            <Divider sx={{ borderColor: alpha(INK, 0.08), mb: 3.5 }} />
 
             {/* Form Fields */}
             <Stack gap={2.5}>
@@ -145,23 +91,7 @@ export default function ProfilePage() {
                   <User size={16} color={INK_SOFT} />
                   <Typography sx={{ fontSize: 13, color: INK_SOFT, fontWeight: 600 }}>نام و نام خانوادگی</Typography>
                 </Stack>
-                {isEditing ? (
-                  <TextField
-                    fullWidth
-                    value={form.name}
-                    onChange={handleChange('name')}
-                    size="small"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '12px',
-                        ...neoInset,
-                        '& fieldset': { border: 'none' },
-                      },
-                    }}
-                  />
-                ) : (
-                  <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form.name}</Typography>
-                )}
+                {isEditing ? <TextField fullWidth value={form?.full_name} onChange={handleChange('name')} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', ...neoInset, '& fieldset': { border: 'none' } } }} /> : <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form?.full_name}</Typography>}
               </Box>
 
               <Box>
@@ -169,23 +99,7 @@ export default function ProfilePage() {
                   <Call size={16} color={INK_SOFT} />
                   <Typography sx={{ fontSize: 13, color: INK_SOFT, fontWeight: 600 }}>شماره موبایل</Typography>
                 </Stack>
-                {isEditing ? (
-                  <TextField
-                    fullWidth
-                    value={form.phone}
-                    onChange={handleChange('phone')}
-                    size="small"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '12px',
-                        ...neoInset,
-                        '& fieldset': { border: 'none' },
-                      },
-                    }}
-                  />
-                ) : (
-                  <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form.phone}</Typography>
-                )}
+                {isEditing ? <TextField fullWidth value={form?.phone} onChange={handleChange('phone')} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', ...neoInset, '& fieldset': { border: 'none' } } }} /> : <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form?.phone}</Typography>}
               </Box>
 
               <Box>
@@ -193,23 +107,7 @@ export default function ProfilePage() {
                   <Sms size={16} color={INK_SOFT} />
                   <Typography sx={{ fontSize: 13, color: INK_SOFT, fontWeight: 600 }}>ایمیل</Typography>
                 </Stack>
-                {isEditing ? (
-                  <TextField
-                    fullWidth
-                    value={form.email}
-                    onChange={handleChange('email')}
-                    size="small"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '12px',
-                        ...neoInset,
-                        '& fieldset': { border: 'none' },
-                      },
-                    }}
-                  />
-                ) : (
-                  <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form.email}</Typography>
-                )}
+                {isEditing ? <TextField fullWidth value={form?.email || '-'} onChange={handleChange('email')} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', ...neoInset, '& fieldset': { border: 'none' } } }} /> : <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form?.email}</Typography>}
               </Box>
 
               <Box>
@@ -217,85 +115,9 @@ export default function ProfilePage() {
                   <Calendar size={16} color={INK_SOFT} />
                   <Typography sx={{ fontSize: 13, color: INK_SOFT, fontWeight: 600 }}>تاریخ عضویت</Typography>
                 </Stack>
-                <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{form.joinDate}</Typography>
+                <Typography sx={{ fontWeight: 600, fontSize: 15, color: INK }}>{handleConvertDate(form?.phone_verified_at)}</Typography>
               </Box>
             </Stack>
-
-            {/* Action Buttons */}
-            {isEditing && (
-              <Stack direction="row" gap={1.5} justifyContent="flex-end" sx={{ mt: 4 }}>
-                <Button
-                  onClick={() => setIsEditing(false)}
-                  sx={{
-                    px: 3,
-                    py: 1.2,
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: INK,
-                    ...neoSoft,
-                  }}
-                >
-                  انصراف
-                </Button>
-                <Button
-                  startIcon={<TickCircle size={18} style={{ marginLeft: '4px' }} />}
-                  onClick={handleSave}
-                  sx={{
-                    px: 3,
-                    py: 1.2,
-                    borderRadius: '12px',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: '#fff',
-                    bgcolor: ACCENT_ORANGE,
-                    boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`,
-                    '&:hover': { bgcolor: '#E06B10' },
-                  }}
-                >
-                  ذخیره تغییرات
-                </Button>
-              </Stack>
-            )}
-          </Box>
-
-          {/* Change Password Card */}
-          <Box sx={{ ...neoRaised, p: { xs: 3, md: 3.5 }, mt: 3 }}>
-            <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 1 }}>
-              <Box
-                sx={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  bgcolor: alpha(ACCENT_BLUE, 0.12),
-                  color: ACCENT_BLUE,
-                }}
-              >
-                <Lock1 size={20} variant="Bold" />
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>تغییر رمز عبور</Typography>
-                <Typography sx={{ fontSize: 12.5, color: INK_SOFT }}>برای امنیت بیشتر، رمز عبور خود را به‌روز کنید</Typography>
-              </Box>
-            </Stack>
-            <Button
-              sx={{
-                mt: 2,
-                px: 2.5,
-                py: 1.1,
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: 13.5,
-                color: ACCENT_BLUE,
-                ...neoSoft,
-                boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}`,
-              }}
-            >
-              تغییر رمز عبور
-            </Button>
           </Box>
         </Box>
       </Box>
