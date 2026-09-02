@@ -8,6 +8,7 @@ import Link from 'next/link';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
 import axiosInstance from '@/utils/API/axiosInstance';
+import { useRouter } from 'next/navigation';
 
 // ==================== Neomorphism Tokens ====================
 const BG = '#E8ECF1';
@@ -120,6 +121,8 @@ function DiscountCodeBox({ discountCode, setDiscountCode, appliedDiscount, disco
 
 // ==================== Main Page ====================
 export default function CartPage() {
+  const router = useRouter();
+
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -296,7 +299,7 @@ export default function CartPage() {
                 <ShoppingCart size={36} />
               </Box>
               <Typography sx={{ fontWeight: 700, fontSize: 18, color: INK, mb: 1.5 }}>سبد خرید شما خالی است</Typography>
-              <Button component={Link} href="/products" sx={{ mt: 2, px: 4, py: 1.5, bgcolor: ACCENT_ORANGE }}>
+              <Button component={Link} href="/products" sx={{ mt: 2, px: 4, py: 1.5, bgcolor: ACCENT_ORANGE, color: '#fff' }}>
                 مشاهده محصولات
               </Button>
             </Box>
@@ -359,7 +362,7 @@ export default function CartPage() {
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: INK }}>{ConvertToPersianDigit(payablePrice.toLocaleString())} تومان</Typography>
                 </Stack>
 
-                <Button fullWidth sx={{ py: 1.7, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, mb: 1.5 }}>
+                <Button fullWidth onClick={() => router.push('/checkout')} sx={{ py: 1.7, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, mb: 1.5 }}>
                   ادامه فرآیند خرید
                 </Button>
 
