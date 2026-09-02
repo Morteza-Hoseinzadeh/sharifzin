@@ -66,7 +66,7 @@ const stats = [
 ];
 
 const recentOrders = [
-  { id: 'SZ-1042', user: 'علی رضایی', total: 2850000, status: 'delivered', date: '۲ مرداد' },
+  { id: 'SZ-1042', user: 'مرتضی حسین زاده', total: 2850000, status: 'delivered', date: '۲ مرداد' },
   { id: 'SZ-1041', user: 'مریم احمدی', total: 4200000, status: 'shipping', date: '۲ مرداد' },
   { id: 'SZ-1040', user: 'حسین محمدی', total: 980000, status: 'processing', date: '۱ مرداد' },
   { id: 'SZ-1039', user: 'سارا کریمی', total: 3650000, status: 'delivered', date: '۱ مرداد' },

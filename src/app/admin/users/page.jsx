@@ -19,7 +19,7 @@ const neoSoft = { background: SURFACE, borderRadius: '16px', boxShadow: `5px 5px
 const neoInset = { background: SURFACE, borderRadius: '12px', boxShadow: `inset 3px 3px 6px ${SHADOW_DARK}, inset -3px -3px 6px ${SHADOW_LIGHT}` };
 
 const users = [
-  { id: 1, name: 'علی رضایی', phone: '۰۹۱۲۳۴۵۶۷۸۹', orders: 8, totalSpent: 18500000, joinDate: '۱۴۰۳/۰۸/۱۲', status: 'active' },
+  { id: 1, name: 'مرتضی حسین زاده', phone: '۰۹۱۲۳۴۵۶۷۸۹', orders: 8, totalSpent: 18500000, joinDate: '۱۴۰۳/۰۸/۱۲', status: 'active' },
   { id: 2, name: 'مریم احمدی', phone: '۰۹۱۹۸۷۶۵۴۳۲', orders: 5, totalSpent: 12400000, joinDate: '۱۴۰۳/۰۹/۰۵', status: 'active' },
   { id: 3, name: 'حسین محمدی', phone: '۰۹۳۵۱۲۳۴۵۶۷', orders: 3, totalSpent: 5600000, joinDate: '۱۴۰۳/۱۰/۲۰', status: 'active' },
   { id: 4, name: 'سارا کریمی', phone: '۰۹۱۲۱۱۱۲۲۳۳', orders: 12, totalSpent: 31200000, joinDate: '۱۴۰۳/۰۶/۱۵', status: 'active' },

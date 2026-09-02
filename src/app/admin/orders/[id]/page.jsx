@@ -23,7 +23,7 @@ const order = {
   id: 'SZ-1042',
   status: 'shipping',
   date: '۲ مرداد ۱۴۰۴ - ۱۴:۳۲',
-  user: { name: 'علی رضایی', phone: '۰۹۱۲۳۴۵۶۷۸۹', email: 'ali.rezaei@example.com' },
+  user: { name: 'مرتضی حسین زاده', phone: '۰۹۱۲۳۴۵۶۷۸۹', email: 'ali.rezaei@example.com' },
   address: {
     title: 'منزل',
     full: 'تهران، خیابان ولیعصر، بالاتر از پارک ساعی، کوچه آفتاب، پلاک ۱۲، واحد ۳',

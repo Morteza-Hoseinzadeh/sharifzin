@@ -21,6 +21,8 @@ import ProductShareModal from '@/components/custom/Product-Share-modal/ProductSh
 
 // API CALLING
 import { getProducts } from '@/lib/api';
+import axiosInstance from '@/utils/API/axiosInstance';
+import useCheckUserRole from '@/utils/hooks/useCheckUserRole/useCheckUserRole';
 
 // --- Neomorphism Palette ---
 const BG = '#E8ECF1'; // soft base
@@ -116,6 +118,8 @@ function CheckListItem({ text, accent }) {
 }
 
 export default function ProductView({ product }) {
+  const {user} = useCheckUserRole()
+  
   const { addToCart, isAdding } = useCart();
 
   const [products, setProducts] = useState(null);
@@ -159,6 +163,21 @@ export default function ProductView({ product }) {
     }
 
     setSnackbar({ open: true, severity: 'success', message: `${title || 'محصول'} با موفقیت به سبد خرید اضافه شد.` });
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!product?.id) {
+      setSnackbar({ open: true, severity: 'error', message: 'شناسه محصول پیدا نشد.' });
+      return;
+    }
+
+    try {
+      await axiosInstance.post('/api/v1/user/wishlist', { productId: product.id, userId: user?.id });
+      setSnackbar({ open: true, severity: 'success', message: `${title} به علاقه‌مندی‌ها اضافه شد.` });
+      setIsFavorite(true);
+    } catch (error) {
+      setSnackbar({ open: true, severity: 'error', message: error?.response?.data?.message || 'خطا در افزودن به علاقه‌مندی‌ها' });
+    }
   };
 
   return (
@@ -208,9 +227,8 @@ export default function ProductView({ product }) {
                   اشتراک‌گذاری
                 </Button>
 
-                {/* Favorite Button */}
                 <Button
-                  onClick={() => setIsFavorite((prev) => !prev)}
+                  onClick={handleAddToWishlist}
                   startIcon={<Heart style={{ marginLeft: 8 }} size={21} variant={isFavorite ? 'Bold' : 'Bulk'} color={isFavorite ? ACCENT_ORANGE : ACCENT_BLUE} />}
                   sx={{
                     minWidth: 0,

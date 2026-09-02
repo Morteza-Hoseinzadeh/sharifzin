@@ -196,7 +196,7 @@ export default function CheckoutPage() {
                 </Alert>
               )}
               <Stack spacing={3}>
-                <NeoField label="نام و نام خانوادگی" value={form.fullName} onChange={handleChange('fullName')} icon={User} required placeholder="علی رضایی" />
+                <NeoField label="نام و نام خانوادگی" value={form.fullName} onChange={handleChange('fullName')} icon={User} required placeholder="مرتضی حسین زاده" />
                 <NeoField label="شماره موبایل" value={form.phone} onChange={handleChange('phone')} icon={Call} required placeholder="0912xxxxxxx" type="tel" />
                 <NeoField label="شهر" value={form.city} onChange={handleChange('city')} icon={Location} placeholder="تهران" />
                 <NeoField label="آدرس کامل" value={form.address} onChange={handleChange('address')} icon={Location} required multiline minRows={3} placeholder="خیابان، کوچه، پلاک..." />

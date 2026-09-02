@@ -41,7 +41,7 @@ const neoInset = {
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({
-    name: 'علی رضایی',
+    name: 'مرتضی حسین زاده',
     phone: '۰۹۱۲۳۴۵۶۷۸۹',
     email: 'ali.rezaei@example.com',
     joinDate: '۱۴۰۳/۰۸/۱۲',

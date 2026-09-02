@@ -98,7 +98,7 @@ export default function SignUpPage() {
                 name="fullName"
                 value={form.fullName}
                 onChange={handleChange}
-                placeholder="مثال: علی رضایی"
+                placeholder="مثال: مرتضی حسین زاده"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment sx={{ marginRight: '20px' }}>

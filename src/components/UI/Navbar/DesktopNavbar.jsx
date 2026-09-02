@@ -95,7 +95,7 @@ function Navbar() {
             <Tooltip title={action.title} key={index}>
               <Button
                 size={'large'}
-                href={!hasTitle ? (isLoggedIn ? '/user/dashboard' : null) : action.href}
+                href={!hasTitle ? (isLoggedIn ? '/user/dashboard' : '/auth/sign-up') : action.href}
                 startIcon={hasTitle ? icon : undefined}
                 sx={{ boxShadow: `0 0 30px ${alpha(action.backgroundColor, 0.5)}`, color: contrastColor, backgroundColor: action.backgroundColor, '&:hover': { backgroundColor: alpha(action.backgroundColor, 0.8) }, borderRadius: 2, padding: '10px 16px', textTransform: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, minWidth: hasTitle ? undefined : 0 }}
               >

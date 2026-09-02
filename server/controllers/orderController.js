@@ -384,3 +384,16 @@ exports.getAllOrders = async (req, res) => {
     return res.status(500).json({ message: 'خطا در دریافت لیست سفارش‌ها' });
   }
 };
+
+// Get User Order Base On CartUUID
+exports.getUserOrders = async (req, res) => {
+  try {
+    const { cart_token } = req.params;
+
+    const [orders] = await db.query('SELECT * FROM orders WHERE cart_token = ?', [cart_token]);
+    return res.json({ data: orders });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'خطا در دریافت لیست سفارش‌ها' });
+  }
+};

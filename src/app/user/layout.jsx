@@ -39,15 +39,8 @@ export const metadata = {
 
 export default function UserLayout({ children }) {
   return (
-    <html lang="fa" dir="rtl" className={dana.variable}>
-      <head>
-        <meta name="robots" content="noindex, nofollow" />
-      </head>
-      <body>
-        <AppRouterCacheProvider>
-          <ClientWrapper>{children}</ClientWrapper>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
+    <AppRouterCacheProvider>
+      <ClientWrapper>{children}</ClientWrapper>
+    </AppRouterCacheProvider>
   );
 }

@@ -64,6 +64,16 @@ export async function getCart(cartToken) {
   });
   return res.data;
 }
+// گرفتن سفارشات کاربر
+export async function getMyOrders(cartToken) {
+  const res = await axiosInstance.get(`/api/v1/orders/${cartToken}/my-orders`, {
+    params: { cart_token: cartToken },
+    headers: {
+      'x-cart-token': cartToken,
+    },
+  });
+  return res.data;
+}
 
 // افزودن به سبد
 export async function addToCart({ productId, quantity, color, cartToken }) {

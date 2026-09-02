@@ -5,6 +5,9 @@ const router = express.Router();
 const authRoutes = require('./auth/route');
 router.use('/auth', authRoutes);
 
+const addressesRoutes = require('./addresses/route');
+router.use('/user/addresses', addressesRoutes);
+
 const blogRoutes = require('./blog/route');
 router.use('/blogs', blogRoutes);
 
@@ -22,6 +25,9 @@ router.use('/products', productsRoute);
 
 const ordersRoute = require('./orders/route');
 router.use('/orders', ordersRoute);
+
+const wishListRoutes = require('./wishlist/route');
+router.use('/user/wishlist', wishListRoutes);
 
 // ----------------------------------------------------------------------------------------------------------- //
 
