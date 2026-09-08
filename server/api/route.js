@@ -29,10 +29,25 @@ router.use('/orders', ordersRoute);
 const wishListRoutes = require('./wishlist/route');
 router.use('/user/wishlist', wishListRoutes);
 
-// ----------------------------------------------------------------------------------------------------------- //
+// ====================== ADMIN ROUTES ======================
+const adminController = require('../controllers/adminController');
+const productUpload = require('../middlewares/upload');
 
-// PRIVARE ROUTES
-const adminProductsRoute = require('./admin/products/route');
-router.use('/admin/products', adminProductsRoute);
+router.get('/admin/dashboard', adminController.getAdminDashboard);
+router.get('/admin/orders', adminController.getAllOrders);
+router.patch('/admin/orders/:id/status', adminController.updateOrderStatus);
+
+// ==================== PRODUCTS ====================
+
+router.get('/admin/products', adminController.getAllProducts);
+router.post('/admin/products', adminController.createProduct);
+router.patch('/admin/products/:id', adminController.updateProduct);
+router.delete('/admin/products/:id', adminController.deleteProduct);
+
+// ==================== PRODUCT IMAGES ====================
+router.post('/admin/products/upload-images', productUpload.uploadMultiple, adminController.uploadProductImages);
+
+// ==================== USERS ====================
+router.get('/admin/users', adminController.getAllUsers);
 
 module.exports = router;
