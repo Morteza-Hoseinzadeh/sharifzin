@@ -28,8 +28,6 @@ const menuItems = [
   { title: 'کاربران', href: '/admin/users', icon: Profile2User },
   { title: 'دسته‌بندی‌ها', href: '/admin/categories', icon: Category },
   { title: 'کد تخفیف', href: '/admin/coupons', icon: TicketDiscount },
-  { title: 'گزارش‌ها', href: '/admin/reports', icon: Chart },
-  { title: 'تنظیمات', href: '/admin/settings', icon: Setting2 },
 ];
 
 const DRAWER_WIDTH = 280;
@@ -66,50 +64,15 @@ export default function AdminLayout({ children }) {
           const Icon = item.icon;
 
           return (
-            <ListItemButton
-              key={item.href}
-              component={Link}
-              href={item.href}
-              onClick={() => isMobile && setMobileOpen(false)}
-              sx={{
-                borderRadius: '14px',
-                mb: 1,
-                py: 1.4,
-                px: 2,
-                bgcolor: isActive ? alpha(ACCENT_ORANGE, 0.12) : 'transparent',
-                color: isActive ? ACCENT_ORANGE : INK,
-                '&:hover': { bgcolor: isActive ? alpha(ACCENT_ORANGE, 0.18) : alpha(INK, 0.04) },
-                transition: 'all 0.2s ease',
-              }}
-            >
+            <ListItemButton key={item.href} component={Link} href={item.href} onClick={() => isMobile && setMobileOpen(false)} sx={{ borderRadius: '14px', mb: 1, py: 1.4, px: 2, bgcolor: isActive ? alpha(ACCENT_ORANGE, 0.12) : 'transparent', color: isActive ? ACCENT_ORANGE : INK, '&:hover': { bgcolor: isActive ? alpha(ACCENT_ORANGE, 0.18) : alpha(INK, 0.04) }, transition: 'all 0.2s ease' }}>
               <ListItemIcon sx={{ minWidth: 44 }}>
                 <Icon size={22} variant={isActive ? 'Bold' : 'Linear'} />
               </ListItemIcon>
-              <ListItemText
-                primary={item.title}
-                primaryTypographyProps={{
-                  fontWeight: isActive ? 700 : 500,
-                  fontSize: 15,
-                }}
-              />
+              <ListItemText primary={item.title} primaryTypographyProps={{ fontWeight: isActive ? 700 : 500, fontSize: 15 }} />
             </ListItemButton>
           );
         })}
       </List>
-
-      <Divider sx={{ my: 3, borderColor: alpha(INK, 0.1) }} />
-
-      {/* Admin Info */}
-      <Stack direction="row" alignItems="center" gap={1.5} sx={{ px: 1 }}>
-        <Avatar sx={{ width: 44, height: 44, bgcolor: alpha(ACCENT_ORANGE, 0.15), color: ACCENT_ORANGE, fontWeight: 700, fontSize: 16 }}>ا</Avatar>
-        <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 14, color: INK }}>ادمین اصلی</Typography>
-          <Typography sx={{ fontSize: 12, color: INK_SOFT }}>admin@sharifzin.ir</Typography>
-        </Box>
-        <IconButton size="small" sx={{ color: INK_SOFT }}>
-          <Logout size={20} />
-        </IconButton>
-      </Stack>
     </Box>
   );
 

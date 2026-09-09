@@ -31,20 +31,16 @@ const neoSoft = {
 };
 
 const statusMap = {
-  delivered: { label: 'تحویل شده', color: '#38A169', icon: TickCircle },
-  shipping: { label: 'در حال ارسال', color: ACCENT_BLUE, icon: TruckFast },
-  processing: { label: 'در حال پردازش', color: ACCENT_ORANGE, icon: Clock },
-};
-
-const statusLables = {
-  paid: 'پرداخت شده',
-  pending: 'در انتظار پرداخت',
-  processing: 'در حال پردازش',
-  shipping: 'در حال ارسال',
-  pickup_dispatched: 'تحویل به راننده',
-  delivered: 'تحویل شده',
-  returned: 'بازگشت داده شده',
-  cancelled: 'لغو شده',
+  pending_payment: { color: '#F59E0B', icon: TickCircle, label: 'در انتظار پرداخت' },
+  paid: { color: '#38A169', icon: TickCircle, label: 'پرداخت شده' },
+  pickup_dispatched: { color: ACCENT_ORANGE, icon: TickCircle, label: 'در حال برداشتن زین' },
+  picked_up: { color: ACCENT_ORANGE, icon: TickCircle, label: 'برداشته شده' },
+  at_shop: { color: ACCENT_ORANGE, icon: TickCircle, label: 'در مغازه' },
+  inspecting: { color: ACCENT_ORANGE, icon: TickCircle, label: 'در حال بررسی' },
+  ready_to_ship: { color: ACCENT_ORANGE, icon: TickCircle, label: 'آماده ارسال' },
+  return_dispatched: { color: ACCENT_ORANGE, icon: TickCircle, label: 'در حال ارسال بازگشت' },
+  delivered: { color: ACCENT_ORANGE, icon: TickCircle, label: 'تحویل شده' },
+  cancelled: { color: '#EF4444', icon: TickCircle, label: 'لغو شده' },
 };
 
 const statusIcons = {

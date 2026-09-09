@@ -57,4 +57,12 @@ router.post('/admin/categories', adminController.createCategory);
 router.patch('/admin/categories/:id', adminController.updateCategory);
 router.delete('/admin/categories/:id', adminController.deleteCategory);
 
+// ==================== DISCOUNT CODES ====================
+
+router.get('/admin/discount-codes', adminController.getAllDiscountCodes);
+router.get('/admin/discount-codes/:id', adminController.getDiscountCodeById);
+router.post('/admin/discount-codes', adminController.createDiscountCode);
+router.patch('/admin/discount-codes/:id', adminController.updateDiscountCode);
+router.delete('/admin/discount-codes/:id', adminController.deleteDiscountCode);
+
 module.exports = router;

@@ -287,3 +287,311 @@ exports.updateCategory = async (req, res) => {
     return res.status(500).json({ message: 'خطا در به‌روزرسانی دسته‌بندی' });
   }
 };
+
+// ==================== DISCOUNT CODES ====================
+
+exports.getAllDiscountCodes = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT
+        id,
+        code,
+        type,
+        value,
+        min_order_amount,
+        max_uses,
+        used_count,
+        is_active,
+        expires_at,
+        created_at
+      FROM discount_codes
+      ORDER BY created_at DESC
+    `);
+
+    return res.json({
+      data: rows,
+    });
+  } catch (error) {
+    console.error('GET DISCOUNT CODES ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در دریافت کدهای تخفیف',
+    });
+  }
+};
+
+exports.getDiscountCodeById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await db.query(
+      `
+      SELECT
+        id,
+        code,
+        type,
+        value,
+        min_order_amount,
+        max_uses,
+        used_count,
+        is_active,
+        expires_at,
+        created_at
+      FROM discount_codes
+      WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        message: 'کد تخفیف یافت نشد',
+      });
+    }
+
+    return res.json({
+      data: rows[0],
+    });
+  } catch (error) {
+    console.error('GET DISCOUNT CODE ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در دریافت کد تخفیف',
+    });
+  }
+};
+
+exports.createDiscountCode = async (req, res) => {
+  try {
+    const { code, type, value, min_order_amount, max_uses, is_active, expires_at } = req.body;
+
+    // =========================
+    // Validation
+    // =========================
+
+    if (!code || !code.trim()) {
+      return res.status(400).json({
+        message: 'کد تخفیف الزامی است',
+      });
+    }
+
+    if (!['percent', 'flat'].includes(type)) {
+      return res.status(400).json({
+        message: 'نوع تخفیف نامعتبر است',
+      });
+    }
+
+    if (value === undefined || value === null || Number(value) <= 0) {
+      return res.status(400).json({
+        message: 'مقدار تخفیف باید بیشتر از صفر باشد',
+      });
+    }
+
+    if (type === 'percent' && Number(value) > 100) {
+      return res.status(400).json({
+        message: 'درصد تخفیف نمی‌تواند بیشتر از ۱۰۰ باشد',
+      });
+    }
+
+    if (max_uses !== undefined && max_uses !== null && Number(max_uses) < 0) {
+      return res.status(400).json({
+        message: 'تعداد استفاده نامعتبر است',
+      });
+    }
+
+    // =========================
+    // Normalize code
+    // =========================
+
+    const normalizedCode = code.trim().toUpperCase();
+
+    // =========================
+    // Check duplicate
+    // =========================
+
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM discount_codes
+      WHERE code = ?
+      `,
+      [normalizedCode]
+    );
+
+    if (existing.length > 0) {
+      return res.status(409).json({
+        message: 'این کد تخفیف قبلاً ثبت شده است',
+      });
+    }
+
+    // =========================
+    // Insert
+    // =========================
+
+    const [result] = await db.query(
+      `
+      INSERT INTO discount_codes
+      (
+        code,
+        type,
+        value,
+        min_order_amount,
+        max_uses,
+        used_count,
+        is_active,
+        expires_at
+      )
+      VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+      `,
+      [normalizedCode, type, Number(value), Number(min_order_amount) || 0, max_uses === '' || max_uses === null || max_uses === undefined ? null : Number(max_uses), is_active === undefined ? 1 : is_active ? 1 : 0, expires_at || null]
+    );
+
+    return res.status(201).json({
+      message: 'کد تخفیف با موفقیت ایجاد شد',
+      id: result.insertId,
+    });
+  } catch (error) {
+    console.error('CREATE DISCOUNT CODE ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در ایجاد کد تخفیف',
+    });
+  }
+};
+
+exports.updateDiscountCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { code, type, value, min_order_amount, max_uses, is_active, expires_at } = req.body;
+
+    // =========================
+    // Validation
+    // =========================
+
+    if (!code || !code.trim()) {
+      return res.status(400).json({
+        message: 'کد تخفیف الزامی است',
+      });
+    }
+
+    if (!['percent', 'flat'].includes(type)) {
+      return res.status(400).json({
+        message: 'نوع تخفیف نامعتبر است',
+      });
+    }
+
+    if (value === undefined || value === null || Number(value) <= 0) {
+      return res.status(400).json({
+        message: 'مقدار تخفیف باید بیشتر از صفر باشد',
+      });
+    }
+
+    if (type === 'percent' && Number(value) > 100) {
+      return res.status(400).json({
+        message: 'درصد تخفیف نمی‌تواند بیشتر از ۱۰۰ باشد',
+      });
+    }
+
+    // =========================
+    // Check existing
+    // =========================
+
+    const [current] = await db.query(
+      `
+      SELECT id
+      FROM discount_codes
+      WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (current.length === 0) {
+      return res.status(404).json({
+        message: 'کد تخفیف یافت نشد',
+      });
+    }
+
+    const normalizedCode = code.trim().toUpperCase();
+
+    // =========================
+    // Duplicate code check
+    // =========================
+
+    const [duplicate] = await db.query(
+      `
+      SELECT id
+      FROM discount_codes
+      WHERE code = ?
+      AND id != ?
+      `,
+      [normalizedCode, id]
+    );
+
+    if (duplicate.length > 0) {
+      return res.status(409).json({
+        message: 'این کد تخفیف قبلاً استفاده شده است',
+      });
+    }
+
+    // =========================
+    // Update
+    // =========================
+
+    const [result] = await db.query(
+      `
+      UPDATE discount_codes
+      SET
+        code = ?,
+        type = ?,
+        value = ?,
+        min_order_amount = ?,
+        max_uses = ?,
+        is_active = ?,
+        expires_at = ?
+      WHERE id = ?
+      `,
+      [normalizedCode, type, Number(value), Number(min_order_amount) || 0, max_uses === '' || max_uses === null || max_uses === undefined ? null : Number(max_uses), is_active ? 1 : 0, expires_at || null, id]
+    );
+
+    return res.json({
+      message: 'کد تخفیف با موفقیت به‌روزرسانی شد',
+    });
+  } catch (error) {
+    console.error('UPDATE DISCOUNT CODE ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در به‌روزرسانی کد تخفیف',
+    });
+  }
+};
+
+exports.deleteDiscountCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [result] = await db.query(
+      `
+      DELETE FROM discount_codes
+      WHERE id = ?
+      `,
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: 'کد تخفیف یافت نشد',
+      });
+    }
+
+    return res.json({
+      message: 'کد تخفیف با موفقیت حذف شد',
+    });
+  } catch (error) {
+    console.error('DELETE DISCOUNT CODE ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در حذف کد تخفیف',
+    });
+  }
+};
