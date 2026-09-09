@@ -37,7 +37,7 @@ app
     // --- Start the server ---
     server.listen(PORT, (err) => {
       if (err) throw err;
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`🚀 Server running on http://sharifzin.ir:${PORT}`);
     });
   })
   .catch((err) => {

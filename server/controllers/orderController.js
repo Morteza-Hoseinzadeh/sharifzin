@@ -327,12 +327,12 @@ exports.paymentCallback = async (req, res) => {
 
     if (Status !== 'OK') {
       // پرداخت ناموفق
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=failed&order=${order_code}`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://sharifzin.ir'}/checkout?payment=failed&order=${order_code}`);
     }
 
     const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [order_code]);
     if (!orders.length) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=error`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://sharifzin.ir'}/checkout?payment=error`);
     }
 
     const order = orders[0];
@@ -364,14 +364,14 @@ exports.paymentCallback = async (req, res) => {
         [data.data.ref_id, order.id]
       );
 
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout/success?order=${order.order_code}&ref=${data.data.ref_id}`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://sharifzin.ir'}/checkout/success?order=${order.order_code}&ref=${data.data.ref_id}`);
     } else {
       console.error('Verify failed:', data);
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=failed&order=${order_code}`);
+      return res.redirect(`${process.env.FRONTEND_URL || 'https://sharifzin.ir'}/checkout?payment=failed&order=${order_code}`);
     }
   } catch (error) {
     console.error('Callback error:', error);
-    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/checkout?payment=error`);
+    return res.redirect(`${process.env.FRONTEND_URL || 'https://sharifzin.ir'}/checkout?payment=error`);
   }
 };
 

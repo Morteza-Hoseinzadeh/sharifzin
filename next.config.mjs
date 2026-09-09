@@ -4,9 +4,9 @@ const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: http://localhost:3000;
+  img-src 'self' data: blob: https://sharifzin.ir;
   font-src 'self' data:;
-  connect-src 'self' http://localhost:3000 https:;
+  connect-src 'self' https://sharifzin.ir https:;
   frame-src 'self' https://www.instagram.com https://www.vortexwebteam.ir;
   frame-ancestors 'none';
 `;
@@ -32,7 +32,7 @@ const nextConfig = {
     return [
       {
         source: '/assets/products/:path*',
-        destination: 'http://localhost:3000/assets/products/:path*',
+        destination: 'https://sharifzin.ir/assets/products/:path*',
       },
     ];
   },
@@ -41,7 +41,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: 'localhost',
+        hostname: 'sharifzin.ir',
         port: '3000',
         pathname: '/assets/products/**',
       },

@@ -8,7 +8,7 @@ import { Add, CloseCircle, Box1, Tag2, Money2, Archive, DocumentText, InfoCircle
 
 const ACCENT = '#F57C1F';
 
-const API_URL = process.env.BASE_URL || 'http://localhost:3000/api/v1';
+const API_URL = process.env.BASE_URL || 'https://sharifzin.ir/api/v1';
 
 export default function NewProductModal({ open, onClose, onSave }) {
   const theme = useTheme();
