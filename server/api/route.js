@@ -49,5 +49,6 @@ router.post('/admin/products/upload-images', productUpload.uploadMultiple, admin
 
 // ==================== USERS ====================
 router.get('/admin/users', adminController.getAllUsers);
+router.delete('/admin/users/:id', adminController.deleteUser);
 
 module.exports = router;

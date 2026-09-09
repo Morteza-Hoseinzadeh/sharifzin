@@ -55,7 +55,20 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM users');
+
     return res.json({ data: rows });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'خطا در دریافت کاربران' });
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await db.query('DELETE FROM users WHERE id = ?', [id]);
+    return res.json({ message: 'کاربر با موفقیت حذف شد' });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'خطا در دریافت کاربران' });
