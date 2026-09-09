@@ -8,62 +8,124 @@ import Image from 'next/image';
 export default function HeroSection() {
   const theme = useTheme();
 
+  const neoRaised = `8px 8px 20px rgba(0, 0, 0, 0.22),-6px -6px 16px rgba(255, 255, 255, 0.08)`;
+  const neoInset = `inset 4px 4px 10px rgba(0, 0, 0, 0.2),inset -4px -4px 10px rgba(255, 255, 255, 0.08)`;
+
   return (
-    <Box component="section" sx={{ py: 4, pb: { xs: 0, lg: 8 }, position: 'relative', overflow: 'hidden' }}>
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: { xs: 4, lg: 8 }, height: { xs: 380, sm: 420, md: 480, lg: 520 } }}>
-          <Image src="/assets/banner/hero-section.webp" alt="شریف زین" fill priority style={{ objectFit: 'cover', filter: 'blur(8px)' }} />
+    <Box component="section" sx={{ position: 'relative', py: { xs: 3, lg: 5 }, pb: { xs: 3, lg: 9 }, overflow: 'hidden' }}>
+      {/* =====================================================
+          HERO
+      ====================================================== */}
+      <Box sx={{ position: 'relative', width: '100%', height: { xs: 500, sm: 540, md: 580, lg: 620 }, overflow: 'hidden', borderRadius: { xs: '28px', sm: '36px', lg: '48px' }, background: '#151515', boxShadow: neoRaised }}>
+        {/* Background image */}
+        <Image src="/assets/banner/hero-section.webp" alt="شریف زین" fill priority sizes="100vw" style={{ objectFit: 'cover', filter: 'blur(5px)', transform: 'scale(1.04)' }} />
 
-          {/* Dark Gradient */}
-          <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.1) 70%, transparent 100%)' }} />
+        {/* Main dark overlay */}
+        <Box sx={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.55) 38%,rgba(0,0,0,.18) 75%,rgba(0,0,0,.08) 100%)` }} />
 
-          {/* Orange Blur */}
-          <Box sx={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: theme.palette.primary.main, filter: 'blur(170px)', opacity: 0.25, left: -120, bottom: -200 }} />
+        {/* Bottom darkening */}
+        <Box sx={{ position: 'absolute', inset: 0, background: `linear-gradient(0deg,rgba(0,0,0,.68) 0%,transparent 45%)` }} />
 
-          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', px: { xs: 2.5, sm: 4, md: 6, lg: 8 } }}>
-            <Box maxWidth={{ xs: '100%', sm: 480, lg: 560 }}>
-              <Chip label="تعویض تخصصی زین موتور" sx={{ bgcolor: theme.palette.primary.main, color: theme.palette.primary.contrastText, fontWeight: 700, mb: { xs: 2, lg: 3 }, fontSize: { xs: 12, lg: 13 } }} />
+        {/* Orange ambient light */}
+        <Box sx={{ position: 'absolute', width: { xs: 280, md: 450, lg: 550 }, height: { xs: 280, md: 450, lg: 550 }, borderRadius: '50%', left: { xs: -150, md: -120 }, bottom: { xs: -150, md: -220 }, background: theme.palette.primary.main, filter: 'blur(150px)', opacity: 0.25, pointerEvents: 'none' }} />
 
-              <Typography variant="h2" sx={{ color: theme.palette.primary.contrastText, fontWeight: 900, lineHeight: 1.2, mb: 2, fontSize: { xs: 28, sm: 36, md: 48, lg: 60 } }}>
-                راحتی واقعی
-                <br />
+        {/* =====================================================
+            CONTENT
+        ====================================================== */}
+        <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', px: { xs: 2.5, sm: 4, md: 6, lg: 9 }, pb: { xs: 5, lg: 7 } }}>
+          <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: 500, lg: 600 }, direction: 'rtl' }}>
+            {/* Label */}
+            <Box sx={{ display: 'inline-flex', p: '5px', mb: { xs: 2, md: 2.5 }, borderRadius: '15px', background: 'rgba(255,255,255,.08)', boxShadow: neoInset, backdropFilter: 'blur(12px)' }}>
+              <Chip label="تعویض تخصصی زین موتور" sx={{ height: { xs: 32, md: 36 }, px: 0.5, borderRadius: '11px', background: theme.palette.primary.main, color: theme.palette.primary.contrastText, fontWeight: 800, fontSize: { xs: 11, md: 12 }, boxShadow: `4px 4px 10px rgba(0,0,0,.25)` }} />
+            </Box>
+
+            {/* Heading */}
+            <Typography component="h1" sx={{ color: '#fff', fontWeight: 900, fontSize: { xs: 32, sm: 40, md: 52, lg: 64 }, lineHeight: { xs: 1.35, lg: 1.25 }, letterSpacing: '-1px', mb: 2 }}>
+              راحتی واقعی
+              <br />
+              <Box component="span" sx={{ color: theme.palette.primary.main }}>
                 از اینجا شروع میشه
-              </Typography>
-
-              <Typography sx={{ color: 'rgba(255,255,255,.8)', fontSize: { xs: 14, sm: 16, lg: 18 }, lineHeight: { xs: 1.8, lg: 2 }, mb: { xs: 3, lg: 4 } }}>تعویض، تعمیر و دوخت انواع زین موتور با بهترین متریال، کیفیت تضمینی و تحویل سریع.</Typography>
-
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', flexDirection: { xs: 'column', sm: 'row' } }}>
-                <Button size="large" endIcon={<ArrowRight2 size={20} style={{ transform: 'rotate(180deg)', marginRight: '8px' }} />} sx={{ bgcolor: theme.palette.primary.main, color: theme.palette.primary.contrastText, px: { xs: 3, lg: 4 }, py: { xs: 1.25, lg: 1.5 }, borderRadius: 4, width: { xs: '100%', sm: 'auto' }, '&:hover': { bgcolor: 'primary.dark' } }}>
-                  ثبت سفارش
-                </Button>
-
-                <Button variant="outlined" size="large" sx={{ borderColor: theme.palette.primary.contrastText, color: theme.palette.primary.contrastText, px: { xs: 3, lg: 4 }, py: { xs: 1.25, lg: 1.5 }, borderRadius: 4, width: { xs: '100%', sm: 'auto' }, '&:hover': { borderColor: theme.palette.primary.contrastText, bgcolor: 'rgba(255,255,255,.08)' } }}>
-                  مشاهده نمونه کارها
-                </Button>
               </Box>
+            </Typography>
+
+            {/* Description */}
+            <Typography sx={{ color: 'rgba(255,255,255,.78)', fontSize: { xs: 14, sm: 15, lg: 17 }, lineHeight: 2, maxWidth: 540, mb: { xs: 3, lg: 4 } }}>تعویض، تعمیر و دوخت انواع زین موتور با بهترین متریال، کیفیت تضمینی و تحویل سریع.</Typography>
+
+            {/* Buttons */}
+            <Box sx={{ display: 'flex', gap: 1.5, flexDirection: { xs: 'column', sm: 'row' } }}>
+              {/* Primary */}
+              <Button
+                size="large"
+                endIcon={<ArrowRight2 size={19} style={{ transform: 'rotate(180deg)', marginRight: 7 }} />}
+                sx={{
+                  minHeight: 52,
+                  px: { xs: 3, lg: 4 },
+                  borderRadius: '17px',
+                  background: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
+                  fontWeight: 800,
+                  boxShadow: `7px 7px 14px rgba(0,0,0,.28),-4px -4px 10px rgba(255,255,255,.08)`,
+                  width: { xs: '100%', sm: 'auto' },
+                  transition: 'all .25s ease',
+                  '&:hover': {
+                    background: theme.palette.primary.main,
+                    transform: 'translateY(-2px)',
+                    boxShadow: `9px 9px 18px rgba(0,0,0,.32),-5px -5px 12px rgba(255,255,255,.08)`,
+                  },
+                  '&:active': {
+                    transform: 'translateY(1px)',
+                    boxShadow: `inset 4px 4px 8px rgba(0,0,0,.25),inset -3px -3px 7px rgba(255,255,255,.08)`,
+                  },
+                }}
+              >
+                ثبت سفارش
+              </Button>
+
+              {/* Secondary */}
+              <Button
+                size="large"
+                sx={{
+                  minHeight: 52,
+                  px: { xs: 3, lg: 4 },
+                  borderRadius: '17px',
+                  background: 'rgba(255,255,255,.08)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  border: '1px solid rgba(255,255,255,.14)',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: `inset 2px 2px 5px rgba(255,255,255,.05),5px 5px 12px rgba(0,0,0,.2)`,
+                  width: { xs: '100%', sm: 'auto' },
+                  transition: 'all .25s ease',
+                  '&:hover': { background: 'rgba(255,255,255,.12)', borderColor: 'rgba(255,255,255,.2)', transform: 'translateY(-2px)' },
+                  '&:active': { boxShadow: neoInset, transform: 'translateY(1px)' },
+                }}
+              >
+                مشاهده نمونه کارها
+              </Button>
             </Box>
           </Box>
         </Box>
       </Box>
 
-      {/* Stats bar: in-flow + 2-column grid on mobile, floating overlap + 4-column row from lg up */}
-      <Box sx={{ position: { xs: 'static', lg: 'absolute' }, width: { xs: '100%', lg: '90%' }, left: 0, right: 0, bottom: { lg: 15 }, mx: { xs: 0, lg: 'auto' }, mt: { xs: 3, lg: 0 }, display: { xs: 'none', lg: 'flex' }, justifyContent: 'center', zIndex: 2 }}>
-        <Box sx={{ width: '100%', height: { xs: 'auto', lg: 100 }, py: { xs: 2, lg: 0 }, borderRadius: { xs: '20px', lg: '32px' }, background: theme.palette.background.paper, boxShadow: '0 0px 20px rgba(0,0,0,.15)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', px: 2 }}>
+      {/* =====================================================
+          STATS
+      ====================================================== */}
+      <Box sx={{ position: { xs: 'relative', lg: 'absolute' }, left: { lg: '50%' }, bottom: { lg: 15 }, transform: { lg: 'translateX(-50%)' }, width: { xs: '100%', lg: '88%' }, mt: { xs: 2.5, lg: 0 }, zIndex: 5 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: { xs: 1.5, md: 2 }, p: { xs: 1.5, md: 2 }, borderRadius: { xs: '24px', md: '30px' }, background: theme.palette.background.default, boxShadow: `10px 10px 24px rgba(163,177,198,.48),-10px -10px 24px rgba(255,255,255,.9)` }}>
           {storeDetials.map((item, index) => {
             const isOdd = index % 2 !== 0;
 
             return (
-              <Box key={index} display={'flex'} alignItems="center" justifyContent="center" sx={{ width: { xs: '50%', sm: '50%', md: '50%', lg: '25%' }, py: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: { xs: 48, lg: 64 }, height: { xs: 48, lg: 64 }, borderRadius: { xs: '14px', lg: '20px' }, bgcolor: isOdd ? alpha(theme.palette.primary.main, 0.2) : alpha(theme.palette.secondary.main, 0.2) }}>
-                  <item.icon size={28} variant="Bulk" style={{ color: isOdd ? theme.palette.primary.main : theme.palette.secondary.main }} />
+              <Box key={index} sx={{ position: 'relative', minHeight: { xs: 82, md: 86 }, display: 'flex', alignItems: 'center', px: { xs: 1, md: 1.5 }, borderRadius: '21px', background: theme.palette.background.default, boxShadow: `inset 3px 3px 7px rgba(163,177,198,.18),inset -3px -3px 7px rgba(255,255,255,.8)` }}>
+                {/* Icon */}
+                <Box sx={{ flexShrink: 0, width: { xs: 42, md: 52 }, height: { xs: 42, md: 52 }, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: { xs: '14px', md: '17px' }, background: isOdd ? alpha(theme.palette.primary.main, 0.09) : alpha(theme.palette.secondary.main, 0.09), boxShadow: `4px 4px 9px rgba(163,177,198,.28),-4px -4px 9px rgba(255,255,255,.85)` }}>
+                  <item.icon size={24} variant="Bulk" style={{ color: isOdd ? theme.palette.primary.main : theme.palette.secondary.main }} />
                 </Box>
-                <Box display={'flex'} flexDirection="column" justifyContent={'center'} alignItems="flex-start" sx={{ mr: { xs: 1.25, lg: 2 } }}>
-                  <Typography variant="body1" sx={{ color: theme.palette.text.primary, fontWeight: 700, fontSize: { xs: 13, lg: 16 } }}>
-                    {item.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: theme.palette.text.disabled, fontSize: { xs: 11, lg: 14 }, display: { xs: 'none', sm: 'block' } }}>
-                    {item.description}
-                  </Typography>
+
+                {/* Text */}
+                <Box sx={{ mr: { xs: 1, md: 1.5 }, minWidth: 0 }}>
+                  <Typography sx={{ color: theme.palette.text.primary, fontWeight: 800, fontSize: { xs: 11, sm: 12, md: 14 }, lineHeight: 1.6 }}>{item.title}</Typography>
+                  <Typography sx={{ color: theme.palette.text.disabled, fontSize: { xs: 10, md: 12 }, mt: 0.3, lineHeight: 1.7, display: { xs: 'none', sm: 'block' } }}>{item.description}</Typography>
                 </Box>
               </Box>
             );
