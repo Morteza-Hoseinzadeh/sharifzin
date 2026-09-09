@@ -51,4 +51,10 @@ router.post('/admin/products/upload-images', productUpload.uploadMultiple, admin
 router.get('/admin/users', adminController.getAllUsers);
 router.delete('/admin/users/:id', adminController.deleteUser);
 
+// ==================== CATEGORIES ====================
+router.get('/admin/categories', adminController.getAllCategories);
+router.post('/admin/categories', adminController.createCategory);
+router.patch('/admin/categories/:id', adminController.updateCategory);
+router.delete('/admin/categories/:id', adminController.deleteCategory);
+
 module.exports = router;

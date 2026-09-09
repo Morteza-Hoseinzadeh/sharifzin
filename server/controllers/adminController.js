@@ -226,3 +226,64 @@ exports.uploadProductImages = async (req, res) => {
     });
   }
 };
+
+// ==================== CATEGORIES ====================
+exports.getAllCategories = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM categories');
+    return res.json({ data: rows });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'خطا در دریافت دسته‌بندی‌ها' });
+  }
+};
+
+exports.createCategory = async (req, res) => {
+  try {
+    const { name, description, name_fa, description_fa, color } = req.body;
+    const [result] = await db.query('INSERT INTO categories (name, description, name_fa, description_fa, color, slug) VALUES (?, ?, ?, ?, ?, ?)', [
+      name,
+      description,
+      name_fa,
+      description_fa,
+      color,
+      name
+        .toLowerCase()
+        .replace(/[^ا-یa-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-'),
+    ]);
+    return res.status(201).json({ message: 'دسته‌بندی با موفقیت ایجاد شد', id: result.insertId });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'خطا در ایجاد دسته‌بندی' });
+  }
+};
+
+exports.deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [result] = await db.query('DELETE FROM categories WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'دسته‌بندی یافت نشد' });
+    }
+    return res.json({ message: 'دسته‌بندی با موفقیت حذف شد' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'خطا در حذف دسته‌بندی' });
+  }
+};
+
+exports.updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, name_fa, description_fa, color } = req.body;
+    const [result] = await db.query('UPDATE categories SET name = ?, description = ?, name_fa = ?, description_fa = ?, color = ? WHERE id = ?', [name, description, name_fa, description_fa, color, id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'دسته‌بندی یافت نشد' });
+    }
+    return res.json({ message: 'دسته‌بندی با موفقیت به‌روزرسانی شد' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'خطا در به‌روزرسانی دسته‌بندی' });
+  }
+};
