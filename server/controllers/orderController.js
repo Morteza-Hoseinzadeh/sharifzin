@@ -186,6 +186,46 @@ exports.getOrderByCode = async (req, res) => {
   }
 };
 
+// ---------- GET /api/v1/orders/:code ----------
+exports.getOrderByCode = async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [code]);
+
+    if (!orders.length) {
+      return res.status(404).json({ message: 'سفارش یافت نشد' });
+    }
+
+    const order = orders[0];
+    const [items] = await db.query('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
+
+    return res.json({
+      order: {
+        id: order.id,
+        orderCode: order.order_code,
+        fullName: order.full_name,
+        phone: order.phone,
+        address: order.address,
+        city: order.city,
+        postalCode: order.postal_code,
+        addressNote: order.address_note,
+        subtotal: order.subtotal,
+        discountCode: order.discount_code,
+        discountAmount: order.discount_amount,
+        payableAmount: order.payable_amount,
+        status: order.status,
+        createdAt: order.created_at,
+        updatedAt: order.updated_at,
+      },
+      items,
+    });
+  } catch (error) {
+    console.error('Get order error:', error);
+    return res.status(500).json({ message: 'خطا در دریافت سفارش' });
+  }
+};
+
 // ---------- Helpers ----------
 async function getOrCreateCart(cartToken) {
   if (!cartToken) cartToken = crypto.randomUUID();

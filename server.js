@@ -30,15 +30,6 @@ app
     // --- API Routes ---
     server.use('/api/v1', require('./server/api/route'));
 
-    // --- Custom Next.js Routes ---
-    const routes = ['/'];
-
-    routes.forEach((route) => {
-      server.get(route, (req, res) => {
-        return app.render(req, res, route, req.query);
-      });
-    });
-
     // --- Fallback for everything else ---
     server.use((req, res) => {
       return handle(req, res);
