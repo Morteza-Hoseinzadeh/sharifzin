@@ -79,7 +79,7 @@ export default function OrderTrackingPage() {
     return (
       <ChildrenLayout>
         <Box sx={{ bgcolor: BG, minHeight: '100vh', py: 8 }}>
-          <Container maxWidth="lg">
+          <Container maxWidth="xl">
             <Alert severity="error" sx={{ mb: 2 }}>
               {error || 'سفارش یافت نشد'}
             </Alert>

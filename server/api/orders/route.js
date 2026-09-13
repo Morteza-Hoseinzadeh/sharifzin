@@ -9,7 +9,7 @@ router.get('/:cart_token/my-orders', orderController.getUserOrders);
 router.post('/checkout', orderController.checkout);
 router.get('/:code', orderController.getOrderByCode);
 router.post('/:code/pay', orderController.payOrder);
-router.get('/api/v1/payment/callback', orderController.paymentCallback);
+router.get('/callback', orderController.paymentCallback);
 
 // ادمین
 router.get('/', orderController.getAllOrders);

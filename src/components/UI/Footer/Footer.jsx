@@ -101,7 +101,7 @@ export default function Footer() {
                 پشتیبانی
               </Typography>
               <Typography variant="body2" sx={s.textOnDark}>
-                {ConvertToPersianDigit('09101941207')}
+                {ConvertToPersianDigit('09101941231')}
               </Typography>
             </Box>
             <Box sx={s.infoRow}>

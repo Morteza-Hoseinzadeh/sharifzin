@@ -312,7 +312,7 @@ export default function CartPage() {
   return (
     <ChildrenLayout>
       <Box sx={{ bgcolor: BG, minHeight: '100vh', py: { xs: 4, md: 6 } }}>
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           {/* Header */}
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3.5 }}>
             <Typography sx={{ fontWeight: 800, fontSize: { xs: 22, md: 26 }, color: INK }}>سبد خرید</Typography>

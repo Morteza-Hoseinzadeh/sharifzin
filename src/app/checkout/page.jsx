@@ -83,6 +83,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [orderCode, setOrderCode] = useState('');
   const [payable, setPayable] = useState(0);
+  const [paying, setPaying] = useState(false);
 
   const handleChange = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
 
@@ -112,7 +113,7 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
-    if (!orderData?.orderCode) return;
+    if (!orderCode) return;
 
     setPaying(true);
     setError('');
@@ -120,7 +121,8 @@ export default function CheckoutPage() {
     try {
       const token = localStorage.getItem('cartToken');
 
-      const { data } = await axiosInstance.post(`/api/v1/orders/${orderData.orderCode}/pay`, {}, { headers: { 'x-cart-token': token } });
+      const { data } = await axiosInstance.post(`/api/v1/orders/${orderCode}/pay`, {}, { headers: { 'x-cart-token': token } });
+      console.log(data);
 
       if (data.paymentUrl) {
         // هدایت به صفحه پرداخت زرین‌پال
@@ -173,7 +175,7 @@ export default function CheckoutPage() {
   return (
     <ChildrenLayout>
       <Box sx={{ bgcolor: BG, minHeight: '100vh', py: 8 }}>
-        <Container maxWidth="lg">
+        <Container maxWidth="xl">
           <Typography sx={{ fontWeight: 800, fontSize: 26, color: INK, mb: 2 }}>ادامه فرآیند خرید</Typography>
           <Typography sx={{ color: INK_SOFT, mb: 4 }}>آدرس خود را وارد کنید تا پیک برای برداشتن زین مراجعه کند.</Typography>
 

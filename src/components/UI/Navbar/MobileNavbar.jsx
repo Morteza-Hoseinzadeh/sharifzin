@@ -93,8 +93,8 @@ export default function MobileNavbar() {
           <Box width="100%" display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'center', sm: 'flex-start' }} justifyContent={{ xs: 'center', sm: 'space-between' }} gap={{ xs: 1.5, sm: 2 }} mb={2}>
             <Box display={'flex'} alignItems={'center'} gap={{ xs: 1, sm: 1.5 }}>
               <Typography variant="body1" sx={{ fontSize: { xs: 14, sm: 15, md: 16 }, fontWeight: 600 }}>
-                <a href="tel:02199887766" style={{ color: theme.palette.secondary.main, textDecoration: 'none' }}>
-                  {ConvertToPersianDigit('021-99887766')}
+                <a href="tel:09101941231" style={{ color: theme.palette.secondary.main, textDecoration: 'none' }}>
+                  {ConvertToPersianDigit('09101941231')}
                 </a>
               </Typography>
               <Typography variant="caption" color="text.disabled" sx={{ fontSize: { xs: 11, sm: 12 } }}>

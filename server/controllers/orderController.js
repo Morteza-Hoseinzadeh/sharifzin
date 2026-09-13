@@ -2,6 +2,8 @@ const db = require('../models/dbConnection');
 const crypto = require('crypto');
 const axios = require('axios');
 
+const { sendPatternSMS } = require('../services/sms');
+
 // ---------- Helpers ----------
 async function getOrCreateCart(cartToken) {
   if (!cartToken) cartToken = crypto.randomUUID();
@@ -116,13 +118,13 @@ exports.checkout = async (req, res) => {
 };
 
 // ---------- POST /api/v1/orders/:code/pay ----------
+// ---------- POST /api/v1/orders/:code/pay ----------
 exports.payOrder = async (req, res) => {
   try {
     const { code } = req.params;
     const cartToken = req.headers['x-cart-token'];
 
     const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [code]);
-
     if (!orders.length) {
       return res.status(404).json({ message: 'سفارش یافت نشد' });
     }
@@ -133,13 +135,44 @@ exports.payOrder = async (req, res) => {
       return res.status(403).json({ message: 'توکن سبد خرید نامعتبر است' });
     }
 
-    await db.query('UPDATE orders SET status = "paid" WHERE id = ?', [order.id]);
+    if (order.status !== 'pending_payment') {
+      return res.status(400).json({ message: 'این سفارش قابل پرداخت نیست' });
+    }
 
-    return res.json({
-      success: true,
-      message: 'پرداخت با موفقیت انجام شد',
-      status: 'paid',
-    });
+    const merchantId = process.env.ZARINPAL_MERCHANT_ID;
+    const isSandbox = process.env.ZARINPAL_SANDBOX === 'true';
+
+    const requestUrl = isSandbox ? 'https://sandbox.zarinpal.com/pg/v4/payment/request.json' : 'https://api.zarinpal.com/pg/v4/payment/request.json';
+
+    const callbackUrl = `${process.env.BASE_URL}/api/v1/payment/callback?order_code=${order.order_code}`;
+
+    const { data } = await axios.post(
+      requestUrl,
+      {
+        merchant_id: merchantId,
+        amount: Math.round(Number(order.payable_amount)),
+        callback_url: callbackUrl,
+        description: `پرداخت سفارش ${order.order_code}`,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (data.data && data.data.code === 100) {
+      const authority = data.data.authority;
+      const gatewayBase = isSandbox ? 'https://sandbox.zarinpal.com/pg/StartPay/' : 'https://www.zarinpal.com/pg/StartPay/';
+
+      await db.query('UPDATE orders SET authority = ? WHERE id = ?', [authority, order.id]);
+
+      return res.json({
+        success: true,
+        paymentUrl: `${gatewayBase}${authority}`,
+      });
+    } else {
+      console.error('Zarinpal request failed:', data);
+      return res.status(502).json({ message: 'خطا در اتصال به درگاه پرداخت' });
+    }
   } catch (error) {
     console.error('Pay error:', error);
     return res.status(500).json({ message: 'خطا در ثبت پرداخت' });
@@ -320,58 +353,58 @@ exports.checkout = async (req, res) => {
   }
 };
 
-// ---------- GET /api/v1/payment/callback  ← بازگشت از زرین‌پال ----------
 exports.paymentCallback = async (req, res) => {
   try {
     const { Authority, Status, order_code } = req.query;
 
     if (Status !== 'OK') {
-      // پرداخت ناموفق
-      return res.redirect(`${process.env.BASE_URL}/checkout?payment=failed&order=${order_code}`);
+      return res.redirect(`${process.env.BASE_URL}/checkout/failed?order=${order_code}`);
     }
 
     const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [order_code]);
     if (!orders.length) {
-      return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
+      return res.redirect(`${process.env.BASE_URL}/checkout/error`);
     }
 
     const order = orders[0];
 
-    // ========== Verify پرداخت ==========
+    if (order.status === 'paid') {
+      return res.redirect(`${process.env.BASE_URL}/checkout/success?order=${order.order_code}&ref=${order.ref_id}`);
+    }
+
     const merchantId = process.env.ZARINPAL_MERCHANT_ID;
     const isSandbox = process.env.ZARINPAL_SANDBOX === 'true';
-
     const verifyUrl = isSandbox ? 'https://sandbox.zarinpal.com/pg/v4/payment/verify.json' : 'https://api.zarinpal.com/pg/v4/payment/verify.json';
 
-    const verifyData = {
-      merchant_id: merchantId,
-      amount: Math.round(Number(order.payable_amount)),
-      authority: Authority,
-    };
-
-    const { data } = await axios.post(verifyUrl, verifyData, {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const { data } = await axios.post(
+      verifyUrl,
+      {
+        merchant_id: merchantId,
+        amount: Math.round(Number(order.payable_amount)),
+        authority: Authority,
+      },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
     if (data.data && (data.data.code === 100 || data.data.code === 101)) {
-      // پرداخت موفق
-      await db.query(
-        `UPDATE orders SET 
-          status = 'paid', 
-          ref_id = ?, 
-          paid_at = NOW() 
-         WHERE id = ?`,
-        [data.data.ref_id, order.id]
-      );
+      await db.query(`UPDATE orders SET status = 'paid', ref_id = ?, paid_at = NOW() WHERE id = ?`, [data.data.ref_id, order.id]);
+
+      // ارسال پیامک تایید سفارش — نباید جلوی ریدایرکت رو بگیره
+      try {
+        const STATUS_LABELS_FA = { pending_payment: 'در انتظار پرداخت', paid: 'پرداخت‌شده', pickup_dispatched: 'در حال جمع‌آوری', picked_up: 'جمع‌آوری‌شده', at_shop: 'در فروشگاه', inspecting: 'در حال بررسی', ready_to_ship: 'آماده ارسال', return_dispatched: 'در حال ارسال', delivered: 'تحویل داده‌شده', cancelled: 'لغو شده' };
+        await sendPatternSMS(order.phone, [order.full_name, order.order_code, order.payable_amount.toLocaleString('fa-IR'), jalaliDate, jalaliTime, STATUS_LABELS_FA[order.status] || order.status]);
+      } catch (smsError) {
+        console.error('SMS send failed:', smsError.message);
+      }
 
       return res.redirect(`${process.env.BASE_URL}/checkout/success?order=${order.order_code}&ref=${data.data.ref_id}`);
     } else {
       console.error('Verify failed:', data);
-      return res.redirect(`${process.env.BASE_URL}/checkout?payment=failed&order=${order_code}`);
+      return res.redirect(`${process.env.BASE_URL}/checkout/failed?order=${order_code}`);
     }
   } catch (error) {
     console.error('Callback error:', error);
-    return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
+    return res.redirect(`${process.env.BASE_URL}/checkout/error`);
   }
 };
 

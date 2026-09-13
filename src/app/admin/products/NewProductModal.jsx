@@ -300,7 +300,7 @@ export default function NewProductModal({ open, onClose, onSave }) {
     },
 
     '& input::placeholder, & textarea::placeholder': {
-      color: palette.muted,
+      color: palette?.muted,
       opacity: 0.7,
     },
   };
@@ -309,29 +309,27 @@ export default function NewProductModal({ open, onClose, onSave }) {
   // FIELD
   // =========================================================
 
-  const Field = ({ label, field, placeholder, type = 'text', multiline = false, rows = 4, endAdornment }) => (
-    <Box>
-      <InputLabel sx={{ mb: 1, color: palette.label, fontSize: 13, fontWeight: 700 }}>{label}</InputLabel>
-
-      <InputBase fullWidth type={type} multiline={multiline} rows={multiline ? rows : undefined} value={formData[field]} onChange={handleChange(field)} placeholder={placeholder} endAdornment={endAdornment ? <InputAdornment position="end">{endAdornment}</InputAdornment> : undefined} sx={inputSx} />
-    </Box>
-  );
-
-  // =========================================================
-  // SECTION
-  // =========================================================
-
-  const SectionTitle = ({ icon, title, description }) => (
-    <Box sx={{ mb: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 0.5 }}>
-        <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: alpha(ACCENT, 0.1), color: ACCENT }}>{icon}</Box>
-
-        <Typography sx={{ fontSize: 16, fontWeight: 800, color: palette.text }}>{title}</Typography>
+  // Outside the component, defined once
+  function Field({ label, field, placeholder, type = 'text', multiline = false, rows = 4, endAdornment, value, onChange, palette, inputSx }) {
+    return (
+      <Box>
+        <InputLabel sx={{ mb: 1, color: palette.label, fontSize: 13, fontWeight: 700 }}>{label}</InputLabel>
+        <InputBase fullWidth type={type} multiline={multiline} rows={multiline ? rows : undefined} value={value} onChange={onChange} placeholder={placeholder} endAdornment={endAdornment ? <InputAdornment position="end">{endAdornment}</InputAdornment> : undefined} sx={inputSx} />
       </Box>
+    );
+  }
 
-      {description && <Typography sx={{ mr: 5.5, fontSize: 12, color: palette.muted }}>{description}</Typography>}
-    </Box>
-  );
+  function SectionTitle({ icon, title, description, palette }) {
+    return (
+      <Box sx={{ mb: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 0.5 }}>
+          <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: alpha(ACCENT, 0.1), color: ACCENT }}>{icon}</Box>
+          <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.text.primary }}>{title}</Typography>
+        </Box>
+        {description && <Typography sx={{ mr: 5.5, fontSize: 12, color: palette?.muted }}>{description}</Typography>}
+      </Box>
+    );
+  }
 
   // =========================================================
   // RENDER
@@ -352,11 +350,11 @@ export default function NewProductModal({ open, onClose, onSave }) {
 
             <Box>
               <Typography sx={{ fontSize: { xs: 18, md: 21 }, fontWeight: 800, color: palette.text }}>افزودن محصول جدید</Typography>
-              <Typography sx={{ fontSize: 12, color: palette.muted }}>اطلاعات، تصاویر و مشخصات محصول</Typography>
+              <Typography sx={{ fontSize: 12, color: palette?.muted }}>اطلاعات، تصاویر و مشخصات محصول</Typography>
             </Box>
           </Box>
 
-          <IconButton onClick={onClose} sx={{ width: 40, height: 40, color: palette.muted, border: `1px solid ${palette.border}`, borderRadius: '10px', '&:hover': { color: '#EF4444', backgroundColor: alpha('#EF4444', 0.08) } }}>
+          <IconButton onClick={onClose} sx={{ width: 40, height: 40, color: palette?.muted, border: `1px solid ${palette.border}`, borderRadius: '10px', '&:hover': { color: '#EF4444', backgroundColor: alpha('#EF4444', 0.08) } }}>
             <CloseCircle size={21} />
           </IconButton>
         </Box>
@@ -370,7 +368,6 @@ export default function NewProductModal({ open, onClose, onSave }) {
             {/* =================================================
                 IMAGES
             ================================================== */}
-
             <Grid size={12}>
               <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
                 <SectionTitle icon={<Gallery size={20} />} title="تصاویر محصول" description="حداکثر ۱۰ تصویر — فرمت نهایی همه تصاویر WebP خواهد بود" />
@@ -387,7 +384,7 @@ export default function NewProductModal({ open, onClose, onSave }) {
                       </Box>
 
                       <Typography sx={{ fontWeight: 800, color: palette.text, fontSize: 14 }}>انتخاب تصاویر محصول</Typography>
-                      <Typography sx={{ mt: 0.5, fontSize: 12, color: palette.muted }}>JPG، PNG یا WebP — حداکثر ۱۰MB برای هر عکس</Typography>
+                      <Typography sx={{ mt: 0.5, fontSize: 12, color: palette?.muted }}>JPG، PNG یا WebP — حداکثر ۱۰MB برای هر عکس</Typography>
                     </Box>
                   </label>
                 ) : (
@@ -421,7 +418,7 @@ export default function NewProductModal({ open, onClose, onSave }) {
                       {previewImages.length < 10 && (
                         <Grid size={{ xs: 6, sm: 4, md: 3 }}>
                           <label htmlFor="product-images">
-                            <Box sx={{ aspectRatio: '1 / 1', border: `2px dashed ${palette.border}`, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', color: palette.muted, '&:hover': { borderColor: ACCENT, color: ACCENT } }}>
+                            <Box sx={{ aspectRatio: '1 / 1', border: `2px dashed ${palette.border}`, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', color: palette?.muted, '&:hover': { borderColor: ACCENT, color: ACCENT } }}>
                               <Add size={25} />
 
                               <Typography sx={{ mt: 0.5, fontSize: 11, fontWeight: 700 }}>افزودن عکس</Typography>
@@ -433,7 +430,7 @@ export default function NewProductModal({ open, onClose, onSave }) {
 
                     {uploading && (
                       <Box sx={{ mt: 2 }}>
-                        <Typography sx={{ fontSize: 11, color: palette.muted, mb: 0.7 }}>در حال آپلود و تبدیل تصاویر به WebP...</Typography>
+                        <Typography sx={{ fontSize: 11, color: palette?.muted, mb: 0.7 }}>در حال آپلود و تبدیل تصاویر به WebP...</Typography>
 
                         <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 10, '& .MuiLinearProgress-bar': { backgroundColor: ACCENT } }} />
                       </Box>
@@ -442,118 +439,100 @@ export default function NewProductModal({ open, onClose, onSave }) {
                 )}
               </Box>
             </Grid>
-
-            {/* =================================================
-                BASIC INFO
-            ================================================== */}
-
+            {/* ================================================= BASIC INFO ================================================== */}
             <Grid size={12}>
               <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Box1 size={20} />} title="اطلاعات اصلی" description="اطلاعات پایه محصول" />
+                <SectionTitle icon={<Box1 size={20} />} title="اطلاعات اصلی" description="اطلاعات پایه محصول" palette={palette} />
 
                 <Grid container spacing={2.5}>
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="عنوان محصول" field="title" placeholder="زین طبی هوندا CG125" />
+                    <Field label="عنوان محصول" field="title" placeholder="زین طبی هوندا CG125" value={formData.title} onChange={handleChange('title')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="زیرعنوان" field="subtitle" placeholder="روکش چرم دوخت لوزی" />
+                    <Field label="زیرعنوان" field="subtitle" placeholder="روکش چرم دوخت لوزی" value={formData.subtitle} onChange={handleChange('subtitle')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="برند" field="brand" placeholder="Honda" />
+                    <Field label="برند" field="brand" placeholder="Honda" value={formData.brand} onChange={handleChange('brand')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="مدل" field="model" placeholder="CG125" />
+                    <Field label="مدل" field="model" placeholder="CG125" value={formData.model} onChange={handleChange('model')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="دسته‌بندی" field="category" placeholder="classic-seat" />
+                    <Field label="دسته‌بندی" field="category" placeholder="classic-seat" value={formData.category} onChange={handleChange('category')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="دسته‌بندی فارسی" field="category_fa" placeholder="زین کلاسیک" />
+                    <Field label="دسته‌بندی فارسی" field="category_fa" placeholder="زین کلاسیک" value={formData.category_fa} onChange={handleChange('category_fa')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="جنس / مواد" field="material" placeholder="چرم مصنوعی درجه یک" />
+                    <Field label="جنس / مواد" field="material" placeholder="چرم مصنوعی درجه یک" value={formData.material} onChange={handleChange('material')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="مناسب برای" field="best_for" placeholder="راحتی ستون فقرات، استفاده روزانه" />
+                    <Field label="مناسب برای" field="best_for" placeholder="راحتی ستون فقرات، استفاده روزانه" value={formData.best_for} onChange={handleChange('best_for')} palette={palette} inputSx={inputSx} />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+            {/* ================================================= PRICE ================================================== */}
+            <Grid size={12}>
+              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
+                <SectionTitle icon={<Money2 size={20} />} title="قیمت‌گذاری" description="قیمت اصلی، تخفیف و قیمت نهایی" palette={palette} />
+
+                <Grid container spacing={2.5}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Field label="قیمت اصلی" field="price" type="number" placeholder="980000" value={formData.price} onChange={handleChange('price')} palette={palette} inputSx={inputSx} endAdornment={<Typography sx={{ fontSize: 11, color: palette?.muted }}>تومان</Typography>} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Field label="درصد تخفیف" field="discount" type="number" placeholder="15" value={formData.discount} onChange={handleChange('discount')} palette={palette} inputSx={inputSx} endAdornment={<Typography sx={{ fontSize: 13, fontWeight: 700, color: ACCENT }}>%</Typography>} />
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Field label="قیمت نهایی" field="final_price" type="number" placeholder="833000" value={formData.final_price} onChange={handleChange('final_price')} palette={palette} inputSx={inputSx} endAdornment={<Typography sx={{ fontSize: 11, color: palette?.muted }}>تومان</Typography>} />
                   </Grid>
                 </Grid>
               </Box>
             </Grid>
 
-            {/* =================================================
-                PRICE
-            ================================================== */}
-
+            {/* ================================================= COLORS / FEATURES ================================================== */}
             <Grid size={12}>
               <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Money2 size={20} />} title="قیمت‌گذاری" description="قیمت اصلی، تخفیف و قیمت نهایی" />
+                <SectionTitle icon={<Tag2 size={20} />} title="ویژگی‌ها" description="رنگ‌ها، ویژگی‌ها و کاربرد محصول" palette={palette} />
 
                 <Grid container spacing={2.5}>
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="قیمت اصلی" field="price" type="number" placeholder="980000" endAdornment={<Typography sx={{ fontSize: 11, color: palette.muted }}>تومان</Typography>} />
+                    <Field label="رنگ‌ها" field="colors" multiline rows={4} placeholder="مشکی، سفید، قهوه‌ای" value={formData.colors} onChange={handleChange('colors')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="درصد تخفیف" field="discount" type="number" placeholder="15" endAdornment={<Typography sx={{ fontSize: 13, fontWeight: 700, color: ACCENT }}>%</Typography>} />
+                    <Field label="مناسب برای" field="best_for" multiline rows={4} placeholder="راحتی ستون فقرات، استفاده روزانه" value={formData.best_for} onChange={handleChange('best_for')} palette={palette} inputSx={inputSx} />
                   </Grid>
 
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="قیمت نهایی" field="final_price" type="number" placeholder="833000" endAdornment={<Typography sx={{ fontSize: 11, color: palette.muted }}>تومان</Typography>} />
+                    <Field label="ویژگی‌ها" field="features" multiline rows={4} placeholder="فوم سرد طبی، دوخت CNC، روکش ضد آب..." value={formData.features} onChange={handleChange('features')} palette={palette} inputSx={inputSx} />
                   </Grid>
                 </Grid>
               </Box>
             </Grid>
 
-            {/* =================================================
-                COLORS / FEATURES
-            ================================================== */}
-
+            {/* ================================================= DESCRIPTION ================================================== */}
             <Grid size={12}>
               <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Tag2 size={20} />} title="ویژگی‌ها" description="رنگ‌ها، ویژگی‌ها و کاربرد محصول" />
-
-                <Grid container spacing={2.5}>
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="رنگ‌ها" field="colors" multiline rows={4} placeholder="مشکی، سفید، قهوه‌ای" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="مناسب برای" field="best_for" multiline rows={4} placeholder="راحتی ستون فقرات، استفاده روزانه" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="ویژگی‌ها" field="features" multiline rows={4} placeholder="فوم سرد طبی، دوخت CNC، روکش ضد آب..." />
-                  </Grid>
-                </Grid>
+                <SectionTitle icon={<DocumentText size={20} />} title="توضیحات محصول" description="توضیحات کامل محصول" palette={palette} />
+                <Field label="توضیحات" field="description" multiline rows={7} placeholder="زین طبی مناسب هوندا CG125 با فوم سرد، دوخت صنعتی و روکش ضدآب..." value={formData.description} onChange={handleChange('description')} palette={palette} inputSx={inputSx} />
               </Box>
             </Grid>
 
-            {/* =================================================
-                DESCRIPTION
-            ================================================== */}
-
+            {/* ================================================= SPECIFICATIONS ================================================== */}
             <Grid size={12}>
               <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<DocumentText size={20} />} title="توضیحات محصول" description="توضیحات کامل محصول" />
-
-                <Field label="توضیحات" field="description" multiline rows={7} placeholder="زین طبی مناسب هوندا CG125 با فوم سرد، دوخت صنعتی و روکش ضدآب..." />
-              </Box>
-            </Grid>
-
-            {/* =================================================
-                SPECIFICATIONS
-            ================================================== */}
-
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<InfoCircle size={20} />} title="مشخصات فنی" description="مشخصات را به صورت ساده وارد کنید؛ سیستم خودش JSON می‌سازد" />
+                <SectionTitle icon={<InfoCircle size={20} />} title="مشخصات فنی" description="مشخصات را به صورت ساده وارد کنید؛ سیستم خودش JSON می‌سازد" palette={palette} />
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {specifications.map((spec) => (
@@ -569,9 +548,7 @@ export default function NewProductModal({ open, onClose, onSave }) {
                       <Grid size={{ xs: 10, md: 3 }}>
                         <Box component="select" value={spec.type} onChange={(e) => updateSpecification(spec.id, 'type', e.target.value)} sx={{ width: '100%', height: 48, px: 1.5, borderRadius: '12px', border: `1px solid ${palette.border}`, background: palette.input, color: palette.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
                           <option value="text">متن</option>
-
                           <option value="number">عدد</option>
-
                           <option value="boolean">بله / خیر</option>
                         </Box>
                       </Grid>
@@ -589,11 +566,9 @@ export default function NewProductModal({ open, onClose, onSave }) {
                   افزودن مشخصات
                 </Button>
 
-                {/* Preview */}
-
                 {Object.keys(buildSpecifications()).length > 0 && (
                   <Box sx={{ mt: 2, p: 2, borderRadius: '12px', background: isDark ? '#101827' : '#F8FAFC', border: `1px solid ${palette.border}` }}>
-                    <Typography sx={{ fontSize: 11, fontWeight: 800, color: palette.muted, mb: 1 }}>پیش‌نمایش اطلاعات ذخیره‌شده</Typography>
+                    <Typography sx={{ fontSize: 11, fontWeight: 800, color: palette?.muted, mb: 1 }}>پیش‌نمایش اطلاعات ذخیره‌شده</Typography>
 
                     <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', direction: 'ltr', textAlign: 'left', fontSize: 12, color: palette.text, fontFamily: 'monospace' }}>
                       {JSON.stringify(buildSpecifications(), null, 2)}
@@ -610,10 +585,10 @@ export default function NewProductModal({ open, onClose, onSave }) {
         ====================================================== */}
 
         <Box sx={{ px: { xs: 2, md: 3.5 }, py: 2, backgroundColor: palette.card, borderTop: `1px solid ${palette.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexShrink: 0 }}>
-          <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 12, color: palette.muted }}>{uploadedImages.length ? `${uploadedImages.length} تصویر آماده ذخیره است` : 'تصاویر محصول را انتخاب کنید'}</Typography>
+          <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 12, color: palette?.muted }}>{uploadedImages.length ? `${uploadedImages.length} تصویر آماده ذخیره است` : 'تصاویر محصول را انتخاب کنید'}</Typography>
 
           <Box sx={{ display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' } }}>
-            <Button onClick={onClose} sx={{ minWidth: { xs: 0, sm: 110 }, flex: { xs: 1, sm: 'unset' }, height: 44, borderRadius: '11px', color: palette.muted, fontWeight: 700, border: `1px solid ${palette.border}` }}>
+            <Button onClick={onClose} sx={{ minWidth: { xs: 0, sm: 110 }, flex: { xs: 1, sm: 'unset' }, height: 44, borderRadius: '11px', color: palette?.muted, fontWeight: 700, border: `1px solid ${palette.border}` }}>
               لغو
             </Button>
 
