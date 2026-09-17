@@ -1,7 +1,11 @@
 // config/seo.config.js
+
+const BASE_URL = process.env.BASE_URL || 'https://sharifzin.ir';
+
 export const siteConfig = {
-  name: 'شریف زین', // نام برند خودتون رو اینجا دقیق بذارید (همینی که در گوگل مای‌بیزینس و شبکه‌های اجتماعی دارید)
-  domain: process.env.BASE_URL,
+  name: 'شریف زین',
+
+  domain: BASE_URL,
 
   defaultTitle: 'خرید و تعویض زین موتور | شریف زین',
 
