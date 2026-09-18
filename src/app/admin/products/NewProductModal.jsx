@@ -1,628 +1,759 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Modal, Box, Typography, Button, Grid, InputLabel, InputAdornment, InputBase, IconButton, useTheme, alpha, LinearProgress } from '@mui/material';
 
-import { Modal, Box, Typography, Button, Grid, InputLabel, InputAdornment, InputBase, IconButton, useTheme, alpha, Chip, LinearProgress } from '@mui/material';
-
-import { Add, CloseCircle, Box1, Tag2, Money2, Archive, DocumentText, InfoCircle, Gallery, Trash, Star1, TickCircle } from 'iconsax-reactjs';
-
-const ACCENT = '#F57C1F';
+import { CloseCircle, Add, Trash, DocumentUpload, TickCircle } from 'iconsax-reactjs';
 
 const API_URL = 'https://sharifzin.ir/api/v1';
 
-export default function NewProductModal({ open, onClose, onSave }) {
+/* -------------------------------------------------------------------------- */
+/*                                  HELPERS                                   */
+/* -------------------------------------------------------------------------- */
+
+const SectionTitle = ({ children, palette }) => (
+  <Typography
+    sx={{
+      fontSize: 16,
+      fontWeight: 800,
+      color: palette.title,
+      mb: 2,
+    }}>
+    {children}
+  </Typography>
+);
+
+/* -------------------------------------------------------------------------- */
+/*                                    FIELD                                   */
+/* -------------------------------------------------------------------------- */
+
+const Field = ({ label, field, placeholder, type = 'text', multiline = false, rows = 4, endAdornment, formData, handleChange, palette, inputSx, disabled = false }) => (
+  <Box>
+    <InputLabel sx={{ mb: 1, color: palette.label, fontSize: 13, fontWeight: 700 }}>{label}</InputLabel>
+
+    <InputBase fullWidth type={type} multiline={multiline} rows={multiline ? rows : undefined} value={formData[field] ?? ''} onChange={handleChange(field)} placeholder={placeholder} disabled={disabled} endAdornment={endAdornment ? <InputAdornment position="end">{endAdornment}</InputAdornment> : undefined} sx={inputSx} />
+  </Box>
+);
+
+/* -------------------------------------------------------------------------- */
+/*                              NEW PRODUCT MODAL                             */
+/* -------------------------------------------------------------------------- */
+
+const NewProductModal = ({ open, onClose, onSave }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
 
-  // =========================================================
-  // FORM
-  // =========================================================
+  const palette = {
+    background: isDark ? '#10131A' : '#FFFFFF',
+    paper: isDark ? '#171B24' : '#FFFFFF',
+    title: isDark ? '#FFFFFF' : '#111827',
+    text: isDark ? '#D1D5DB' : '#374151',
+    label: isDark ? '#CBD5E1' : '#374151',
+    border: isDark ? '#2A3140' : '#E5E7EB',
+    input: isDark ? '#11151D' : '#F9FAFB',
+    primary: theme.palette.primary.main,
+  };
 
-  const [formData, setFormData] = useState({ title: '', subtitle: '', brand: '', category: '', category_fa: '', model: '', price: '', discount: '', final_price: '', material: '', description: '', colors: '', best_for: '', features: '' });
+  /* ------------------------------------------------------------------------ */
+  /*                                FORM DATA                                 */
+  /* ------------------------------------------------------------------------ */
 
-  // =========================================================
-  // IMAGES
-  // =========================================================
+  const initialFormData = {
+    title: '',
+    subtitle: '',
+    brand: '',
+    category: '',
+    category_fa: '',
+    model: '',
+    price: '',
+    discount: '',
+    final_price: '',
+    material: '',
+    description: '',
+    colors: '',
+    best_for: '',
+    features: '',
+  };
 
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [formData, setFormData] = useState(initialFormData);
 
-  const [previewImages, setPreviewImages] = useState([]);
+  /* ------------------------------------------------------------------------ */
+  /*                              SPECIFICATIONS                              */
+  /* ------------------------------------------------------------------------ */
+
+  const [specifications, setSpecifications] = useState([
+    {
+      id: `${Date.now()}-initial`,
+      key: '',
+      value: '',
+    },
+  ]);
+
+  /* ------------------------------------------------------------------------ */
+  /*                                  IMAGES                                   */
+  /* ------------------------------------------------------------------------ */
+
+  const [images, setImages] = useState([]);
+
+  /* ------------------------------------------------------------------------ */
+  /*                                  STATES                                   */
+  /* ------------------------------------------------------------------------ */
 
   const [uploading, setUploading] = useState(false);
-
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState('');
 
-  const [uploadedImages, setUploadedImages] = useState([]);
+  /* ------------------------------------------------------------------------ */
+  /*                               RESET FORM                                 */
+  /* ------------------------------------------------------------------------ */
 
-  const [thumbnailIndex, setThumbnailIndex] = useState(0);
-
-  // =========================================================
-  // SPECIFICATIONS
-  // =========================================================
-
-  const [specifications, setSpecifications] = useState([{ id: Date.now(), key: '', value: '', type: 'text' }]);
-
-  // =========================================================
-  // COLORS
-  // =========================================================
-
-  const palette = { background: isDark ? '#111827' : '#F8FAFC', card: isDark ? '#182131' : '#FFFFFF', input: isDark ? '#111827' : '#F8FAFC', border: isDark ? '#273449' : '#E5E7EB', text: isDark ? '#F1F5F9' : '#172033', muted: isDark ? '#94A3B8' : '#64748B', label: isDark ? '#CBD5E1' : '#475569' };
-
-  // =========================================================
-  // CHANGE
-  // =========================================================
-
-  const handleChange = (field) => (event) => {
-    setFormData((prev) => ({ ...prev, [field]: event.target.value }));
-  };
-
-  // =========================================================
-  // IMAGE SELECT
-  // =========================================================
-
-  const handleImageSelect = (event) => {
-    const files = Array.from(event.target.files || []);
-
-    if (!files.length) return;
-
-    const validFiles = files.filter((file) => ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type));
-
-    const limitedFiles = validFiles.slice(0, 10);
-
-    setSelectedFiles(limitedFiles);
-
-    const previews = limitedFiles.map((file) => ({ file, url: URL.createObjectURL(file) }));
-
-    setPreviewImages(previews);
-
-    setUploadedImages([]);
-
-    setThumbnailIndex(0);
-  };
-
-  // =========================================================
-  // REMOVE IMAGE
-  // =========================================================
-
-  const removeImage = (index) => {
-    const newFiles = selectedFiles.filter((_, i) => i !== index);
-
-    const newPreviews = previewImages.filter((_, i) => i !== index);
-
-    setSelectedFiles(newFiles);
-    setPreviewImages(newPreviews);
-
-    if (thumbnailIndex >= newPreviews.length) {
-      setThumbnailIndex(Math.max(0, newPreviews.length - 1));
-    }
-  };
-
-  // =========================================================
-  // UPLOAD
-  // =========================================================
-
-  const uploadImages = async () => {
-    if (!selectedFiles.length) {
-      return [];
-    }
-
-    setUploading(true);
-    setUploadProgress(0);
-
-    const formDataUpload = new FormData();
-
-    selectedFiles.forEach((file) => {
-      formDataUpload.append('attachments', file);
+  const resetForm = () => {
+    images.forEach((image) => {
+      if (image.preview) {
+        URL.revokeObjectURL(image.preview);
+      }
     });
 
-    try {
-      const response = await fetch(`${API_URL}/admin/products/upload-images`, { method: 'POST', body: formDataUpload });
+    setFormData(initialFormData);
 
-      if (!response.ok) {
-        throw new Error('خطا در آپلود تصاویر');
-      }
+    setSpecifications([
+      {
+        id: `${Date.now()}-initial`,
+        key: '',
+        value: '',
+      },
+    ]);
 
-      const result = await response.json();
+    setImages([]);
+    setUploadProgress(0);
+    setError('');
+  };
 
-      setUploadProgress(100);
+  /* ------------------------------------------------------------------------ */
+  /*                               CLOSE MODAL                                */
+  /* ------------------------------------------------------------------------ */
 
-      setUploadedImages(result.images || []);
+  const handleClose = () => {
+    if (uploading) return;
 
-      return result.images || [];
-    } catch (error) {
-      console.error(error);
+    resetForm();
 
-      alert('آپلود تصاویر با خطا مواجه شد');
-
-      return [];
-    } finally {
-      setUploading(false);
+    if (onClose) {
+      onClose();
     }
   };
 
-  // =========================================================
-  // SPECIFICATIONS
-  // =========================================================
+  /* ------------------------------------------------------------------------ */
+  /*                              INPUT HANDLER                               */
+  /* ------------------------------------------------------------------------ */
 
-  const addSpecification = () => {
-    setSpecifications((prev) => [...prev, { id: Date.now(), key: '', value: '', type: 'text' }]);
+  const handleChange = (field) => (event) => {
+    const value = event.target.value;
+
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    if (error) {
+      setError('');
+    }
   };
 
-  const removeSpecification = (id) => {
-    setSpecifications((prev) => prev.filter((item) => item.id !== id));
+  /* ------------------------------------------------------------------------ */
+  /*                         SPECIFICATION HANDLERS                           */
+  /* ------------------------------------------------------------------------ */
+
+  const addSpecification = () => {
+    setSpecifications((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        key: '',
+        value: '',
+      },
+    ]);
   };
 
   const updateSpecification = (id, field, value) => {
-    setSpecifications((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
+    setSpecifications((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item
+      )
+    );
   };
 
-  // =========================================================
-  // BUILD SPECIFICATIONS JSON
-  // =========================================================
+  const removeSpecification = (id) => {
+    setSpecifications((prev) => {
+      if (prev.length === 1) {
+        return prev;
+      }
+
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /*                              BUILD SPECS                                 */
+  /* ------------------------------------------------------------------------ */
 
   const buildSpecifications = () => {
-    const result = {};
-
-    specifications.forEach((item) => {
-      const key = item.key.trim();
-
-      if (!key) return;
-
-      let value = item.value;
-
-      if (item.type === 'boolean') {
-        value = value === true || value === 'true';
-      }
-
-      if (item.type === 'number') {
-        value = Number(value);
-      }
-
-      result[key] = value;
-    });
-
-    return result;
+    return specifications
+      .filter((item) => String(item.key || '').trim() || String(item.value || '').trim())
+      .map((item) => ({
+        key: String(item.key || '').trim(),
+        value: String(item.value || '').trim(),
+      }));
   };
 
-  // =========================================================
-  // SUBMIT
-  // =========================================================
+  /* ------------------------------------------------------------------------ */
+  /*                              ARRAY PARSER                                */
+  /* ------------------------------------------------------------------------ */
 
-  const handleSubmit = async () => {
-    try {
-      // -----------------------------
-      // Upload images
-      // -----------------------------
+  const parseCommaSeparated = (value) => {
+    if (!value) {
+      return [];
+    }
 
-      let images = uploadedImages;
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
 
-      if (selectedFiles.length && !uploadedImages.length) {
-        images = await uploadImages();
-      }
+  /* ------------------------------------------------------------------------ */
+  /*                              IMAGE HANDLER                               */
+  /* ------------------------------------------------------------------------ */
 
-      if (selectedFiles.length && !images.length) {
-        return;
-      }
+  const handleImageChange = (event) => {
+    const files = Array.from(event.target.files || []);
 
-      // -----------------------------
-      // Arrays
-      // -----------------------------
+    if (!files.length) {
+      return;
+    }
 
-      const colors = formData.colors
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
+    const newImages = files.map((file) => ({
+      id: `${Date.now()}-${Math.random()}-${file.name}`,
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name,
+    }));
 
-      const bestFor = formData.best_for
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
+    setImages((prev) => [...prev, ...newImages]);
 
-      const features = formData.features
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
+    event.target.value = '';
 
-      // -----------------------------
-      // Thumbnail
-      // -----------------------------
-
-      const thumbnail = images.length ? images[thumbnailIndex] || images[0] : null;
-
-      // -----------------------------
-      // Final Data
-      // -----------------------------
-
-      const data = {
-        title: formData.title.trim(),
-        subtitle: formData.subtitle.trim(),
-        brand: formData.brand.trim(),
-        category: formData.category.trim(),
-        category_fa: formData.category_fa.trim(),
-        model: formData.model.trim(),
-        price: Number(formData.price) || 0,
-        discount: Number(formData.discount) || 0,
-        final_price: Number(formData.final_price) || 0,
-        thumbnail,
-        images,
-        colors,
-        material: formData.material.trim(),
-        best_for: bestFor,
-        description: formData.description.trim(),
-        features,
-        specifications: buildSpecifications(),
-      };
-
-      onSave(data);
-    } catch (error) {
-      console.error(error);
-
-      alert('خطایی هنگام ذخیره محصول رخ داد');
+    if (error) {
+      setError('');
     }
   };
 
-  // =========================================================
-  // INPUT STYLE
-  // =========================================================
+  /* ------------------------------------------------------------------------ */
+  /*                              REMOVE IMAGE                                */
+  /* ------------------------------------------------------------------------ */
+
+  const removeImage = (id) => {
+    setImages((prev) => {
+      const image = prev.find((item) => item.id === id);
+
+      if (image?.preview) {
+        URL.revokeObjectURL(image.preview);
+      }
+
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /*                           CLEANUP OBJECT URLS                             */
+  /* ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    return () => {
+      images.forEach((image) => {
+        if (image.preview) {
+          URL.revokeObjectURL(image.preview);
+        }
+      });
+    };
+  }, []);
+
+  /* ------------------------------------------------------------------------ */
+  /*                            VALIDATE FORM                                 */
+  /* ------------------------------------------------------------------------ */
+
+  const validateForm = () => {
+    if (!formData.title.trim()) {
+      return 'عنوان محصول را وارد کنید.';
+    }
+
+    if (!formData.category.trim()) {
+      return 'دسته‌بندی محصول را وارد کنید.';
+    }
+
+    if (!formData.price.trim()) {
+      return 'قیمت محصول را وارد کنید.';
+    }
+
+    return '';
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /*                              SUBMIT HANDLER                              */
+  /* ------------------------------------------------------------------------ */
+
+  const handleSubmit = async () => {
+    try {
+      setError('');
+
+      const validationError = validateForm();
+
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+
+      setUploading(true);
+      setUploadProgress(10);
+
+      const productData = {
+        ...formData,
+
+        price: Number(formData.price) || 0,
+
+        discount: Number(formData.discount) || 0,
+
+        final_price: Number(formData.final_price) || Math.max(0, Number(formData.price || 0) - (Number(formData.price || 0) * Number(formData.discount || 0)) / 100),
+
+        colors: parseCommaSeparated(formData.colors),
+
+        best_for: parseCommaSeparated(formData.best_for),
+
+        features: parseCommaSeparated(formData.features),
+
+        specifications: buildSpecifications(),
+      };
+
+      setUploadProgress(40);
+
+      /*
+       * IMPORTANT:
+       *
+       * Images are intentionally passed separately.
+       *
+       * The parent `onSave` function should:
+       *
+       * 1. Upload images.
+       * 2. Receive thumbnail/images URLs.
+       * 3. Create the product using those URLs.
+       */
+
+      if (onSave) {
+        await onSave({
+          productData,
+          images: images.map((item) => item.file),
+        });
+      }
+
+      setUploadProgress(100);
+
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+
+        resetForm();
+
+        if (onClose) {
+          onClose();
+        }
+      }, 400);
+    } catch (error) {
+      console.error('Error creating product:', error);
+
+      setUploading(false);
+      setUploadProgress(0);
+
+      setError(error?.message || 'در هنگام ثبت محصول خطایی رخ داد.');
+    }
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /*                                  STYLES                                  */
+  /* ------------------------------------------------------------------------ */
 
   const inputSx = {
-    width: '100%',
-    minHeight: 48,
-    px: 1.7,
-    borderRadius: '12px',
+    minHeight: 46,
+    px: 1.5,
+    py: 0.5,
+    borderRadius: 2,
     backgroundColor: palette.input,
     border: `1px solid ${palette.border}`,
     color: palette.text,
-    transition: 'all .2s ease',
+    fontSize: 14,
+    transition: 'all 0.2s ease',
+
     '& input': {
       color: palette.text,
+      padding: '10px 0',
       fontSize: 14,
-      fontWeight: 500,
-      textAlign: 'right',
     },
 
     '& textarea': {
       color: palette.text,
+      padding: '10px 0',
       fontSize: 14,
-      fontWeight: 500,
-      textAlign: 'right',
-      lineHeight: 1.8,
+    },
+
+    '& input::placeholder': {
+      color: isDark ? '#64748B' : '#9CA3AF',
+      opacity: 1,
+    },
+
+    '& textarea::placeholder': {
+      color: isDark ? '#64748B' : '#9CA3AF',
+      opacity: 1,
     },
 
     '&:hover': {
-      borderColor: alpha(ACCENT, 0.5),
+      borderColor: alpha(palette.primary, 0.5),
     },
 
     '&:focus-within': {
-      borderColor: ACCENT,
-      boxShadow: `0 0 0 3px ${alpha(ACCENT, 0.1)}`,
-      backgroundColor: isDark ? '#151E2D' : '#FFFFFF',
+      borderColor: palette.primary,
+      boxShadow: `0 0 0 3px ${alpha(palette.primary, 0.12)}`,
     },
 
-    '& input::placeholder, & textarea::placeholder': {
-      color: palette.muted,
-      opacity: 0.7,
+    '&.Mui-disabled': {
+      opacity: 0.6,
     },
   };
 
-  // =========================================================
-  // FIELD
-  // =========================================================
-
-  const Field = ({ label, field, placeholder, type = 'text', multiline = false, rows = 4, endAdornment }) => (
-    <Box>
-      <InputLabel sx={{ mb: 1, color: palette.label, fontSize: 13, fontWeight: 700 }}>{label}</InputLabel>
-
-      <InputBase fullWidth type={type} multiline={multiline} rows={multiline ? rows : undefined} value={formData[field]} onChange={handleChange(field)} placeholder={placeholder} endAdornment={endAdornment ? <InputAdornment position="end">{endAdornment}</InputAdornment> : undefined} sx={inputSx} />
-    </Box>
-  );
-
-  // =========================================================
-  // SECTION
-  // =========================================================
-
-  const SectionTitle = ({ icon, title, description }) => (
-    <Box sx={{ mb: 2.5 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, mb: 0.5 }}>
-        <Box sx={{ width: 36, height: 36, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: alpha(ACCENT, 0.1), color: ACCENT }}>{icon}</Box>
-
-        <Typography sx={{ fontSize: 16, fontWeight: 800, color: palette.text }}>{title}</Typography>
-      </Box>
-
-      {description && <Typography sx={{ mr: 5.5, fontSize: 12, color: palette.muted }}>{description}</Typography>}
-    </Box>
-  );
-
-  // =========================================================
-  // RENDER
-  // =========================================================
+  /* ------------------------------------------------------------------------ */
+  /*                                    UI                                    */
+  /* ------------------------------------------------------------------------ */
 
   return (
-    <Modal open={open} onClose={onClose} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-      <Box dir="rtl" sx={{ width: '100%', maxWidth: 1150, maxHeight: '94vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: palette.background, borderRadius: '20px', border: `1px solid ${palette.border}`, boxShadow: isDark ? '0 30px 80px rgba(0,0,0,.5)' : '0 30px 80px rgba(15,23,42,.16)', outline: 'none' }}>
-        {/* =====================================================
-            HEADER
-        ====================================================== */}
+    <Modal open={open} onClose={handleClose} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: 1100,
+          maxHeight: '92vh',
+          overflowY: 'auto',
+          backgroundColor: palette.paper,
+          borderRadius: 4,
+          border: `1px solid ${palette.border}`,
+          boxShadow: theme.shadows[24],
+          outline: 'none',
+          '&::-webkit-scrollbar': {
+            width: 7,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: alpha(palette.primary, 0.4),
+            borderRadius: 10,
+          },
+        }}>
+        {/* ---------------------------------------------------------------- */}
+        {/* HEADER                                                           */}
+        {/* ---------------------------------------------------------------- */}
 
-        <Box sx={{ px: { xs: 2.5, md: 3.5 }, py: 2.5, backgroundColor: palette.card, borderBottom: `1px solid ${palette.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box sx={{ width: 46, height: 46, borderRadius: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: ACCENT, color: '#fff', boxShadow: `0 8px 20px ${alpha(ACCENT, 0.25)}` }}>
-              <Add size={24} variant="Bold" />
-            </Box>
+        <Box sx={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 3, py: 2, backgroundColor: palette.paper, borderBottom: `1px solid ${palette.border}` }}>
+          <Box>
+            <Typography sx={{ fontSize: 20, fontWeight: 900, color: palette.title }}>افزودن محصول جدید</Typography>
 
-            <Box>
-              <Typography sx={{ fontSize: { xs: 18, md: 21 }, fontWeight: 800, color: palette.text }}>افزودن محصول جدید</Typography>
-              <Typography sx={{ fontSize: 12, color: palette.muted }}>اطلاعات، تصاویر و مشخصات محصول</Typography>
-            </Box>
+            <Typography sx={{ mt: 0.5, fontSize: 12, color: palette.text }}>اطلاعات محصول جدید را وارد کنید</Typography>
           </Box>
 
-          <IconButton onClick={onClose} sx={{ width: 40, height: 40, color: palette.muted, border: `1px solid ${palette.border}`, borderRadius: '10px', '&:hover': { color: '#EF4444', backgroundColor: alpha('#EF4444', 0.08) } }}>
-            <CloseCircle size={21} />
+          <IconButton
+            onClick={handleClose}
+            disabled={uploading}
+            sx={{
+              color: palette.text,
+              borderRadius: 2,
+
+              '&:hover': {
+                backgroundColor: alpha(palette.primary, 0.08),
+              },
+            }}>
+            <CloseCircle size={24} variant="Bold" />
           </IconButton>
         </Box>
 
-        {/* =====================================================
-            BODY
-        ====================================================== */}
+        {/* ---------------------------------------------------------------- */}
+        {/* CONTENT                                                          */}
+        {/* ---------------------------------------------------------------- */}
 
-        <Box sx={{ overflowY: 'auto', px: { xs: 2, sm: 3, md: 4 }, py: 3, '&::-webkit-scrollbar': { width: 6 }, '&::-webkit-scrollbar-thumb': { backgroundColor: isDark ? '#334155' : '#CBD5E1', borderRadius: 10 } }}>
-          <Grid container spacing={3}>
-            {/* =================================================
-                IMAGES
-            ================================================== */}
+        <Box sx={{ p: 3 }}>
+          {/* BASIC INFORMATION */}
 
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Gallery size={20} />} title="تصاویر محصول" description="حداکثر ۱۰ تصویر — فرمت نهایی همه تصاویر WebP خواهد بود" />
+          <SectionTitle palette={palette}>اطلاعات اصلی محصول</SectionTitle>
 
-                {/* Upload Box */}
-
-                <input id="product-images" type="file" hidden multiple accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleImageSelect} />
-
-                {!previewImages.length ? (
-                  <label htmlFor="product-images">
-                    <Box sx={{ minHeight: 180, border: `2px dashed ${alpha(ACCENT, 0.35)}`, borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backgroundColor: alpha(ACCENT, 0.025), transition: 'all .2s ease', '&:hover': { backgroundColor: alpha(ACCENT, 0.06), borderColor: ACCENT } }}>
-                      <Box sx={{ width: 55, height: 55, borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: alpha(ACCENT, 0.1), color: ACCENT, mb: 1.5 }}>
-                        <Gallery size={27} />
-                      </Box>
-
-                      <Typography sx={{ fontWeight: 800, color: palette.text, fontSize: 14 }}>انتخاب تصاویر محصول</Typography>
-                      <Typography sx={{ mt: 0.5, fontSize: 12, color: palette.muted }}>JPG، PNG یا WebP — حداکثر ۱۰MB برای هر عکس</Typography>
-                    </Box>
-                  </label>
-                ) : (
-                  <Box>
-                    <Grid container spacing={2}>
-                      {previewImages.map((image, index) => (
-                        <Grid size={{ xs: 6, sm: 4, md: 3 }} key={image.url}>
-                          <Box sx={{ position: 'relative', aspectRatio: '1 / 1', borderRadius: '14px', overflow: 'hidden', border: index === thumbnailIndex ? `3px solid ${ACCENT}` : `1px solid ${palette.border}` }}>
-                            <Box component="img" src={image.url} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-
-                            {index === thumbnailIndex && (
-                              <Box sx={{ position: 'absolute', top: 8, right: 8, background: ACCENT, color: '#fff', borderRadius: '7px', px: 1, py: 0.5, display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 10, fontWeight: 800 }}>
-                                <Star1 size={12} variant="Bold" />
-                                اصلی
-                              </Box>
-                            )}
-
-                            <IconButton onClick={() => removeImage(index)} sx={{ position: 'absolute', top: 7, left: 7, width: 30, height: 30, background: 'rgba(0,0,0,.55)', color: '#fff', '&:hover': { background: '#EF4444' } }}>
-                              <Trash size={15} />
-                            </IconButton>
-
-                            {index !== thumbnailIndex && (
-                              <Button onClick={() => setThumbnailIndex(index)} size="small" sx={{ position: 'absolute', bottom: 7, right: 7, left: 7, background: 'rgba(0,0,0,.65)', color: '#fff', fontSize: 10, borderRadius: '7px', '&:hover': { background: ACCENT } }}>
-                                انتخاب به عنوان اصلی
-                              </Button>
-                            )}
-                          </Box>
-                        </Grid>
-                      ))}
-
-                      {previewImages.length < 10 && (
-                        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
-                          <label htmlFor="product-images">
-                            <Box sx={{ aspectRatio: '1 / 1', border: `2px dashed ${palette.border}`, borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', color: palette.muted, '&:hover': { borderColor: ACCENT, color: ACCENT } }}>
-                              <Add size={25} />
-
-                              <Typography sx={{ mt: 0.5, fontSize: 11, fontWeight: 700 }}>افزودن عکس</Typography>
-                            </Box>
-                          </label>
-                        </Grid>
-                      )}
-                    </Grid>
-
-                    {uploading && (
-                      <Box sx={{ mt: 2 }}>
-                        <Typography sx={{ fontSize: 11, color: palette.muted, mb: 0.7 }}>در حال آپلود و تبدیل تصاویر به WebP...</Typography>
-
-                        <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 10, '& .MuiLinearProgress-bar': { backgroundColor: ACCENT } }} />
-                      </Box>
-                    )}
-                  </Box>
-                )}
-              </Box>
+          <Grid container spacing={2.5}>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Field label="عنوان محصول" field="title" placeholder="مثلاً زین موتور سیکلت" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
             </Grid>
 
-            {/* =================================================
-                BASIC INFO
-            ================================================== */}
-
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Box1 size={20} />} title="اطلاعات اصلی" description="اطلاعات پایه محصول" />
-
-                <Grid container spacing={2.5}>
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="عنوان محصول" field="title" placeholder="زین طبی هوندا CG125" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="زیرعنوان" field="subtitle" placeholder="روکش چرم دوخت لوزی" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="برند" field="brand" placeholder="Honda" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="مدل" field="model" placeholder="CG125" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="دسته‌بندی" field="category" placeholder="classic-seat" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Field label="دسته‌بندی فارسی" field="category_fa" placeholder="زین کلاسیک" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="جنس / مواد" field="material" placeholder="چرم مصنوعی درجه یک" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 6 }}>
-                    <Field label="مناسب برای" field="best_for" placeholder="راحتی ستون فقرات، استفاده روزانه" />
-                  </Grid>
-                </Grid>
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Field label="زیرعنوان" field="subtitle" placeholder="توضیح کوتاه درباره محصول" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
             </Grid>
 
-            {/* =================================================
-                PRICE
-            ================================================== */}
-
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Money2 size={20} />} title="قیمت‌گذاری" description="قیمت اصلی، تخفیف و قیمت نهایی" />
-
-                <Grid container spacing={2.5}>
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="قیمت اصلی" field="price" type="number" placeholder="980000" endAdornment={<Typography sx={{ fontSize: 11, color: palette.muted }}>تومان</Typography>} />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="درصد تخفیف" field="discount" type="number" placeholder="15" endAdornment={<Typography sx={{ fontSize: 13, fontWeight: 700, color: ACCENT }}>%</Typography>} />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="قیمت نهایی" field="final_price" type="number" placeholder="833000" endAdornment={<Typography sx={{ fontSize: 11, color: palette.muted }}>تومان</Typography>} />
-                  </Grid>
-                </Grid>
-              </Box>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Field label="برند" field="brand" placeholder="نام برند" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
             </Grid>
 
-            {/* =================================================
-                COLORS / FEATURES
-            ================================================== */}
-
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<Tag2 size={20} />} title="ویژگی‌ها" description="رنگ‌ها، ویژگی‌ها و کاربرد محصول" />
-
-                <Grid container spacing={2.5}>
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="رنگ‌ها" field="colors" multiline rows={4} placeholder="مشکی، سفید، قهوه‌ای" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="مناسب برای" field="best_for" multiline rows={4} placeholder="راحتی ستون فقرات، استفاده روزانه" />
-                  </Grid>
-
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Field label="ویژگی‌ها" field="features" multiline rows={4} placeholder="فوم سرد طبی، دوخت CNC، روکش ضد آب..." />
-                  </Grid>
-                </Grid>
-              </Box>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Field label="دسته‌بندی" field="category" placeholder="مثلاً زین موتور" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
             </Grid>
 
-            {/* =================================================
-                DESCRIPTION
-            ================================================== */}
-
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<DocumentText size={20} />} title="توضیحات محصول" description="توضیحات کامل محصول" />
-
-                <Field label="توضیحات" field="description" multiline rows={7} placeholder="زین طبی مناسب هوندا CG125 با فوم سرد، دوخت صنعتی و روکش ضدآب..." />
-              </Box>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Field label="دسته‌بندی فارسی" field="category_fa" placeholder="مثلاً زین موتور سیکلت" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
             </Grid>
 
-            {/* =================================================
-                SPECIFICATIONS
-            ================================================== */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Field label="مدل" field="model" placeholder="مدل محصول" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+            </Grid>
 
-            <Grid size={12}>
-              <Box sx={{ backgroundColor: palette.card, border: `1px solid ${palette.border}`, borderRadius: '16px', p: { xs: 2, md: 2.8 } }}>
-                <SectionTitle icon={<InfoCircle size={20} />} title="مشخصات فنی" description="مشخصات را به صورت ساده وارد کنید؛ سیستم خودش JSON می‌سازد" />
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {specifications.map((spec) => (
-                    <Grid container spacing={1.5} key={spec.id}>
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <InputBase fullWidth value={spec.key} onChange={(e) => updateSpecification(spec.id, 'key', e.target.value)} placeholder="نام مشخصات، مثال: وزن" sx={inputSx} />
-                      </Grid>
-
-                      <Grid size={{ xs: 12, md: 4 }}>
-                        <InputBase fullWidth value={spec.value} onChange={(e) => updateSpecification(spec.id, 'value', e.target.value)} placeholder="مثال: 2.4kg" sx={inputSx} />
-                      </Grid>
-
-                      <Grid size={{ xs: 10, md: 3 }}>
-                        <Box component="select" value={spec.type} onChange={(e) => updateSpecification(spec.id, 'type', e.target.value)} sx={{ width: '100%', height: 48, px: 1.5, borderRadius: '12px', border: `1px solid ${palette.border}`, background: palette.input, color: palette.text, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-                          <option value="text">متن</option>
-
-                          <option value="number">عدد</option>
-
-                          <option value="boolean">بله / خیر</option>
-                        </Box>
-                      </Grid>
-
-                      <Grid size={{ xs: 2, md: 1 }}>
-                        <IconButton onClick={() => removeSpecification(spec.id)} sx={{ width: 48, height: 48, color: '#EF4444', border: `1px solid ${alpha('#EF4444', 0.2)}`, borderRadius: '12px', '&:hover': { background: alpha('#EF4444', 0.08) } }}>
-                          <Trash size={18} />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
-                  ))}
-                </Box>
-
-                <Button onClick={addSpecification} startIcon={<Add size={17} />} sx={{ mt: 2, color: ACCENT, fontWeight: 800, borderRadius: '10px', '&:hover': { background: alpha(ACCENT, 0.08) } }}>
-                  افزودن مشخصات
-                </Button>
-
-                {/* Preview */}
-
-                {Object.keys(buildSpecifications()).length > 0 && (
-                  <Box sx={{ mt: 2, p: 2, borderRadius: '12px', background: isDark ? '#101827' : '#F8FAFC', border: `1px solid ${palette.border}` }}>
-                    <Typography sx={{ fontSize: 11, fontWeight: 800, color: palette.muted, mb: 1 }}>پیش‌نمایش اطلاعات ذخیره‌شده</Typography>
-
-                    <Box component="pre" sx={{ m: 0, whiteSpace: 'pre-wrap', direction: 'ltr', textAlign: 'left', fontSize: 12, color: palette.text, fontFamily: 'monospace' }}>
-                      {JSON.stringify(buildSpecifications(), null, 2)}
-                    </Box>
-                  </Box>
-                )}
-              </Box>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Field label="جنس" field="material" placeholder="مثلاً چرم مصنوعی" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
             </Grid>
           </Grid>
+
+          {/* PRICING */}
+
+          <Box sx={{ mt: 4 }}>
+            <SectionTitle palette={palette}>اطلاعات قیمت</SectionTitle>
+
+            <Grid container spacing={2.5}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Field label="قیمت اصلی" field="price" type="text" placeholder="980000" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Field label="درصد تخفیف" field="discount" type="text" placeholder="15" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Field label="قیمت نهایی" field="final_price" type="text" placeholder="833000" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* DESCRIPTION */}
+
+          <Box sx={{ mt: 4 }}>
+            <SectionTitle palette={palette}>توضیحات محصول</SectionTitle>
+
+            <Field label="توضیحات" field="description" multiline rows={7} placeholder="توضیحات کامل محصول را وارد کنید..." formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+          </Box>
+
+          {/* FEATURES */}
+
+          <Box sx={{ mt: 4 }}>
+            <SectionTitle palette={palette}>ویژگی‌های محصول</SectionTitle>
+
+            <Grid container spacing={2.5}>
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Field label="رنگ‌ها" field="colors" multiline rows={4} placeholder="مشکی، قرمز، آبی" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+
+                <Typography sx={{ mt: 0.8, fontSize: 11, color: palette.text }}>موارد را با کاما جدا کنید.</Typography>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Field label="مناسب برای" field="best_for" multiline rows={4} placeholder="موتور شهری، موتور اسپرت" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+
+                <Typography sx={{ mt: 0.8, fontSize: 11, color: palette.text }}>موارد را با کاما جدا کنید.</Typography>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 4 }}>
+                <Field label="ویژگی‌ها" field="features" multiline rows={4} placeholder="ضد آب، مقاوم، سبک" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
+
+                <Typography sx={{ mt: 0.8, fontSize: 11, color: palette.text }}>موارد را با کاما جدا کنید.</Typography>
+              </Grid>
+            </Grid>
+          </Box>
+
+          {/* SPECIFICATIONS */}
+
+          <Box sx={{ mt: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <SectionTitle palette={palette}>مشخصات فنی</SectionTitle>
+
+              <Button variant="outlined" startIcon={<Add size={18} variant="Bold" />} onClick={addSpecification} disabled={uploading} sx={{ borderRadius: 2, fontSize: 12, fontWeight: 700 }}>
+                افزودن مشخصه
+              </Button>
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {specifications.map((spec) => (
+                <Box key={spec.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <InputBase fullWidth value={spec.key ?? ''} onChange={(event) => updateSpecification(spec.id, 'key', event.target.value)} placeholder="عنوان مشخصه" disabled={uploading} sx={inputSx} />
+
+                  <InputBase fullWidth value={spec.value ?? ''} onChange={(event) => updateSpecification(spec.id, 'value', event.target.value)} placeholder="مقدار" disabled={uploading} sx={inputSx} />
+
+                  <IconButton
+                    onClick={() => removeSpecification(spec.id)}
+                    disabled={specifications.length === 1 || uploading}
+                    sx={{
+                      flexShrink: 0,
+                      color: '#EF4444',
+
+                      '&:hover': {
+                        backgroundColor: 'rgba(239,68,68,0.08)',
+                      },
+
+                      '&.Mui-disabled': {
+                        opacity: 0.3,
+                      },
+                    }}>
+                    <Trash size={20} variant="Bold" />
+                  </IconButton>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+
+          {/* IMAGES */}
+
+          <Box sx={{ mt: 4 }}>
+            <SectionTitle palette={palette}>تصاویر محصول</SectionTitle>
+
+            <Box sx={{ border: `1px dashed ${palette.border}`, borderRadius: 3, p: 3 }}>
+              <input id="product-images" type="file" multiple accept="image/*" hidden onChange={handleImageChange} disabled={uploading} />
+
+              <label htmlFor="product-images">
+                <Box
+                  sx={{
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+
+                    minHeight: 150,
+
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+
+                    borderRadius: 3,
+
+                    backgroundColor: alpha(palette.primary, 0.04),
+
+                    transition: 'all 0.2s ease',
+
+                    '&:hover': {
+                      backgroundColor: alpha(palette.primary, 0.08),
+                    },
+                  }}>
+                  <DocumentUpload size={42} variant="Bold" color={palette.primary} />
+
+                  <Typography sx={{ mt: 1.5, fontSize: 14, fontWeight: 800, color: palette.title }}>انتخاب تصاویر محصول</Typography>
+
+                  <Typography sx={{ mt: 0.5, fontSize: 11, color: palette.text }}>می‌توانید چند تصویر انتخاب کنید</Typography>
+                </Box>
+              </label>
+
+              {images.length > 0 && (
+                <Grid container spacing={2} sx={{ mt: 2 }}>
+                  {images.map((image) => (
+                    <Grid
+                      key={image.id}
+                      size={{
+                        xs: 6,
+                        sm: 4,
+                        md: 3,
+                      }}>
+                      <Box sx={{ position: 'relative', aspectRatio: '1 / 1', overflow: 'hidden', borderRadius: 2, border: `1px solid ${palette.border}` }}>
+                        <Box component="img" src={image.preview} alt={image.name} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+                        <IconButton
+                          onClick={() => removeImage(image.id)}
+                          disabled={uploading}
+                          sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+
+                            width: 32,
+                            height: 32,
+
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+
+                            color: '#FFFFFF',
+
+                            '&:hover': {
+                              backgroundColor: 'rgba(239,68,68,0.9)',
+                            },
+                          }}>
+                          <Trash size={16} variant="Bold" />
+                        </IconButton>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          </Box>
+
+          {/* ERROR */}
+
+          {error && (
+            <Box sx={{ mt: 3, p: 1.5, borderRadius: 2, backgroundColor: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+              <Typography sx={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</Typography>
+            </Box>
+          )}
+
+          {/* PROGRESS */}
+
+          {uploading && (
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                <Typography sx={{ fontSize: 12, color: palette.text }}>در حال ذخیره محصول...</Typography>
+
+                <Typography sx={{ fontSize: 12, fontWeight: 800, color: palette.primary }}>{uploadProgress}%</Typography>
+              </Box>
+
+              <LinearProgress variant="determinate" value={uploadProgress} sx={{ height: 6, borderRadius: 10 }} />
+            </Box>
+          )}
         </Box>
 
-        {/* =====================================================
-            FOOTER
-        ====================================================== */}
+        {/* ---------------------------------------------------------------- */}
+        {/* FOOTER                                                           */}
+        {/* ---------------------------------------------------------------- */}
 
-        <Box sx={{ px: { xs: 2, md: 3.5 }, py: 2, backgroundColor: palette.card, borderTop: `1px solid ${palette.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexShrink: 0 }}>
-          <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: 12, color: palette.muted }}>{uploadedImages.length ? `${uploadedImages.length} تصویر آماده ذخیره است` : 'تصاویر محصول را انتخاب کنید'}</Typography>
+        <Box
+          sx={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 20,
 
-          <Box sx={{ display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' } }}>
-            <Button onClick={onClose} sx={{ minWidth: { xs: 0, sm: 110 }, flex: { xs: 1, sm: 'unset' }, height: 44, borderRadius: '11px', color: palette.muted, fontWeight: 700, border: `1px solid ${palette.border}` }}>
-              لغو
-            </Button>
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
 
-            <Button onClick={handleSubmit} variant="contained" startIcon={<TickCircle size={18} />} disabled={uploading} sx={{ minWidth: { xs: 0, sm: 160 }, flex: { xs: 1, sm: 'unset' }, height: 44, borderRadius: '11px', backgroundColor: ACCENT, color: '#fff', fontWeight: 800, boxShadow: `0 7px 18px ${alpha(ACCENT, 0.25)}`, '&:hover': { backgroundColor: '#E86F14' } }}>
-              {uploading ? 'در حال آپلود...' : 'ذخیره محصول'}
-            </Button>
-          </Box>
+            gap: 1.5,
+
+            px: 3,
+            py: 2,
+
+            backgroundColor: palette.paper,
+
+            borderTop: `1px solid ${palette.border}`,
+          }}>
+          <Button variant="outlined" onClick={handleClose} disabled={uploading} sx={{ minWidth: 120, height: 44, borderRadius: 2, fontWeight: 700 }}>
+            انصراف
+          </Button>
+
+          <Button variant="contained" onClick={handleSubmit} disabled={uploading} startIcon={<TickCircle size={19} variant="Bold" />} sx={{ minWidth: 150, height: 44, borderRadius: 2, fontWeight: 800 }}>
+            {uploading ? 'در حال ذخیره...' : 'ثبت محصول'}
+          </Button>
         </Box>
       </Box>
     </Modal>
   );
-}
+};
+
+export default NewProductModal;

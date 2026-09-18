@@ -112,31 +112,14 @@ exports.createProduct = async (req, res) => {
       slug = `${slug}-${Date.now()}`;
     }
 
+    const randomUuid = Math.random(0, 999999);
+
     const [result] = await db.query(
       `
-      INSERT INTO products (slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [
-        slug,
-        title || null,
-        subtitle || null,
-        brand || null,
-        category || null,
-        category_fa || null,
-        model || null,
-        Number(price) || 0,
-        Number(discount) || 0,
-        Number(final_price) || 0,
-        thumbnail || null,
-        JSON.stringify(Array.isArray(images) ? images : []),
-        JSON.stringify(Array.isArray(colors) ? colors : []),
-        material || null,
-        JSON.stringify(Array.isArray(best_for) ? best_for : []),
-        description || null,
-        JSON.stringify(Array.isArray(features) ? features : []),
-        JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {}),
-      ]
+      [randomUuid, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {})]
     );
 
     return res.status(201).json({ message: 'محصول با موفقیت اضافه شد', id: result.insertId, slug });
@@ -149,7 +132,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications, stock, sold } = req.body;
+    const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, description, features, specifications } = req.body;
 
     let slug = title
       ? title
@@ -162,10 +145,10 @@ exports.updateProduct = async (req, res) => {
       `UPDATE products SET
         title = ?, subtitle = ?, brand = ?, category = ?, category_fa = ?, model = ?,
         price = ?, discount = ?, final_price = ?, thumbnail = ?, images = ?, colors = ?,
-        material = ?, best_for = ?, description = ?, features = ?, specifications = ?,
-        stock = ?, sold = ?, slug = ? 
+        material = ?, description = ?, features = ?, specifications = ?,
+        slug = ? 
        WHERE id = ?`,
-      [title, subtitle, brand, category, category_fa, model, price || 0, discount || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, best_for || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), stock || 0, sold || 0, slug, id]
+      [title, subtitle, brand, category, category_fa, model, price || 0, discount || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), slug, id]
     );
 
     return res.json({ message: 'محصول به‌روزرسانی شد' });
@@ -193,37 +176,25 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// ==================== PRODUCT IMAGE UPLOAD ====================
 const productUpload = require('../middlewares/upload');
+const { randomUUID } = require('crypto');
 
 exports.uploadProductImages = async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        message: 'هیچ تصویری انتخاب نشده است',
-      });
+    if (!req.file) {
+      return res.status(400).json({ message: 'هیچ تصویری انتخاب نشده است' });
     }
 
-    const uploadedImages = [];
-
-    for (const file of req.files) {
-      const imageUrl = await productUpload.convertToWebp(file.buffer);
-
-      uploadedImages.push(imageUrl);
-    }
+    const imageUrl = await productUpload.convertToWebp(req.file);
 
     return res.status(201).json({
-      message: 'تصاویر با موفقیت آپلود شدند',
-      images: uploadedImages,
-      thumbnail: uploadedImages[0] || null,
+      message: 'تصویر با موفقیت آپلود شد',
+      image: imageUrl,
+      thumbnail: imageUrl,
     });
   } catch (error) {
     console.error('PRODUCT IMAGE UPLOAD ERROR:', error);
-
-    return res.status(500).json({
-      message: 'خطا در آپلود تصاویر',
-      error: error.message,
-    });
+    return res.status(500).json({ message: 'خطا در آپلود تصویر', error: error.message });
   }
 };
 

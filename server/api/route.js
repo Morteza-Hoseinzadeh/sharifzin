@@ -45,7 +45,7 @@ router.patch('/admin/products/:id', adminController.updateProduct);
 router.delete('/admin/products/:id', adminController.deleteProduct);
 
 // ==================== PRODUCT IMAGES ====================
-router.post('/admin/products/upload-images', productUpload.uploadMultiple, adminController.uploadProductImages);
+router.post('/admin/products/upload-images', productUpload.uploadSingle, adminController.uploadProductImages);
 
 // ==================== USERS ====================
 router.get('/admin/users', adminController.getAllUsers);

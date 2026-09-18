@@ -1,24 +1,28 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
-const sharp = require('sharp');
 
-const uploadDir = path.join(process.cwd(), 'public/uploads/products');
+const uploadDir = path.join(process.cwd(), 'public/assets/products');
 
-// اگر فولدر وجود نداشت بساز
+// ✅ Create folder if not exists
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, {
-    recursive: true,
-  });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer ابتدا فایل را در memory نگه می‌دارد
-const storage = multer.memoryStorage();
+// Multer storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `${uniqueName}${ext}`);
+  },
+});
 
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -26,21 +30,25 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter,
+});
 
 /**
- * تبدیل فایل به WEBP
+ * Convert file to WEBP (optimized)
  */
-const convertToWebp = async (buffer) => {
-  const randomName = crypto.randomBytes(16).toString('hex');
+const convertToWebp = async (originalFile) => {
+  const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+  const outputPath = path.join(uploadDir, `${uniqueName}.webp`);
 
-  const filename = `${randomName}.webp`;
+  await sharp(originalFile.buffer).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85, effort: 4 }).toFile(outputPath);
 
-  const outputPath = path.join(uploadDir, filename);
-
-  await sharp(buffer).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85, effort: 4 }).toFile(outputPath);
-
-  return `/uploads/products/${filename}`;
+  return `/assets/products/${uniqueName}.webp`;
 };
 
-module.exports = { uploadSingle: upload.single('attachment'), uploadMultiple: upload.array('attachments', 10), convertToWebp };
+module.exports = {
+  uploadSingle: upload.single('attachment'), // ✅ Changed to single
+  convertToWebp,
+};
