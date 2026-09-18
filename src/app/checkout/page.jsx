@@ -113,25 +113,53 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
-    if (!orderCode) return;
-
-    setPaying(true);
-    setError('');
-
     try {
-      const token = localStorage.getItem('cartToken');
+      if (!orderCode) {
+        alert('ابتدا سفارش خود را ثبت کنید');
+        return;
+      }
 
-      const { data } = await axiosInstance.post(`/api/v1/orders/${orderCode}/pay`, {}, { headers: { 'x-cart-token': token } });
+      const cartToken = localStorage.getItem('cartToken');
+
+      if (!cartToken) {
+        alert('سبد خرید پیدا نشد');
+        return;
+      }
+
+      setPaying(true);
+
+      const response = await axiosInstance.post(
+        `/api/v1/orders/${encodeURIComponent(orderCode)}/pay`,
+        {},
+        {
+          headers: {
+            'x-cart-token': cartToken,
+          },
+        }
+      );
+
+      const data = response.data;
       console.log(data);
 
-      if (data.paymentUrl) {
-        // هدایت به صفحه پرداخت زرین‌پال
-        window.location.href = data.paymentUrl;
-      } else {
-        setError('خطا در دریافت لینک پرداخت');
+      if (!data?.success) {
+        throw new Error(data?.message || 'خطا در ایجاد پرداخت');
       }
-    } catch (err) {
-      setError(err?.response?.data?.message || 'خطا در اتصال به درگاه');
+
+      if (data.alreadyPaid) {
+        window.location.href = `/checkout/payment-result?status=success&order=${encodeURIComponent(orderCode)}`;
+
+        return;
+      }
+
+      if (!data.paymentUrl) {
+        throw new Error('لینک پرداخت از زرین‌پال دریافت نشد');
+      }
+
+      window.location.href = data.paymentUrl;
+    } catch (error) {
+      console.error('handlePayment error:', error);
+
+      alert(error?.response?.data?.message || error?.message || 'خطا در انتقال به درگاه پرداخت');
     } finally {
       setPaying(false);
     }

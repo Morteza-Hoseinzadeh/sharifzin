@@ -1,6 +1,7 @@
 const db = require('../models/dbConnection');
 const crypto = require('crypto');
 const axios = require('axios');
+const { requestPayment } = require('../services/zarinpal');
 
 // ---------- Helpers ----------
 async function getOrCreateCart(cartToken) {
@@ -124,25 +125,94 @@ exports.payOrder = async (req, res) => {
     const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [code]);
 
     if (!orders.length) {
-      return res.status(404).json({ message: 'سفارش یافت نشد' });
+      return res.status(404).json({
+        success: false,
+        message: 'سفارش یافت نشد',
+      });
     }
 
     const order = orders[0];
 
+    // بررسی cart token
     if (order.cart_token !== cartToken) {
-      return res.status(403).json({ message: 'توکن سبد خرید نامعتبر است' });
+      return res.status(403).json({
+        success: false,
+        message: 'توکن سبد خرید نامعتبر است',
+      });
     }
 
-    await db.query('UPDATE orders SET status = "paid" WHERE id = ?', [order.id]);
+    // اگر قبلاً پرداخت شده
+    if (order.status === 'paid') {
+      return res.json({
+        success: true,
+        message: 'این سفارش قبلاً پرداخت شده است',
+        status: 'paid',
+        paymentUrl: null,
+      });
+    }
 
+    // مبلغ سفارش
+    const payableAmount = Number(order.payable_amount);
+
+    if (!payableAmount || payableAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'مبلغ سفارش نامعتبر است',
+      });
+    }
+
+    // -----------------------------------------
+    // تومان -> ریال
+    // -----------------------------------------
+    const amountInRial = payableAmount * 10;
+
+    // -----------------------------------------
+    // ساخت درخواست پرداخت زرین پال
+    // -----------------------------------------
+    const payment = await requestPayment({
+      amount: amountInRial,
+      description: `پرداخت سفارش ${order.order_code}`,
+      orderId: order.id,
+      mobile: order.phone,
+    });
+
+    // -----------------------------------------
+    // ذخیره Authority در سفارش
+    // -----------------------------------------
+    await db.query(
+      `
+        UPDATE orders
+        SET
+          authority = ?,
+          updated_at = NOW()
+        WHERE id = ?
+      `,
+      [payment.authority, order.id]
+    );
+
+    // -----------------------------------------
+    // Response
+    // -----------------------------------------
     return res.json({
       success: true,
-      message: 'پرداخت با موفقیت انجام شد',
-      status: 'paid',
+
+      message: 'لینک پرداخت با موفقیت ایجاد شد',
+
+      status: 'pending_payment',
+
+      orderCode: order.order_code,
+
+      paymentUrl: payment.paymentUrl,
+
+      authority: payment.authority,
     });
   } catch (error) {
     console.error('Pay error:', error);
-    return res.status(500).json({ message: 'خطا در ثبت پرداخت' });
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'خطا در ایجاد لینک پرداخت',
+    });
   }
 };
 
@@ -320,58 +390,210 @@ exports.checkout = async (req, res) => {
   }
 };
 
-// ---------- GET /api/v1/payment/callback  ← بازگشت از زرین‌پال ----------
+// ---------- GET /api/v1/payment/callback ----------
+// بازگشت از زرین‌پال
+
 exports.paymentCallback = async (req, res) => {
   try {
-    const { Authority, Status, order_code } = req.query;
+    const { Authority, Status, order_id } = req.query;
 
-    if (Status !== 'OK') {
-      // پرداخت ناموفق
-      return res.redirect(`${process.env.BASE_URL || 'https://sharifzin.ir'}/checkout?payment=failed&order=${order_code}`);
+    // ---------------------------------------------
+    // بررسی اطلاعات Callback
+    // ---------------------------------------------
+
+    if (!Authority || !order_id) {
+      return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
     }
 
-    const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [order_code]);
+    // ---------------------------------------------
+    // دریافت سفارش
+    // ---------------------------------------------
+
+    const [orders] = await db.query(
+      `
+        SELECT *
+        FROM orders
+        WHERE id = ?
+        LIMIT 1
+      `,
+      [order_id]
+    );
+
     if (!orders.length) {
-      return res.redirect(`${process.env.BASE_URL || 'https://sharifzin.ir'}/checkout?payment=error`);
+      return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
     }
 
     const order = orders[0];
 
-    // ========== Verify پرداخت ==========
+    // ---------------------------------------------
+    // اگر سفارش قبلاً پرداخت شده
+    // ---------------------------------------------
+
+    if (order.status === 'paid') {
+      return res.redirect(`${process.env.BASE_URL}/checkout/success?order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(order.ref_id || '')}`);
+    }
+
+    // ---------------------------------------------
+    // بررسی Authority
+    // ---------------------------------------------
+
+    if (order.authority && order.authority !== Authority) {
+      console.error('Authority mismatch:', {
+        orderAuthority: order.authority,
+        callbackAuthority: Authority,
+        orderId: order.id,
+      });
+
+      return res.redirect(`${process.env.BASE_URL}/checkout?payment=error&order=${encodeURIComponent(order.order_code)}`);
+    }
+
+    // ---------------------------------------------
+    // پرداخت توسط کاربر لغو شده
+    // ---------------------------------------------
+
+    if (!Status || String(Status).toUpperCase() !== 'OK') {
+      await db.query(
+        `
+          UPDATE orders
+          SET
+            status = 'payment_failed',
+            updated_at = NOW()
+          WHERE id = ?
+            AND status <> 'paid'
+        `,
+        [order.id]
+      );
+
+      return res.redirect(`${process.env.BASE_URL}/checkout?payment=failed&order=${encodeURIComponent(order.order_code)}`);
+    }
+
+    // ---------------------------------------------
+    // مبلغ سفارش
+    // ---------------------------------------------
+
+    const payableAmount = Number(order.payable_amount);
+
+    if (!Number.isFinite(payableAmount) || payableAmount <= 0) {
+      console.error('Invalid order amount:', order.payable_amount);
+
+      return res.redirect(`${process.env.BASE_URL}/checkout?payment=error&order=${encodeURIComponent(order.order_code)}`);
+    }
+
+    // ---------------------------------------------
+    // تومان -> ریال
+    //
+    // مبلغ داخل DB شما تومان است
+    // زرین‌پال مبلغ را ریال می‌خواهد
+    // ---------------------------------------------
+
+    const amountInRial = Math.round(payableAmount * 10);
+
+    // ---------------------------------------------
+    // ZarinPal Verify
+    // ---------------------------------------------
+
     const merchantId = process.env.ZARINPAL_MERCHANT_ID;
+
     const isSandbox = process.env.ZARINPAL_SANDBOX === 'true';
 
     const verifyUrl = isSandbox ? 'https://sandbox.zarinpal.com/pg/v4/payment/verify.json' : 'https://api.zarinpal.com/pg/v4/payment/verify.json';
 
     const verifyData = {
       merchant_id: merchantId,
-      amount: Math.round(Number(order.payable_amount)),
+      amount: amountInRial,
       authority: Authority,
     };
 
     const { data } = await axios.post(verifyUrl, verifyData, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      timeout: 15000,
     });
 
-    if (data.data && (data.data.code === 100 || data.data.code === 101)) {
-      // پرداخت موفق
+    console.log('ZarinPal Verify:', data);
+
+    // ---------------------------------------------
+    // بررسی نتیجه Verify
+    // ---------------------------------------------
+
+    const verifyCode = Number(data?.data?.code);
+
+    if (verifyCode !== 100 && verifyCode !== 101) {
+      console.error('ZarinPal Verify failed:', data);
+
       await db.query(
-        `UPDATE orders SET 
-          status = 'paid', 
-          ref_id = ?, 
-          paid_at = NOW() 
-         WHERE id = ?`,
-        [data.data.ref_id, order.id]
+        `
+          UPDATE orders
+          SET
+            status = 'payment_failed',
+            updated_at = NOW()
+          WHERE id = ?
+            AND status <> 'paid'
+        `,
+        [order.id]
       );
 
-      return res.redirect(`${process.env.BASE_URL || 'https://sharifzin.ir'}/checkout/success?order=${order.order_code}&ref=${data.data.ref_id}`);
-    } else {
-      console.error('Verify failed:', data);
-      return res.redirect(`${process.env.BASE_URL || 'https://sharifzin.ir'}/checkout?payment=failed&order=${order_code}`);
+      return res.redirect(`${process.env.BASE_URL}/checkout?payment=failed&order=${encodeURIComponent(order.order_code)}`);
     }
+
+    // ---------------------------------------------
+    // پرداخت موفق
+    // ---------------------------------------------
+
+    const refId = data.data.ref_id;
+
+    // ---------------------------------------------
+    // Update Order
+    // ---------------------------------------------
+
+    const [updateResult] = await db.query(
+      `
+          UPDATE orders
+
+          SET
+            status = 'paid',
+            authority = ?,
+            ref_id = ?,
+            paid_at = NOW(),
+            updated_at = NOW()
+
+          WHERE id = ?
+            AND status <> 'paid'
+        `,
+      [Authority, refId, order.id]
+    );
+
+    // ---------------------------------------------
+    // افزایش مصرف کد تخفیف
+    //
+    // فقط اگر همین Callback سفارش را
+    // برای اولین بار paid کرده باشد
+    // ---------------------------------------------
+
+    if (updateResult.affectedRows === 1 && order.discount_code) {
+      await db.query(
+        `
+          UPDATE discount_codes
+          SET
+            used_count =
+              COALESCE(used_count, 0) + 1
+          WHERE code = ?
+        `,
+        [order.discount_code]
+      );
+    }
+
+    // ---------------------------------------------
+    // Redirect به صفحه موفقیت
+    // ---------------------------------------------
+
+    return res.redirect(`${process.env.BASE_URL}/checkout/success?payment=success&order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(refId)}`);
   } catch (error) {
-    console.error('Callback error:', error);
-    return res.redirect(`${process.env.BASE_URL || 'https://sharifzin.ir'}/checkout?payment=error`);
+    console.error('Payment Callback Error:', error.response?.data || error.message || error);
+
+    return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
   }
 };
 
