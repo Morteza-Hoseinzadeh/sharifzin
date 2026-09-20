@@ -1,25 +1,16 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp'); // ✅ was missing
 
 const uploadDir = path.join(process.cwd(), 'public/assets/products');
 
-// ✅ Create folder if not exists
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `${uniqueName}${ext}`);
-  },
-});
+// ✅ memoryStorage so req.file.buffer is populated for sharp
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -36,9 +27,6 @@ const upload = multer({
   fileFilter,
 });
 
-/**
- * Convert file to WEBP (optimized)
- */
 const convertToWebp = async (originalFile) => {
   const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
   const outputPath = path.join(uploadDir, `${uniqueName}.webp`);
@@ -49,6 +37,6 @@ const convertToWebp = async (originalFile) => {
 };
 
 module.exports = {
-  uploadSingle: upload.single('attachment'), // ✅ Changed to single
+  uploadSingle: upload.single('attachment'),
   convertToWebp,
 };

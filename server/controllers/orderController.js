@@ -53,6 +53,11 @@ exports.checkout = async (req, res) => {
     let finalDiscountCode = null;
 
     if (discountCode) {
+      // ✅ was: const discountRows = await db.query(...)
+      // db.query returns [rows, fields] (mysql2 tuple) - without destructuring,
+      // `discountRows` was the whole 2-element tuple (always truthy), and
+      // `discountRows[0]` was `rows` itself, not a row object. That made
+      // d.type / d.value / d.expires_at all undefined -> discountAmount became NaN.
       const [discountRows] = await db.query(
         `SELECT * FROM discount_codes 
          WHERE code = ? AND is_active = 1`,
@@ -106,6 +111,10 @@ exports.checkout = async (req, res) => {
     return res.status(201).json({
       success: true,
       orderCode,
+      subtotal,
+      discountApplied: !!finalDiscountCode, // ✅ new: lets frontend know if the code was actually accepted
+      discountCode: finalDiscountCode,
+      discountAmount,
       payableAmount,
       status: 'pending_payment',
       message: 'سفارش با موفقیت ثبت شد. برای تکمیل خرید، به پرداخت بروید.',
@@ -311,84 +320,6 @@ function generateOrderCode() {
   const part = Date.now().toString().slice(-8);
   return `SZ-${part}`;
 }
-
-// ---------- POST /api/v1/orders/checkout ----------
-exports.checkout = async (req, res) => {
-  try {
-    const cartToken = req.headers['x-cart-token'];
-    const { fullName, phone, address, city = 'تهران', postalCode = null, addressNote = null, discountCode = null } = req.body;
-
-    if (!fullName?.trim() || !phone?.trim() || !address?.trim()) {
-      return res.status(400).json({ message: 'نام، شماره تماس و آدرس الزامی است' });
-    }
-
-    const cart = await getOrCreateCart(cartToken);
-    const [items] = await db.query(CART_ITEM_SELECT, [cart.id]);
-
-    if (!items.length) {
-      return res.status(400).json({ message: 'سبد خرید خالی است' });
-    }
-
-    const subtotal = items.reduce((sum, i) => sum + i.quantity * i.price_at_add, 0);
-
-    let discountAmount = 0;
-    let finalDiscountCode = null;
-
-    if (discountCode) {
-      const [discountRows] = await db.query(`SELECT * FROM discount_codes WHERE code = ? AND is_active = 1`, [discountCode.trim().toUpperCase()]);
-
-      if (discountRows.length) {
-        const d = discountRows[0];
-        const expired = d.expires_at && new Date(d.expires_at) < new Date();
-        const overUsed = d.max_uses !== null && d.used_count >= d.max_uses;
-
-        if (!expired && !overUsed && subtotal >= (d.min_order_amount || 0)) {
-          if (d.type === 'percent') {
-            discountAmount = Math.round((subtotal * d.value) / 100);
-          } else {
-            discountAmount = Math.min(d.value, subtotal);
-          }
-          finalDiscountCode = d.code;
-          await db.query('UPDATE discount_codes SET used_count = used_count + 1 WHERE id = ?', [d.id]);
-        }
-      }
-    }
-
-    const payableAmount = Math.max(0, subtotal - discountAmount);
-    const orderCode = generateOrderCode();
-
-    const [orderResult] = await db.query(
-      `INSERT INTO orders (
-        order_code, cart_token, full_name, phone, address, city, postal_code, address_note,
-        subtotal, discount_code, discount_amount, payable_amount, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
-      [orderCode, cart.token, fullName.trim(), phone.trim(), address.trim(), city, postalCode, addressNote, subtotal, finalDiscountCode, discountAmount, payableAmount]
-    );
-
-    const orderId = orderResult.insertId;
-
-    for (const item of items) {
-      await db.query(
-        `INSERT INTO order_items (order_id, product_id, title, color, quantity, unit_price, thumbnail)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [orderId, item.product_id, item.title, item.color, item.quantity, item.price_at_add, item.thumbnail]
-      );
-    }
-
-    await db.query('DELETE FROM cart_items WHERE cart_id = ?', [cart.id]);
-
-    return res.status(201).json({
-      success: true,
-      orderCode,
-      payableAmount,
-      status: 'pending_payment',
-      message: 'سفارش با موفقیت ثبت شد. برای تکمیل خرید، به پرداخت بروید.',
-    });
-  } catch (error) {
-    console.error('Checkout error:', error);
-    return res.status(500).json({ message: 'خطا در ثبت سفارش' });
-  }
-};
 
 // ---------- GET /api/v1/payment/callback ----------
 // بازگشت از زرین‌پال

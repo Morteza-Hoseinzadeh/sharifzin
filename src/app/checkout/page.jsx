@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Box, Container, Typography, Stack, Button, CircularProgress, Alert, Stepper, Step, StepLabel, InputBase, Divider } from '@mui/material';
-import { Location, Call, User, TickCircle, Card as CardIcon, Receipt } from 'iconsax-reactjs';
+import React, { useEffect, useState } from 'react';
+import { Box, Container, Typography, Stack, Button, IconButton, CircularProgress, Alert, Stepper, Step, StepLabel, InputBase, Divider } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { Location, Call, User, TickCircle, Card as CardIcon, Receipt, TicketDiscount, CloseCircle } from 'iconsax-reactjs';
 import { useRouter } from 'next/navigation';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
@@ -15,6 +16,7 @@ const INK = '#2D3748';
 const INK_SOFT = '#718096';
 const ACCENT = '#F57C1F';
 const ACCENT_GREEN = '#2F9E44';
+const ACCENT_RED = '#E53E3E';
 const SHADOW_LIGHT = 'rgba(255, 255, 255, 0.9)';
 const SHADOW_DARK = 'rgba(163, 177, 198, 0.55)';
 
@@ -78,32 +80,83 @@ function NeoField({ label, value, onChange, placeholder, icon: Icon, multiline =
 export default function CheckoutPage() {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
-  const [form, setForm] = useState({ fullName: '', phone: '', city: 'تهران', address: '', postalCode: '', addressNote: '' });
+  const [form, setForm] = useState({ fullName: '', phone: '', city: 'تهران', address: '', postalCode: '', addressNote: '', discountCode: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderCode, setOrderCode] = useState('');
+  const [subtotal, setSubtotal] = useState(0);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountApplied, setDiscountApplied] = useState(false);
   const [payable, setPayable] = useState(0);
   const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+
+  // ✅ new: کد تخفیفی که از صفحه‌ی سبد خرید قبلاً اعمال و در localStorage
+  // ذخیره شده. اگه وجود داشته باشه، دیگه کاربر رو مجبور به تایپ دوباره نمی‌کنیم -
+  // مستقیم همون کد رو استفاده می‌کنیم و فقط یه نوار "اعمال شده" نشون میدیم.
+  const [cartDiscount, setCartDiscount] = useState(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('appliedDiscount');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.code) setCartDiscount(parsed);
+      }
+    } catch {
+      // localStorage خراب یا JSON نامعتبر - نادیده بگیر و بذار کاربر دستی وارد کنه
+    }
+  }, []);
 
   const handleChange = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
 
+  // کد تخفیفی که واقعاً باید به سرور فرستاده بشه: اول کد اعمال‌شده تو سبد خرید،
+  // وگرنه چیزی که کاربر دستی تو همین صفحه تایپ کرده
+  const effectiveDiscountCode = cartDiscount?.code || form.discountCode?.trim() || null;
+
+  const handleForgetCartDiscount = () => {
+    setCartDiscount(null);
+    localStorage.removeItem('appliedDiscount');
+  };
+
   const handleAddressSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     if (!form.fullName || !form.phone || !form.address) return setError('همه فیلدها الزامی است');
 
     setLoading(true);
-    const token = localStorage.getItem('cartToken');
+    // ✅ was: localStorage.getItem('cartToken') directly — if this page is
+    // opened before any other page ever created a cart token, that returns
+    // null and the checkout request goes out with an empty x-cart-token.
+    // getCartToken() creates one on the spot if it doesn't exist yet.
+    const token = getCartToken();
 
     try {
       const { data } = await axiosInstance.post(
         '/api/v1/orders/checkout',
-        { ...form },
+        // ✅ was: form.discountCode?.trim() only — now uses the code already
+        // applied on the cart page when one exists, so the user never has to
+        // re-enter it here.
+        { ...form, discountCode: effectiveDiscountCode },
         {
           headers: { 'x-cart-token': token },
         }
       );
       setOrderCode(data.orderCode);
+      setSubtotal(data.subtotal ?? 0);
+      setDiscountAmount(data.discountAmount ?? 0);
+      setDiscountApplied(!!data.discountApplied);
       setPayable(data.payableAmount);
+
+      // ✅ if a discount code was entered but the backend didn't accept it
+      // (expired / over-used / below minimum), tell the user instead of
+      // silently charging full price.
+      if (effectiveDiscountCode && !data.discountApplied) {
+        setError('کد تخفیف معتبر نبود یا قابل اعمال نیست، سفارش با قیمت اصلی ثبت شد');
+        // اگه کد از سبد خرید اومده بود و دیگه معتبر نیست، از localStorage هم پاکش کن
+        if (cartDiscount) handleForgetCartDiscount();
+      }
+
       setActiveStep(1);
     } catch (err) {
       setError(err.response?.data?.message || 'خطا');
@@ -113,16 +166,17 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = async () => {
+    setPaymentError('');
     try {
       if (!orderCode) {
-        alert('ابتدا سفارش خود را ثبت کنید');
+        setPaymentError('ابتدا سفارش خود را ثبت کنید');
         return;
       }
 
       const cartToken = localStorage.getItem('cartToken');
 
       if (!cartToken) {
-        alert('سبد خرید پیدا نشد');
+        setPaymentError('سبد خرید پیدا نشد');
         return;
       }
 
@@ -139,7 +193,6 @@ export default function CheckoutPage() {
       );
 
       const data = response.data;
-      console.log(data);
 
       if (!data?.success) {
         throw new Error(data?.message || 'خطا در ایجاد پرداخت');
@@ -147,7 +200,6 @@ export default function CheckoutPage() {
 
       if (data.alreadyPaid) {
         window.location.href = `/checkout/payment-result?status=success&order=${encodeURIComponent(orderCode)}`;
-
         return;
       }
 
@@ -158,14 +210,20 @@ export default function CheckoutPage() {
       window.location.href = data.paymentUrl;
     } catch (error) {
       console.error('handlePayment error:', error);
-
-      alert(error?.response?.data?.message || error?.message || 'خطا در انتقال به درگاه پرداخت');
+      // ✅ was: alert(...) only — the Alert box rendered in step 1 read from
+      // `error`, which handlePayment never set, so it was always empty.
+      // Using a dedicated paymentError state feeds that Alert correctly.
+      setPaymentError(error?.response?.data?.message || error?.message || 'خطا در انتقال به درگاه پرداخت');
     } finally {
       setPaying(false);
     }
   };
 
   // ==================== فاکتور تایید ====================
+  // نکته: چون handlePayment بعد از موفقیت مستقیم ریدایرکت میکنه (window.location.href)،
+  // این مرحله در حال حاضر هیچ‌وقت رندر نمیشه مگر جایی صریحاً setActiveStep(2) صدا زده بشه.
+  // اگر می‌خوای این صفحه واقعاً دیده بشه، باید صفحه‌ی /checkout/payment-result همین بلاک رو
+  // نمایش بده، یا اینجا به‌جای ریدایرکت از setActiveStep(2) استفاده کنی.
   if (activeStep === 2) {
     return (
       <ChildrenLayout>
@@ -232,6 +290,23 @@ export default function CheckoutPage() {
                 <NeoField label="آدرس کامل" value={form.address} onChange={handleChange('address')} icon={Location} required multiline minRows={3} placeholder="خیابان، کوچه، پلاک..." />
                 <NeoField label="کد پستی (اختیاری)" value={form.postalCode} onChange={handleChange('postalCode')} placeholder="۱۰ رقم" />
                 <NeoField label="توضیحات برای پیک (اختیاری)" value={form.addressNote} onChange={handleChange('addressNote')} multiline minRows={2} placeholder="مثلاً: زنگ واحد ۳" />
+                {/* ✅ new: اگه کد تخفیف قبلاً تو صفحه‌ی سبد خرید اعمال شده، دیگه
+                    اینپوت نشون نمیدیم - فقط یه نوار "اعمال شده" با گزینه‌ی حذف.
+                    فقط وقتی کاربر مستقیم اومده تو checkout (بدون اعمال کد تو سبد)
+                    اینپوت دستی نمایش داده میشه. */}
+                {cartDiscount ? (
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.2, borderRadius: '14px', bgcolor: alpha(ACCENT_GREEN, 0.08), border: `1px solid ${alpha(ACCENT_GREEN, 0.25)}` }}>
+                    <Stack direction="row" alignItems="center" gap={1}>
+                      <TicketDiscount size={17} variant="Bold" color={ACCENT_GREEN} />
+                      <Typography sx={{ fontSize: 13, fontWeight: 700, color: ACCENT_GREEN }}>کد تخفیف {cartDiscount.code} اعمال شد</Typography>
+                    </Stack>
+                    <IconButton size="small" onClick={handleForgetCartDiscount} sx={{ color: ACCENT_RED }}>
+                      <CloseCircle size={18} />
+                    </IconButton>
+                  </Stack>
+                ) : (
+                  <NeoField label="کد تخفیف (اختیاری)" value={form.discountCode} onChange={handleChange('discountCode')} icon={CardIcon} placeholder="مثلاً OFF20" />
+                )}
                 <Button type="submit" disabled={loading} fullWidth sx={{ py: 2, borderRadius: '14px', bgcolor: ACCENT, color: '#fff', fontWeight: 700, fontSize: 16 }}>
                   {loading ? <CircularProgress size={24} /> : 'ادامه و پرداخت'}
                 </Button>
@@ -241,18 +316,30 @@ export default function CheckoutPage() {
 
           {activeStep === 1 && (
             <Box sx={{ ...neoRaised, p: 5 }}>
-              {error && (
+              {paymentError && (
                 <Alert severity="error" sx={{ mb: 3 }}>
-                  {error}
+                  {paymentError}
                 </Alert>
               )}
               <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 3 }}>صورت‌حساب شما</Typography>
+
+              {/* ✅ new: show subtotal / discount breakdown when a code was applied */}
+              {discountApplied && discountAmount > 0 && (
+                <Stack spacing={0.5} sx={{ mb: 2 }}>
+                  <Typography sx={{ fontSize: 14, color: INK_SOFT }}>جمع سبد خرید: {ConvertToPersianDigit(subtotal.toLocaleString())} تومان</Typography>
+                  <Typography sx={{ fontSize: 14, color: ACCENT_GREEN }}>تخفیف اعمال شد: {ConvertToPersianDigit(discountAmount.toLocaleString())}- تومان</Typography>
+                </Stack>
+              )}
+
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: ACCENT }}>مبلغ قابل پرداخت: {ConvertToPersianDigit(payable.toLocaleString())} تومان</Typography>
 
-              <Button fullWidth onClick={handlePayment} disabled={loading} sx={{ mt: 4, py: 2.5, borderRadius: '14px', bgcolor: '#2F9E44', color: '#fff', fontWeight: 700, fontSize: 17 }}>
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'پرداخت با زرین‌پال'}
+              {/* ✅ was: disabled={loading} and CircularProgress driven by `loading`,
+                  which is only ever true during the address-submit step, so this
+                  button never showed a loading state and could be double-clicked. */}
+              <Button fullWidth onClick={handlePayment} disabled={paying} sx={{ mt: 4, py: 2.5, borderRadius: '14px', bgcolor: '#2F9E44', color: '#fff', fontWeight: 700, fontSize: 17 }}>
+                {paying ? <CircularProgress size={24} color="inherit" /> : 'پرداخت با زرین‌پال'}
               </Button>
-              <Button fullWidth onClick={() => setActiveStep(0)} sx={{ mt: 2, py: 1.5, ...neoSoft }}>
+              <Button fullWidth onClick={() => setActiveStep(0)} disabled={paying} sx={{ mt: 2, py: 1.5, ...neoSoft }}>
                 ویرایش آدرس
               </Button>
             </Box>

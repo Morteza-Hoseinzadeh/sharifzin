@@ -1,4 +1,9 @@
 const db = require('../models/dbConnection');
+const { randomUUID } = require('crypto');
+const productUpload = require('../middlewares/upload');
+
+// Allowed order statuses - adjust to match your actual workflow
+const ALLOWED_ORDER_STATUSES = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
 
 // ==================== DASHBOARD ====================
 exports.getAdminDashboard = async (req, res) => {
@@ -43,7 +48,16 @@ exports.updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
+    if (!ALLOWED_ORDER_STATUSES.includes(status)) {
+      return res.status(400).json({ message: 'وضعیت سفارش نامعتبر است' });
+    }
+
+    const [result] = await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'سفارش یافت نشد' });
+    }
+
     return res.json({ message: 'وضعیت سفارش به‌روزرسانی شد' });
   } catch (error) {
     console.error(error);
@@ -54,7 +68,8 @@ exports.updateOrderStatus = async (req, res) => {
 // ==================== USERS ====================
 exports.getAllUsers = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM users');
+    // Never SELECT * here - excludes password hashes / other sensitive columns
+    const [rows] = await db.query('SELECT id, full_name, email, phone, created_at FROM users ORDER BY created_at DESC');
 
     return res.json({ data: rows });
   } catch (error) {
@@ -67,11 +82,16 @@ exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await db.query('DELETE FROM users WHERE id = ?', [id]);
+    const [result] = await db.query('DELETE FROM users WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'کاربر یافت نشد' });
+    }
+
     return res.json({ message: 'کاربر با موفقیت حذف شد' });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'خطا در دریافت کاربران' });
+    return res.status(500).json({ message: 'خطا در حذف کاربر' });
   }
 };
 
@@ -86,6 +106,15 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+function slugify(title) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^ا-یa-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
 exports.createProduct = async (req, res) => {
   try {
     const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications } = req.body;
@@ -94,14 +123,8 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: 'عنوان محصول الزامی است' });
     }
 
-    let slug = title
-      .toLowerCase()
-      .trim()
-      .replace(/[^ا-یa-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
+    let slug = slugify(title);
 
-    // اگر slug خالی شد
     if (!slug) {
       slug = `product-${Date.now()}`;
     }
@@ -112,17 +135,18 @@ exports.createProduct = async (req, res) => {
       slug = `${slug}-${Date.now()}`;
     }
 
-    const randomUuid = Math.random(0, 999999);
+    // ✅ was Math.random(0, 999999) - invalid, produced a float, not an id
+    const productId = randomUUID();
 
     const [result] = await db.query(
       `
-      INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications )
+      INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [randomUuid, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {})]
+      [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {})]
     );
 
-    return res.status(201).json({ message: 'محصول با موفقیت اضافه شد', id: result.insertId, slug });
+    return res.status(201).json({ message: 'محصول با موفقیت اضافه شد', id: productId, slug });
   } catch (error) {
     console.error('CREATE PRODUCT ERROR:', error);
     return res.status(500).json({ message: 'خطا در افزودن محصول' });
@@ -134,19 +158,22 @@ exports.updateProduct = async (req, res) => {
     const { id } = req.params;
     const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, description, features, specifications } = req.body;
 
-    let slug = title
-      ? title
-          .toLowerCase()
-          .replace(/[^ا-یa-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-')
-      : null;
+    const [existing] = await db.query('SELECT slug FROM products WHERE id = ?', [id]);
+
+    if (existing.length === 0) {
+      return res.status(404).json({ message: 'محصول یافت نشد' });
+    }
+
+    // ✅ Only regenerate slug when a new title is actually provided.
+    // Previously: if `title` was omitted, slug was set to null and overwrote the existing one.
+    const slug = title ? slugify(title) : existing[0].slug;
 
     await db.query(
       `UPDATE products SET
         title = ?, subtitle = ?, brand = ?, category = ?, category_fa = ?, model = ?,
         price = ?, discount = ?, final_price = ?, thumbnail = ?, images = ?, colors = ?,
         material = ?, description = ?, features = ?, specifications = ?,
-        slug = ? 
+        slug = ?
        WHERE id = ?`,
       [title, subtitle, brand, category, category_fa, model, price || 0, discount || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), slug, id]
     );
@@ -162,7 +189,6 @@ exports.deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // اول چک کنیم محصول وجود دارد
     const [product] = await db.query('SELECT id FROM products WHERE id = ?', [id]);
     if (product.length === 0) {
       return res.status(404).json({ message: 'محصول یافت نشد' });
@@ -175,9 +201,6 @@ exports.deleteProduct = async (req, res) => {
     return res.status(500).json({ message: 'خطا در حذف محصول' });
   }
 };
-
-const productUpload = require('../middlewares/upload');
-const { randomUUID } = require('crypto');
 
 exports.uploadProductImages = async (req, res) => {
   try {
@@ -212,17 +235,14 @@ exports.getAllCategories = async (req, res) => {
 exports.createCategory = async (req, res) => {
   try {
     const { name, description, name_fa, description_fa, color } = req.body;
-    const [result] = await db.query('INSERT INTO categories (name, description, name_fa, description_fa, color, slug) VALUES (?, ?, ?, ?, ?, ?)', [
-      name,
-      description,
-      name_fa,
-      description_fa,
-      color,
-      name
-        .toLowerCase()
-        .replace(/[^ا-یa-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-'),
-    ]);
+
+    // ✅ was missing - name.toLowerCase() below would throw on missing name
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'نام دسته‌بندی الزامی است' });
+    }
+
+    const [result] = await db.query('INSERT INTO categories (name, description, name_fa, description_fa, color, slug) VALUES (?, ?, ?, ?, ?, ?)', [name, description, name_fa, description_fa, color, slugify(name)]);
+
     return res.status(201).json({ message: 'دسته‌بندی با موفقیت ایجاد شد', id: result.insertId });
   } catch (error) {
     console.error(error);
@@ -509,7 +529,7 @@ exports.updateDiscountCode = async (req, res) => {
     // Update
     // =========================
 
-    const [result] = await db.query(
+    await db.query(
       `
       UPDATE discount_codes
       SET
