@@ -113,7 +113,7 @@ export default function DashboardPage() {
 
   // گرفتن سفارشات واقعی
   const getMyOrders = async (cartToken) => {
-    const { data } = await axiosInstance.get('/api/v1/orders', {
+    const { data } = await axiosInstance.get(`/api/v1/orders/${cartToken}/my-orders`, {
       headers: { 'x-cart-token': cartToken },
     });
     return data;

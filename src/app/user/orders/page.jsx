@@ -93,8 +93,7 @@ function OrderCard({ order }) {
             px: 1.5,
             borderRadius: '10px',
             '&:hover': { bgcolor: alpha(ACCENT_ORANGE, 0.08) },
-          }}
-        >
+          }}>
           جزئیات سفارش
         </Button>
         {order.status === 'delivered' && (
@@ -109,8 +108,7 @@ function OrderCard({ order }) {
               ...neoSoft,
               boxShadow: `3px 3px 8px ${SHADOW_DARK}, -3px -3px 8px ${SHADOW_LIGHT}`,
               '&:hover': { boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}` },
-            }}
-          >
+            }}>
             خرید مجدد
           </Button>
         )}
@@ -130,7 +128,7 @@ export default function OrdersPage() {
   };
 
   const getUserOrders = async (cartToken) => {
-    const { data } = await axiosInstance.get('/api/v1/orders', {
+    const { data } = await axiosInstance.get(`/api/v1/orders/${cartToken}/my-orders`, {
       headers: { 'x-cart-token': cartToken },
     });
     return data;
