@@ -119,9 +119,9 @@ exports.createProduct = async (req, res) => {
   try {
     const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications } = req.body;
 
-    if (!title || !title.trim()) {
-      return res.status(400).json({ message: 'عنوان محصول الزامی است' });
-    }
+    // if (!title || !title.trim()) {
+    //   return res.status(400).json({ message: 'عنوان محصول الزامی است' });
+    // }
 
     let slug = slugify(title);
 
@@ -146,7 +146,35 @@ exports.createProduct = async (req, res) => {
       [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {})]
     );
 
-    return res.status(201).json({ message: 'محصول با موفقیت اضافه شد', id: productId, slug });
+    // ✅ new: پاسخ قبلاً فقط { message, id, slug } بود - یعنی title و بقیه‌ی
+    // فیلدهای محصول تو پاسخ نبودن. اگه فرانت بعد از ساخت محصول بخواد همون
+    // محصول رو مستقیم به لیست اضافه کنه یا نمایش بده (مثلاً newProduct.title)،
+    // undefined می‌شد و باعث خطای "Cannot read properties of undefined
+    // (reading 'title')" می‌شد. حالا کل رکورد ساخته‌شده برگردونده میشه.
+    return res.status(201).json({
+      message: 'محصول با موفقیت اضافه شد',
+      product: {
+        id: productId,
+        slug,
+        title,
+        subtitle: subtitle || null,
+        brand: brand || null,
+        category: category || null,
+        category_fa: category_fa || null,
+        model: model || null,
+        price: Number(price) || 0,
+        discount: Number(discount) || 0,
+        final_price: Number(final_price) || 0,
+        thumbnail: thumbnail || null,
+        images: Array.isArray(images) ? images : [],
+        colors: Array.isArray(colors) ? colors : [],
+        material: material || null,
+        best_for: Array.isArray(best_for) ? best_for : [],
+        description: description || null,
+        features: Array.isArray(features) ? features : [],
+        specifications: specifications && typeof specifications === 'object' ? specifications : {},
+      },
+    });
   } catch (error) {
     console.error('CREATE PRODUCT ERROR:', error);
     return res.status(500).json({ message: 'خطا در افزودن محصول' });

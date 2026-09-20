@@ -304,6 +304,38 @@ const NewProductModal = ({ open, onClose, onSave }) => {
   };
 
   /* ------------------------------------------------------------------------ */
+  /*                    ✅ NEW: ACTUALLY UPLOAD IMAGES                        */
+  /* ------------------------------------------------------------------------ */
+  const uploadImages = async (files) => {
+    const uploadedUrls = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const form = new FormData();
+      form.append('attachment', file);
+
+      const res = await fetch(`${API_URL}/admin/products/upload-images`, {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.message || `آپلود تصویر «${file.name}» ناموفق بود`);
+      }
+
+      const data = await res.json();
+      // بک‌اند { image, thumbnail } برمی‌گردونه (هر دو یکسان‌اند تو کنترلر فعلی)
+      uploadedUrls.push(data.image || data.thumbnail);
+
+      // پیشرفت آپلود عکس‌ها رو بین ۴۰٪ تا ۸۰٪ نمایش بده
+      setUploadProgress(40 + Math.round(((i + 1) / files.length) * 40));
+    }
+
+    return uploadedUrls;
+  };
+
+  /* ------------------------------------------------------------------------ */
   /*                              SUBMIT HANDLER                              */
   /* ------------------------------------------------------------------------ */
 
@@ -321,6 +353,14 @@ const NewProductModal = ({ open, onClose, onSave }) => {
       setUploading(true);
       setUploadProgress(10);
 
+      // ✅ NEW: اول عکس‌ها رو واقعاً آپلود کن و URL نهایی‌شون رو بگیر
+      let uploadedImageUrls = [];
+      if (images.length > 0) {
+        uploadedImageUrls = await uploadImages(images.map((item) => item.file));
+      }
+
+      setUploadProgress(85);
+
       const productData = {
         ...formData,
 
@@ -337,22 +377,17 @@ const NewProductModal = ({ open, onClose, onSave }) => {
         features: parseCommaSeparated(formData.features),
 
         specifications: buildSpecifications(),
+
+        // ✅ NEW: دیگه فایل خام فرستاده نمیشه - URL واقعی که از سرور برگشته
+        images: uploadedImageUrls,
+        thumbnail: uploadedImageUrls[0] || null,
       };
 
-      setUploadProgress(40);
+      setUploadProgress(95);
 
-      /*
-       * IMPORTANT:
-       *
-       * Images are intentionally passed separately.
-       *
-       * The parent `onSave` function should:
-       *
-       * 1. Upload images.
-       * 2. Receive thumbnail/images URLs.
-       * 3. Create the product using those URLs.
-       */
-
+      // ✅ CHANGED: onSave دیگه لازم نیست خودش آپلود کنه - فقط باید محصول رو
+      // با این productData (که already شامل URL عکس‌هاست) بسازه، یعنی چیزی شبیه:
+      //   await axiosInstance.post('/api/v1/admin/products', productData)
       if (onSave) {
         await onSave({
           productData,
