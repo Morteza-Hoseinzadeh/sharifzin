@@ -1,89 +1,375 @@
 const express = require('express');
+
 const { query } = require('../../utils/dbQuery');
-const { hashPassword, comparePassword, generateOtpCode, getOtpExpiryDate, sendSms, signToken, isValidIranianPhone, OTP_MAX_ATTEMPTS, verifyToken } = require('../../utils/auth/authUtils');
+
+const { hashPassword, comparePassword, getOtpExpiryDate, sendSms, signToken, isValidIranianPhone, OTP_MAX_ATTEMPTS, verifyToken, generateOtpCode } = require('../../utils/auth/authUtils');
+
+const { authenticate } = require('../../middlewares/auth/auth.middleware');
 
 const router = express.Router();
 
-// ------------------------------------------------------------
-// Normalizes Iranian mobile numbers to a single canonical form
-// (0912xxxxxxx) so register/login/OTP lookups always match,
-// regardless of whether the client sends 0912..., +98912...,
-// or 98912.... Adjust the target format to match whatever
-// isValidIranianPhone() expects.
-// ------------------------------------------------------------
+/**
+ * Normalize Iranian mobile number
+ *
+ * Supported:
+ *
+ * 09123456789
+ * +989123456789
+ * 989123456789
+ * 00989123456789
+ * 9123456789
+ *
+ * Output:
+ * 09123456789
+ */
 function normalizePhone(phone) {
-  if (!phone) return phone;
+  if (!phone) {
+    return phone;
+  }
+
   let p = String(phone).trim().replace(/[\s-]/g, '');
-  if (p.startsWith('+98')) p = '0' + p.slice(3);
-  else if (p.startsWith('0098')) p = '0' + p.slice(4);
-  else if (p.startsWith('98')) p = '0' + p.slice(2);
-  else if (p.startsWith('9') && p.length === 10) p = '0' + p;
+
+  if (p.startsWith('+98')) {
+    p = '0' + p.slice(3);
+  } else if (p.startsWith('0098')) {
+    p = '0' + p.slice(4);
+  } else if (p.startsWith('98')) {
+    p = '0' + p.slice(2);
+  } else if (p.startsWith('9') && p.length === 10) {
+    p = '0' + p;
+  }
+
   return p;
 }
 
-// Never leak internal error details to the client.
+/**
+ * Never leak internal errors to client
+ */
 function fail(res, status, message_fa, error, context) {
   console.error(`[auth:${context}]`, error);
-  return res.status(status).json({ message_fa });
+
+  return res.status(status).json({
+    message_fa,
+  });
 }
 
-// ============================================================
-// POST /auth/register
-// ============================================================
+/**
+ * ============================================================
+ * POST /auth/register
+ * ============================================================
+ */
 router.post('/register', async (req, res) => {
   try {
+    // =====================================
+    // Request body
+    // =====================================
+
     const { fullName, phone: rawPhone, password, confirmPassword } = req.body;
 
+    // =====================================
+    // Required fields
+    // =====================================
+
     if (!fullName || !rawPhone || !password || !confirmPassword) {
-      return res.status(400).json({ message_fa: 'همه فیلدها الزامی هستند' });
+      return res.status(400).json({
+        message_fa: 'همه فیلدها الزامی هستند',
+      });
     }
-    if (!isValidIranianPhone(rawPhone)) {
-      return res.status(400).json({ message_fa: 'شماره موبایل معتبر نیست' });
-    }
-    if (password.length < 8) {
-      return res.status(400).json({ message_fa: 'رمز عبور باید حداقل ۸ کاراکتر باشد' });
-    }
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message_fa: 'رمز عبور و تکرار آن یکسان نیستند' });
-    }
+
+    // =====================================
+    // Normalize phone
+    // =====================================
 
     const phone = normalizePhone(rawPhone);
 
-    const existing = await query('SELECT id, phone_verified_at FROM users WHERE phone = ?', [phone]);
+    // =====================================
+    // Validate phone
+    // =====================================
+
+    if (!isValidIranianPhone(phone)) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل معتبر نیست',
+      });
+    }
+
+    // =====================================
+    // Validate password
+    // =====================================
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        message_fa: 'رمز عبور باید حداقل ۸ کاراکتر باشد',
+      });
+    }
+
+    // =====================================
+    // Confirm password
+    // =====================================
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        message_fa: 'رمز عبور و تکرار آن یکسان نیستند',
+      });
+    }
+
+    // =====================================
+    // Find existing user
+    // =====================================
+
+    const existing = await query(
+      `
+            SELECT
+              id,
+              phone_verified_at
+            FROM users
+            WHERE phone = ?
+            LIMIT 1
+          `,
+      [phone]
+    );
+
+    // =====================================
+    // Existing user
+    // =====================================
 
     if (existing && existing.length > 0) {
-      if (existing[0].phone_verified_at) {
-        return res.status(409).json({ message_fa: 'این شماره موبایل قبلاً ثبت‌نام کرده است' });
+      const existingUser = existing[0];
+
+      // -----------------------------------
+      // Already verified
+      // -----------------------------------
+
+      if (existingUser.phone_verified_at) {
+        return res.status(409).json({
+          message_fa: 'این شماره موبایل قبلاً ثبت‌نام کرده است',
+        });
       }
+
+      // -----------------------------------
+      // Existing but not verified
+      // -----------------------------------
+
       const code = generateOtpCode();
-      await query('INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, ?, ?)', [phone, code, 'register', getOtpExpiryDate()]);
-      await sendSms(phone, `کد تایید شریف‌زین: ${code}`);
-      return res.status(200).json({ message: 'کد تایید مجدد ارسال شد' });
+      const expiresAt = getOtpExpiryDate();
+
+      // -----------------------------------
+      // Save OTP
+      // -----------------------------------
+
+      let otpResult;
+
+      try {
+        otpResult = await query(
+          `
+                INSERT INTO otp_codes
+                  (
+                    phone,
+                    code,
+                    purpose,
+                    expires_at
+                  )
+                VALUES
+                  (?, ?, ?, ?)
+              `,
+          [phone, code, 'register', expiresAt]
+        );
+      } catch (otpError) {
+        console.error('[auth:register] Existing user OTP error:', otpError);
+
+        return res.status(500).json({
+          message_fa: 'خطا در ایجاد کد تایید',
+        });
+      }
+
+      // -----------------------------------
+      // Send SMS
+      // -----------------------------------
+
+      try {
+        await sendSms(phone, code);
+      } catch (smsError) {
+        console.error('[auth:register] Existing user SMS failed');
+
+        console.error('PHONE:', phone);
+
+        console.error('MESSAGE:', smsError.message);
+
+        console.error('STATUS:', smsError.response?.status);
+
+        console.error('DATA:', smsError.response?.data);
+
+        // Delete failed OTP
+        if (otpResult && otpResult.insertId) {
+          await query(
+            `
+                DELETE FROM otp_codes
+                WHERE id = ?
+              `,
+            [otpResult.insertId]
+          );
+        }
+      }
+
+      // -----------------------------------
+      // Success
+      // -----------------------------------
+
+      return res.status(200).json({
+        message_fa: 'کد تایید مجدد ارسال شد',
+      });
     }
+
+    // =====================================
+    // New user
+    // =====================================
 
     const hashed = await hashPassword(password);
 
+    let userId;
+
+    // =====================================
+    // Create user
+    // =====================================
+
     try {
-      await query('INSERT INTO users (full_name, phone, password, role, status) VALUES (?, ?, ?, ?, ?)', [fullName, phone, hashed, 'customer', 'active']);
-    } catch (dbErr) {
-      // Unique index on users.phone catches the race where two
-      // requests for the same number both passed the SELECT above.
-      if (dbErr && dbErr.code === 'ER_DUP_ENTRY') {
-        return res.status(409).json({ message_fa: 'این شماره موبایل قبلاً ثبت‌نام کرده است' });
+      const result = await query(
+        `
+              INSERT INTO users
+                (
+                  full_name,
+                  phone,
+                  password,
+                  role,
+                  status
+                )
+              VALUES
+                (?, ?, ?, ?, ?)
+            `,
+        [fullName, phone, hashed, 'customer', 'active']
+      );
+
+      userId = result.insertId;
+    } catch (dbError) {
+      // -----------------------------------
+      // Duplicate phone
+      // -----------------------------------
+
+      if (dbError && dbError.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({
+          message_fa: 'این شماره موبایل قبلاً ثبت‌نام کرده است',
+        });
       }
-      throw dbErr;
+
+      throw dbError;
     }
 
-    const code = generateOtpCode();
-    await query('INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, ?, ?)', [phone, code, 'register', getOtpExpiryDate()]);
-    await sendSms(phone, `کد تایید شریف‌زین: ${code}`);
+    // =====================================
+    // Generate OTP
+    // =====================================
 
-    return res.status(201).json({ message: 'ثبت‌نام انجام شد، کد تایید برای شما پیامک شد' });
+    const code = generateOtpCode();
+
+    const expiresAt = getOtpExpiryDate();
+
+    // =====================================
+    // Save OTP
+    // =====================================
+
+    let otpResult;
+
+    try {
+      otpResult = await query(
+        `
+              INSERT INTO otp_codes
+                (
+                  phone,
+                  code,
+                  purpose,
+                  expires_at
+                )
+              VALUES
+                (?, ?, ?, ?)
+            `,
+        [phone, code, 'register', expiresAt]
+      );
+    } catch (otpError) {
+      console.error('[auth:register] OTP database error:', otpError);
+
+      // Remove incomplete user
+      await query(
+        `
+            DELETE FROM users
+            WHERE id = ?
+          `,
+        [userId]
+      );
+
+      throw otpError;
+    }
+
+    // =====================================
+    // Send OTP
+    // =====================================
+
+    try {
+      await sendSms(phone, code);
+    } catch (smsError) {
+      console.error('[auth:register] New user SMS failed');
+
+      console.error('PHONE:', phone);
+
+      console.error('MESSAGE:', smsError.message);
+
+      console.error('STATUS:', smsError.response?.status);
+
+      console.error('DATA:', smsError.response?.data);
+
+      // -----------------------------------
+      // Delete OTP
+      // -----------------------------------
+
+      if (otpResult && otpResult.insertId) {
+        await query(
+          `
+              DELETE FROM otp_codes
+              WHERE id = ?
+            `,
+          [otpResult.insertId]
+        );
+      }
+
+      // -----------------------------------
+      // Delete user
+      // -----------------------------------
+
+      await query(
+        `
+            DELETE FROM users
+            WHERE id = ?
+          `,
+        [userId]
+      );
+    }
+
+    // =====================================
+    // Registration success
+    // =====================================
+
+    return res.status(201).json({
+      message_fa: 'ثبت‌نام انجام شد، کد تایید برای شما پیامک شد',
+    });
   } catch (error) {
+    console.error('[auth:register] ERROR:', error);
+
     return fail(res, 500, 'خطا در ثبت‌نام', error, 'register');
   }
 });
 
+/**
+ * ============================================================
+ * GET /auth/verify
+ * ============================================================
+ */
 router.get('/verify', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -156,240 +442,653 @@ router.get('/verify', async (req, res) => {
   }
 });
 
-// ============================================================
-// POST /auth/verify-otp
-// ============================================================
+/**
+ * ============================================================
+ * POST /auth/verify-otp
+ * ============================================================
+ */
 router.post('/verify-otp', async (req, res) => {
   try {
     const { phone: rawPhone, code } = req.body;
 
     if (!rawPhone || !code) {
-      return res.status(400).json({ message_fa: 'شماره موبایل و کد تایید الزامی است' });
+      return res.status(400).json({
+        message_fa: 'شماره موبایل و کد تایید الزامی است',
+      });
     }
 
     const phone = normalizePhone(rawPhone);
 
+    if (!isValidIranianPhone(phone)) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل معتبر نیست',
+      });
+    }
+
     const otpRows = await query(
-      `SELECT * FROM otp_codes
-       WHERE phone = ? AND purpose = 'register' AND consumed_at IS NULL
-       ORDER BY id DESC LIMIT 1`,
+      `
+        SELECT *
+        FROM otp_codes
+        WHERE
+          phone = ?
+          AND purpose = 'register'
+          AND consumed_at IS NULL
+        ORDER BY id DESC
+        LIMIT 1
+      `,
       [phone]
     );
 
     if (!otpRows || otpRows.length === 0) {
-      return res.status(400).json({ message_fa: 'کد تاییدی برای این شماره یافت نشد' });
+      return res.status(400).json({
+        message_fa: 'کد تاییدی برای این شماره یافت نشد',
+      });
     }
 
     const otp = otpRows[0];
 
+    /**
+     * Expired
+     */
     if (new Date(otp.expires_at) < new Date()) {
-      return res.status(400).json({ message_fa: 'کد تایید منقضی شده است' });
+      return res.status(400).json({
+        message_fa: 'کد تایید منقضی شده است',
+      });
     }
+
+    /**
+     * Too many attempts
+     */
     if (otp.attempts >= OTP_MAX_ATTEMPTS) {
-      return res.status(429).json({ message_fa: 'تعداد تلاش‌های مجاز به پایان رسیده، کد جدید درخواست کنید' });
+      return res.status(429).json({
+        message_fa: 'تعداد تلاش‌های مجاز به پایان رسیده، کد جدید درخواست کنید',
+      });
     }
+
+    /**
+     * Wrong code
+     */
     if (otp.code !== String(code)) {
-      await query('UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?', [otp.id]);
-      return res.status(400).json({ message_fa: 'کد تایید نادرست است' });
+      await query(
+        `
+          UPDATE otp_codes
+          SET attempts = attempts + 1
+          WHERE id = ?
+        `,
+        [otp.id]
+      );
+
+      return res.status(400).json({
+        message_fa: 'کد تایید نادرست است',
+      });
     }
 
-    await query('UPDATE otp_codes SET consumed_at = NOW() WHERE id = ?', [otp.id]);
-    await query('UPDATE users SET phone_verified_at = NOW() WHERE phone = ?', [phone]);
+    /**
+     * Consume OTP
+     */
+    await query(
+      `
+        UPDATE otp_codes
+        SET consumed_at = NOW()
+        WHERE id = ?
+      `,
+      [otp.id]
+    );
 
-    const userRows = await query('SELECT id, full_name, phone, email, role, status FROM users WHERE phone = ?', [phone]);
+    /**
+     * Verify phone
+     */
+    await query(
+      `
+        UPDATE users
+        SET phone_verified_at = NOW()
+        WHERE phone = ?
+      `,
+      [phone]
+    );
+
+    /**
+     * Get user
+     */
+    const userRows = await query(
+      `
+        SELECT
+          id,
+          full_name,
+          phone,
+          email,
+          role,
+          status
+        FROM users
+        WHERE phone = ?
+        LIMIT 1
+      `,
+      [phone]
+    );
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({
+        message_fa: 'کاربر یافت نشد',
+      });
+    }
+
     const user = userRows[0];
 
-    const token = signToken({ id: user.id, role: user.role });
+    /**
+     * Create JWT
+     */
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+    });
 
-    return res.status(200).json({ message: 'شماره موبایل با موفقیت تایید شد', data: { user, token } });
+    return res.status(200).json({
+      message: 'شماره موبایل با موفقیت تایید شد',
+      data: {
+        user,
+        token,
+      },
+    });
   } catch (error) {
     return fail(res, 500, 'خطا در تایید کد', error, 'verify-otp');
   }
 });
 
-// ============================================================
-// POST /auth/resend-otp
-// body: { phone, purpose: 'register' | 'reset_password' }
-// ============================================================
+/**
+ * ============================================================
+ * POST /auth/resend-otp
+ *
+ * body:
+ * {
+ *   phone,
+ *   purpose: 'register' | 'reset_password'
+ * }
+ * ============================================================
+ */
 router.post('/resend-otp', async (req, res) => {
   try {
     const { phone: rawPhone, purpose } = req.body;
 
     if (!rawPhone || !['register', 'reset_password'].includes(purpose)) {
-      return res.status(400).json({ message_fa: 'ورودی نامعتبر است' });
+      return res.status(400).json({
+        message_fa: 'ورودی نامعتبر است',
+      });
     }
 
     const phone = normalizePhone(rawPhone);
 
-    const userRows = await query('SELECT id FROM users WHERE phone = ?', [phone]);
-    if (!userRows || userRows.length === 0) {
-      return res.status(404).json({ message_fa: 'کاربری با این شماره یافت نشد' });
+    if (!isValidIranianPhone(phone)) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل معتبر نیست',
+      });
     }
 
+    /**
+     * Check user
+     */
+    const userRows = await query(
+      `
+        SELECT
+          id,
+          status,
+          phone_verified_at
+        FROM users
+        WHERE phone = ?
+        LIMIT 1
+      `,
+      [phone]
+    );
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(404).json({
+        message_fa: 'کاربری با این شماره یافت نشد',
+      });
+    }
+
+    /**
+     * For register, don't resend if already verified.
+     */
+    if (purpose === 'register' && userRows[0].phone_verified_at) {
+      return res.status(409).json({
+        message_fa: 'شماره موبایل قبلاً تایید شده است',
+      });
+    }
+
+    /**
+     * Don't allow blocked users to request
+     * password reset.
+     */
+    if (purpose === 'reset_password' && userRows[0].status !== 'active') {
+      return res.status(403).json({
+        message_fa: 'حساب کاربری شما مسدود شده است',
+      });
+    }
+
+    /**
+     * Prevent SMS spam
+     */
     const recent = await query(
-      `SELECT id FROM otp_codes
-       WHERE phone = ? AND purpose = ? AND created_at > (NOW() - INTERVAL 60 SECOND)
-       ORDER BY id DESC LIMIT 1`,
+      `
+        SELECT id
+        FROM otp_codes
+        WHERE
+          phone = ?
+          AND purpose = ?
+          AND created_at >
+            (NOW() - INTERVAL 60 SECOND)
+        ORDER BY id DESC
+        LIMIT 1
+      `,
       [phone, purpose]
     );
+
     if (recent && recent.length > 0) {
-      return res.status(429).json({ message_fa: 'لطفاً کمی صبر کنید و دوباره تلاش کنید' });
+      return res.status(429).json({
+        message_fa: 'لطفاً کمی صبر کنید و دوباره تلاش کنید',
+      });
     }
 
+    /**
+     * Generate new OTP
+     */
     const code = generateOtpCode();
-    await query('INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, ?, ?)', [phone, code, purpose, getOtpExpiryDate()]);
-    await sendSms(phone, `کد تایید شریف‌زین: ${code}`);
 
-    return res.status(200).json({ message: 'کد تایید ارسال شد' });
+    await query(
+      `
+        INSERT INTO otp_codes
+          (phone, code, purpose, expires_at)
+        VALUES
+          (?, ?, ?, ?)
+      `,
+      [phone, code, purpose, getOtpExpiryDate()]
+    );
+
+    /**
+     * Same pattern:
+     *
+     * کد تایید شریف زین: {0}
+     */
+    await sendSms(phone, code);
+
+    return res.status(200).json({
+      message: 'کد تایید ارسال شد',
+    });
   } catch (error) {
     return fail(res, 500, 'خطا در ارسال کد', error, 'resend-otp');
   }
 });
 
-// ============================================================
-// POST /auth/login
-// ============================================================
+/**
+ * ============================================================
+ * POST /auth/login
+ * ============================================================
+ */
 router.post('/login', async (req, res) => {
   try {
     const { phone: rawPhone, password } = req.body;
 
     if (!rawPhone || !password) {
-      return res.status(400).json({ message_fa: 'شماره موبایل و رمز عبور الزامی است' });
+      return res.status(400).json({
+        message_fa: 'شماره موبایل و رمز عبور الزامی است',
+      });
     }
 
     const phone = normalizePhone(rawPhone);
 
-    const rows = await query('SELECT id, full_name, phone, email, password, role, status, phone_verified_at FROM users WHERE phone = ?', [phone]);
+    if (!isValidIranianPhone(phone)) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل معتبر نیست',
+      });
+    }
+
+    const rows = await query(
+      `
+        SELECT
+          id,
+          full_name,
+          phone,
+          email,
+          password,
+          role,
+          status,
+          phone_verified_at
+        FROM users
+        WHERE phone = ?
+        LIMIT 1
+      `,
+      [phone]
+    );
 
     if (!rows || rows.length === 0) {
-      return res.status(401).json({ message_fa: 'شماره موبایل یا رمز عبور اشتباه است' });
+      return res.status(401).json({
+        message_fa: 'شماره موبایل یا رمز عبور اشتباه است',
+      });
     }
 
     const user = rows[0];
 
+    /**
+     * Account status
+     */
     if (user.status !== 'active') {
-      return res.status(403).json({ message_fa: 'حساب کاربری شما مسدود شده است' });
+      return res.status(403).json({
+        message_fa: 'حساب کاربری شما مسدود شده است',
+      });
     }
+
+    /**
+     * Phone verification
+     */
     if (!user.phone_verified_at) {
-      return res.status(403).json({ message_fa: 'شماره موبایل شما هنوز تایید نشده است' });
+      return res.status(403).json({
+        message_fa: 'شماره موبایل شما هنوز تایید نشده است',
+      });
     }
 
+    /**
+     * Password
+     */
     const passwordMatches = await comparePassword(password, user.password);
+
     if (!passwordMatches) {
-      return res.status(401).json({ message_fa: 'شماره موبایل یا رمز عبور اشتباه است' });
+      return res.status(401).json({
+        message_fa: 'شماره موبایل یا رمز عبور اشتباه است',
+      });
     }
 
-    await query('UPDATE users SET last_login_at = NOW() WHERE id = ?', [user.id]);
+    /**
+     * Last login
+     */
+    await query(
+      `
+        UPDATE users
+        SET last_login_at = NOW()
+        WHERE id = ?
+      `,
+      [user.id]
+    );
 
-    const token = signToken({ id: user.id, role: user.role });
+    /**
+     * JWT
+     */
+    const token = signToken({
+      id: user.id,
+      role: user.role,
+    });
+
+    /**
+     * Never return password
+     */
     delete user.password;
 
-    return res.status(200).json({ message: 'ورود با موفقیت انجام شد', data: { user, token } });
+    return res.status(200).json({
+      message: 'ورود با موفقیت انجام شد',
+      data: {
+        user,
+        token,
+      },
+    });
   } catch (error) {
     return fail(res, 500, 'خطا در ورود', error, 'login');
   }
 });
 
-// ============================================================
-// POST /auth/forgot-password/request
-// ============================================================
+/**
+ * ============================================================
+ * POST /auth/forgot-password/request
+ * ============================================================
+ */
 router.post('/forgot-password/request', async (req, res) => {
   try {
     const { phone: rawPhone } = req.body;
 
-    if (!rawPhone || !isValidIranianPhone(rawPhone)) {
-      return res.status(400).json({ message_fa: 'شماره موبایل معتبر نیست' });
+    if (!rawPhone) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل الزامی است',
+      });
     }
 
     const phone = normalizePhone(rawPhone);
 
-    const rows = await query('SELECT id, status FROM users WHERE phone = ?', [phone]);
-    // Don't reveal whether the account exists, and don't let a
-    // blocked account fish for confirmation either.
-    if (!rows || rows.length === 0 || rows[0].status !== 'active') {
-      return res.status(200).json({ message: 'در صورت وجود حساب کاربری، کد تایید ارسال شد' });
+    if (!isValidIranianPhone(phone)) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل معتبر نیست',
+      });
     }
 
-    const code = generateOtpCode();
-    await query('INSERT INTO otp_codes (phone, code, purpose, expires_at) VALUES (?, ?, ?, ?)', [phone, code, 'reset_password', getOtpExpiryDate()]);
-    await sendSms(phone, `کد بازیابی رمز عبور شریف‌زین: ${code}`);
+    const rows = await query(
+      `
+          SELECT
+            id,
+            status
+          FROM users
+          WHERE phone = ?
+          LIMIT 1
+        `,
+      [phone]
+    );
 
-    return res.status(200).json({ message: 'در صورت وجود حساب کاربری، کد تایید ارسال شد' });
+    /**
+     * Don't reveal whether account exists.
+     */
+    if (!rows || rows.length === 0 || rows[0].status !== 'active') {
+      return res.status(200).json({
+        message: 'در صورت وجود حساب کاربری، کد تایید ارسال شد',
+      });
+    }
+
+    /**
+     * Generate OTP
+     */
+    const code = generateOtpCode();
+
+    await query(
+      `
+          INSERT INTO otp_codes
+            (phone, code, purpose, expires_at)
+          VALUES
+            (?, ?, ?, ?)
+        `,
+      [phone, code, 'reset_password', getOtpExpiryDate()]
+    );
+
+    /**
+     * Same single pattern body ID.
+     *
+     * Pattern:
+     * کد تایید شریف زین: {0}
+     */
+    await sendSms(phone, code);
+
+    return res.status(200).json({
+      message: 'در صورت وجود حساب کاربری، کد تایید ارسال شد',
+    });
   } catch (error) {
     return fail(res, 500, 'خطا در ارسال کد بازیابی', error, 'forgot-password/request');
   }
 });
 
-// ============================================================
-// POST /auth/forgot-password/reset
-// body: { phone, code, newPassword, confirmNewPassword }
-// ============================================================
+/**
+ * ============================================================
+ * POST /auth/forgot-password/reset
+ *
+ * body:
+ * {
+ *   phone,
+ *   code,
+ *   newPassword,
+ *   confirmNewPassword
+ * }
+ * ============================================================
+ */
 router.post('/forgot-password/reset', async (req, res) => {
   try {
     const { phone: rawPhone, code, newPassword, confirmNewPassword } = req.body;
 
     if (!rawPhone || !code || !newPassword || !confirmNewPassword) {
-      return res.status(400).json({ message_fa: 'همه فیلدها الزامی هستند' });
+      return res.status(400).json({
+        message_fa: 'همه فیلدها الزامی هستند',
+      });
     }
+
     if (newPassword.length < 8) {
-      return res.status(400).json({ message_fa: 'رمز عبور باید حداقل ۸ کاراکتر باشد' });
+      return res.status(400).json({
+        message_fa: 'رمز عبور باید حداقل ۸ کاراکتر باشد',
+      });
     }
+
     if (newPassword !== confirmNewPassword) {
-      return res.status(400).json({ message_fa: 'رمز عبور و تکرار آن یکسان نیستند' });
+      return res.status(400).json({
+        message_fa: 'رمز عبور و تکرار آن یکسان نیستند',
+      });
     }
 
     const phone = normalizePhone(rawPhone);
 
-    // A blocked user shouldn't be able to reset their way back in.
-    const userRows = await query('SELECT id, status FROM users WHERE phone = ?', [phone]);
-    if (!userRows || userRows.length === 0) {
-      return res.status(400).json({ message_fa: 'کد تاییدی برای این شماره یافت نشد' });
-    }
-    if (userRows[0].status !== 'active') {
-      return res.status(403).json({ message_fa: 'حساب کاربری شما مسدود شده است' });
+    if (!isValidIranianPhone(phone)) {
+      return res.status(400).json({
+        message_fa: 'شماره موبایل معتبر نیست',
+      });
     }
 
+    /**
+     * Check user
+     */
+    const userRows = await query(
+      `
+          SELECT
+            id,
+            status
+          FROM users
+          WHERE phone = ?
+          LIMIT 1
+        `,
+      [phone]
+    );
+
+    if (!userRows || userRows.length === 0) {
+      return res.status(400).json({
+        message_fa: 'کد تاییدی برای این شماره یافت نشد',
+      });
+    }
+
+    /**
+     * Blocked users cannot reset password
+     */
+    if (userRows[0].status !== 'active') {
+      return res.status(403).json({
+        message_fa: 'حساب کاربری شما مسدود شده است',
+      });
+    }
+
+    /**
+     * Get latest reset OTP
+     */
     const otpRows = await query(
-      `SELECT * FROM otp_codes
-       WHERE phone = ? AND purpose = 'reset_password' AND consumed_at IS NULL
-       ORDER BY id DESC LIMIT 1`,
+      `
+          SELECT *
+          FROM otp_codes
+          WHERE
+            phone = ?
+            AND purpose = 'reset_password'
+            AND consumed_at IS NULL
+          ORDER BY id DESC
+          LIMIT 1
+        `,
       [phone]
     );
 
     if (!otpRows || otpRows.length === 0) {
-      return res.status(400).json({ message_fa: 'کد تاییدی برای این شماره یافت نشد' });
+      return res.status(400).json({
+        message_fa: 'کد تاییدی برای این شماره یافت نشد',
+      });
     }
 
     const otp = otpRows[0];
 
+    /**
+     * Expired
+     */
     if (new Date(otp.expires_at) < new Date()) {
-      return res.status(400).json({ message_fa: 'کد تایید منقضی شده است' });
+      return res.status(400).json({
+        message_fa: 'کد تایید منقضی شده است',
+      });
     }
+
+    /**
+     * Attempts
+     */
     if (otp.attempts >= OTP_MAX_ATTEMPTS) {
-      return res.status(429).json({ message_fa: 'تعداد تلاش‌های مجاز به پایان رسیده، کد جدید درخواست کنید' });
+      return res.status(429).json({
+        message_fa: 'تعداد تلاش‌های مجاز به پایان رسیده، کد جدید درخواست کنید',
+      });
     }
+
+    /**
+     * Wrong OTP
+     */
     if (otp.code !== String(code)) {
-      await query('UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?', [otp.id]);
-      return res.status(400).json({ message_fa: 'کد تایید نادرست است' });
+      await query(
+        `
+            UPDATE otp_codes
+            SET attempts = attempts + 1
+            WHERE id = ?
+          `,
+        [otp.id]
+      );
+
+      return res.status(400).json({
+        message_fa: 'کد تایید نادرست است',
+      });
     }
 
+    /**
+     * Hash new password
+     */
     const hashed = await hashPassword(newPassword);
-    await query('UPDATE otp_codes SET consumed_at = NOW() WHERE id = ?', [otp.id]);
-    await query('UPDATE users SET password = ? WHERE phone = ?', [hashed, phone]);
 
-    return res.status(200).json({ message: 'رمز عبور با موفقیت تغییر کرد' });
+    /**
+     * Consume OTP
+     */
+    await query(
+      `
+          UPDATE otp_codes
+          SET consumed_at = NOW()
+          WHERE id = ?
+        `,
+      [otp.id]
+    );
+
+    /**
+     * Update password
+     */
+    await query(
+      `
+          UPDATE users
+          SET password = ?
+          WHERE phone = ?
+        `,
+      [hashed, phone]
+    );
+
+    return res.status(200).json({
+      message: 'رمز عبور با موفقیت تغییر کرد',
+    });
   } catch (error) {
     return fail(res, 500, 'خطا در تغییر رمز عبور', error, 'forgot-password/reset');
   }
 });
 
-// ============================================================
-// GET /auth/me
-// ============================================================
-const { authenticate } = require('../../middlewares/auth/auth.middleware');
-
+/**
+ * ============================================================
+ * GET /auth/me
+ * ============================================================
+ */
 router.get('/me', authenticate, async (req, res) => {
-  return res.status(200).json({ message: 'اطلاعات کاربر', data: req.user });
+  return res.status(200).json({
+    message: 'اطلاعات کاربر',
+    data: req.user,
+  });
 });
 
 module.exports = router;
