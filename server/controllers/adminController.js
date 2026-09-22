@@ -1,9 +1,73 @@
 const db = require('../models/dbConnection');
 const { randomUUID } = require('crypto');
 const productUpload = require('../middlewares/upload');
+const { sendOrderConfirmationSMS } = require('../services/sms');
 
 // Allowed order statuses - adjust to match your actual workflow
 const ALLOWED_ORDER_STATUSES = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
+
+function getIranDateTime() {
+  const now = new Date();
+
+  const date = new Intl.DateTimeFormat('fa-IR', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+
+  const time = new Intl.DateTimeFormat('fa-IR', {
+    timeZone: 'Asia/Tehran',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(now);
+
+  return {
+    date,
+    time,
+  };
+}
+
+const statusMap = {
+  pending_payment: 'در انتظار پرداخت',
+  paid: 'پرداخت شده',
+  pickup_dispatched: 'در حال برداشتن زین',
+  picked_up: 'برداشته شده',
+  at_shop: 'در مغازه',
+  inspecting: 'در حال بررسی',
+  ready_to_ship: 'آماده ارسال',
+  return_dispatched: 'در حال ارسال بازگشت',
+  delivered: 'تحویل شده',
+  cancelled: 'لغو شده',
+};
+
+function normalizePhone(phone) {
+  if (!phone) return '';
+
+  let value = String(phone).trim();
+
+  // Persian digits -> English
+  value = value.replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+
+  // Arabic digits -> English
+  value = value.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+
+  // Remove spaces, -, (, )
+  value = value.replace(/[\s\-()]/g, '');
+
+  // +98xxxxxxxxxx -> 09xxxxxxxxxx
+  if (value.startsWith('+98')) {
+    value = '0' + value.slice(3);
+  }
+
+  // 98xxxxxxxxxx -> 09xxxxxxxxxx
+  if (value.startsWith('98') && value.length === 12) {
+    value = '0' + value.slice(2);
+  }
+
+  return value;
+}
 
 // ==================== DASHBOARD ====================
 exports.getAdminDashboard = async (req, res) => {
@@ -48,20 +112,106 @@ exports.updateOrderStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!ALLOWED_ORDER_STATUSES.includes(status)) {
-      return res.status(400).json({ message: 'وضعیت سفارش نامعتبر است' });
+    // ---------------------------------------------------------
+    // Validate status
+    // ---------------------------------------------------------
+
+    if (!statusMap[status]) {
+      return res.status(400).json({
+        message: 'وضعیت سفارش نامعتبر است',
+      });
     }
 
-    const [result] = await db.query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
+    // ---------------------------------------------------------
+    // Get order FIRST
+    // ---------------------------------------------------------
+
+    const [orders] = await db.query(
+      `
+      SELECT
+        id,
+        order_code,
+        full_name,
+        phone,
+        payable_amount,
+        status
+      FROM orders
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    if (orders.length === 0) {
+      return res.status(404).json({
+        message: 'سفارش یافت نشد',
+      });
+    }
+
+    const order = orders[0];
+
+    // ---------------------------------------------------------
+    // Update order status
+    // ---------------------------------------------------------
+
+    const [result] = await db.query(
+      `
+      UPDATE orders
+      SET
+        status = ?,
+        updated_at = NOW()
+      WHERE id = ?
+      `,
+      [status, id]
+    );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'سفارش یافت نشد' });
+      return res.status(404).json({
+        message: 'سفارش یافت نشد',
+      });
     }
 
-    return res.json({ message: 'وضعیت سفارش به‌روزرسانی شد' });
+    // ---------------------------------------------------------
+    // Send SMS
+    // ---------------------------------------------------------
+
+    try {
+      const { date, time } = getIranDateTime();
+
+      await sendOrderConfirmationSMS({
+        phone: normalizePhone(order.phone),
+        fullName: order.full_name,
+        orderCode: order.order_code,
+        amount: order.payable_amount,
+        date,
+        time,
+        status: statusMap[status],
+      });
+
+      console.log(`[SMS] Order status SMS sent successfully: ${order.order_code}`);
+    } catch (smsError) {
+      // SMS failure must NOT break order status update
+      console.error(`[SMS] Failed to send order status SMS for ${order.order_code}:`, smsError.message);
+    }
+
+    // ---------------------------------------------------------
+    // Response
+    // ---------------------------------------------------------
+
+    return res.json({
+      message: 'وضعیت سفارش با موفقیت به‌روزرسانی شد',
+      order: {
+        id: order.id,
+        order_code: order.order_code,
+        status,
+      },
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'خطا در به‌روزرسانی وضعیت' });
+    console.error('UPDATE ORDER STATUS ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در به‌روزرسانی وضعیت',
+    });
   }
 };
 

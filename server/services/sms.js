@@ -1,63 +1,57 @@
 const axios = require('axios');
 
-// --------------------------------------------------
-// MELIPAYAMAK CONFIG
-// --------------------------------------------------
-
 const MELIPAYAMAK_USERNAME = process.env.MELIPAYAMAK_USERNAME;
-
 const MELIPAYAMAK_API_KEY = process.env.MELIPAYAMAK_API_KEY;
 
-// OTP verification pattern
 const MELIPAYAMAK_BODY_ID = process.env.MELIPAYAMAK_BODY_ID;
-
-// Password reset pattern
 const MELIPAYAMAK_RESET_BODY_ID = process.env.MELIPAYAMAK_RESET_BODY_ID;
 
-// MeliPayamak legacy API
+const MELIPAYAMAK_ORDER_BODY_ID = process.env.MELIPAYAMAK_ORDER_BODY_ID || '534447';
+
 const MELIPAYAMAK_URL = 'https://api.payamak-panel.com/post/Send.asmx/SendByBaseNumber2';
 
-// --------------------------------------------------
-// PHONE
-// --------------------------------------------------
+// -------------------------------------------------------------
+// Phone helpers
+// -------------------------------------------------------------
 
 function normalizePhone(phone) {
-  if (!phone) {
-    throw new Error('Phone number is required');
-  }
+  if (!phone) return '';
 
   let value = String(phone).trim();
 
+  // Persian digits -> English
+  value = value.replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+
+  // Arabic digits -> English
+  value = value.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+
+  // Remove spaces, -, (, )
+  value = value.replace(/[\s\-()]/g, '');
+
+  // +98xxxxxxxxxx -> 09xxxxxxxxxx
   if (value.startsWith('+98')) {
-    value = `0${value.slice(3)}`;
-  } else if (value.startsWith('0098')) {
-    value = `0${value.slice(4)}`;
-  } else if (value.startsWith('98')) {
-    value = `0${value.slice(2)}`;
+    value = '0' + value.slice(3);
   }
 
-  value = value.replace(/[^\d]/g, '');
-
-  if (value.length === 10 && value.startsWith('9')) {
-    value = `0${value}`;
+  // 98xxxxxxxxxx -> 09xxxxxxxxxx
+  if (value.startsWith('98') && value.length === 12) {
+    value = '0' + value.slice(2);
   }
 
   return value;
 }
 
 function isValidIranianPhone(phone) {
-  return /^09\d{9}$/.test(String(phone || ''));
+  const normalized = normalizePhone(phone);
+
+  return /^09\d{9}$/.test(normalized);
 }
 
-// --------------------------------------------------
-// SEND PATTERN SMS
-// --------------------------------------------------
+// -------------------------------------------------------------
+// SendByBaseNumber2
+// -------------------------------------------------------------
 
-async function sendVerifyCode(to, code, bodyId = MELIPAYAMAK_BODY_ID) {
-  // ----------------------------------------------
-  // Config validation
-  // ----------------------------------------------
-
+async function sendPatternSMS(to, values, bodyId) {
   if (!MELIPAYAMAK_USERNAME) {
     throw new Error('MELIPAYAMAK_USERNAME is not configured');
   }
@@ -66,204 +60,159 @@ async function sendVerifyCode(to, code, bodyId = MELIPAYAMAK_BODY_ID) {
     throw new Error('MELIPAYAMAK_API_KEY is not configured');
   }
 
+  const phone = normalizePhone(to);
+
+  if (!isValidIranianPhone(phone)) {
+    throw new Error(`Invalid Iranian phone number: ${to}`);
+  }
+
   if (!bodyId) {
     throw new Error('MeliPayamak bodyId is not configured');
   }
 
-  // ----------------------------------------------
-  // Phone validation
-  // ----------------------------------------------
-
-  const phone = normalizePhone(to);
-
-  if (!isValidIranianPhone(phone)) {
-    throw new Error(`Invalid Iranian phone number: ${phone}`);
-  }
-
-  // ----------------------------------------------
-  // OTP validation
-  // ----------------------------------------------
-
-  if (!code) {
-    throw new Error('OTP code is required');
-  }
-
-  // ----------------------------------------------
-  // Body ID validation
-  // ----------------------------------------------
-
   const numericBodyId = Number(bodyId);
 
-  if (!Number.isInteger(numericBodyId)) {
-    throw new Error(`MeliPayamak bodyId must be a numeric integer. Received: ${bodyId}`);
+  if (!Number.isInteger(numericBodyId) || numericBodyId <= 0) {
+    throw new Error(`Invalid MeliPayamak bodyId: ${bodyId}`);
   }
 
-  // ----------------------------------------------
-  // Request
-  // ----------------------------------------------
+  if (!Array.isArray(values) || values.length === 0) {
+    throw new Error('Pattern SMS values must be a non-empty array');
+  }
+
+  /*
+   * MeliPayamak SendByBaseNumber2 expects pattern
+   * variables separated with semicolon.
+   *
+   * Example:
+   *
+   * [
+   *   'مرتضی',
+   *   'SZ-123456',
+   *   '2500000',
+   *   '1405/07/01',
+   *   '14:35',
+   *   'در انتظار پرداخت'
+   * ]
+   *
+   * becomes:
+   *
+   * مرتضی;SZ-123456;2500000;1405/07/01;14:35;در انتظار پرداخت
+   */
+
+  const text = values.map((value) => String(value ?? '')).join(';');
 
   const params = new URLSearchParams();
 
   params.append('username', MELIPAYAMAK_USERNAME);
-
-  /**
-   * IMPORTANT
-   *
-   * According to MeliPayamak support:
-   *
-   * password = API KEY
-   */
   params.append('password', MELIPAYAMAK_API_KEY);
-
-  params.append('text', String(code));
-
+  params.append('text', text);
   params.append('to', phone);
-
   params.append('bodyId', String(numericBodyId));
 
-  console.log('\n========================================');
-
-  console.log('       MELIPAYAMAK SEND PATTERN');
-
-  console.log('========================================');
-
-  console.log('PHONE:', phone);
-
-  console.log('BODY ID:', numericBodyId);
-
-  console.log('USERNAME:', MELIPAYAMAK_USERNAME ? 'SET' : 'MISSING');
-
-  console.log('API KEY:', MELIPAYAMAK_API_KEY ? `SET (${MELIPAYAMAK_API_KEY.length} chars)` : 'MISSING');
-
-  console.log('OTP:', code);
-
-  console.log('URL:', MELIPAYAMAK_URL);
-
-  console.log('========================================\n');
-
   try {
-    const response = await axios.post(MELIPAYAMAK_URL, params.toString(), {
+    const response = await axios.post(MELIPAYAMAK_URL, params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-
-      timeout: 20000,
-
-      responseType: 'text',
-
-      validateStatus: () => true,
+      timeout: 15000,
     });
 
-    const rawResponse = typeof response.data === 'string' ? response.data.trim() : String(response.data);
+    const rawResponse = String(response.data ?? '').trim();
 
-    console.log('\n========================================');
-
-    console.log('     MELIPAYAMAK RESPONSE');
-
-    console.log('========================================');
-
-    console.log('HTTP STATUS:', response.status);
-
-    console.log('RAW RESPONSE:', rawResponse);
-
-    console.log('========================================\n');
-
-    // ------------------------------------------
-    // Parse XML response
-    // ------------------------------------------
+    /*
+     * MeliPayamak normally returns:
+     *
+     * <string xmlns="http://tempuri.org/">123456789</string>
+     *
+     * or an error code such as:
+     *
+     * -1
+     * -4
+     * -5
+     */
 
     const match = rawResponse.match(/<string[^>]*>(.*?)<\/string>/i);
 
-    const result = match ? match[1].trim() : rawResponse;
+    const result = match ? String(match[1]).trim() : rawResponse.replace(/<[^>]+>/g, '').trim();
 
-    // ------------------------------------------
-    // MeliPayamak error
-    // ------------------------------------------
-
-    if (result.startsWith('-')) {
-      const error = new Error(`MeliPayamak returned error code ${result}`);
-
-      error.meliPayamakCode = result;
-
-      error.httpStatus = response.status;
-
-      error.rawResponse = rawResponse;
-
-      throw error;
+    if (!result) {
+      throw new Error(`MeliPayamak returned an empty response. Raw response: ${rawResponse}`);
     }
 
-    // ------------------------------------------
-    // HTTP error
-    // ------------------------------------------
-
-    if (response.status < 200 || response.status >= 300) {
-      const error = new Error(`MeliPayamak HTTP ${response.status}`);
-
-      error.httpStatus = response.status;
-
-      error.rawResponse = rawResponse;
-
-      throw error;
+    // MeliPayamak error responses are negative numbers.
+    if (/^-\d+$/.test(result)) {
+      throw new Error(`MeliPayamak SMS failed. Error code: ${result}`);
     }
-
-    // ------------------------------------------
-    // Success
-    // ------------------------------------------
 
     return {
       success: true,
-
       phone,
-
-      code: String(code),
-
       bodyId: numericBodyId,
-
       messageId: result,
-
       rawResponse,
     };
   } catch (error) {
-    console.error('\n========================================');
-
-    console.error('[MELIPAYAMAK ERROR]');
-
-    console.error('MESSAGE:', error?.message);
-
-    console.error('MELIPAYAMAK CODE:', error?.meliPayamakCode);
-
-    console.error('HTTP STATUS:', error?.httpStatus || error?.response?.status);
-
-    console.error('RAW RESPONSE:', error?.rawResponse || error?.response?.data);
-
-    console.error('BODY ID:', numericBodyId);
-
-    console.error('PHONE:', phone);
-
-    console.error('========================================\n');
+    if (error.response) {
+      throw new Error(`MeliPayamak HTTP ${error.response.status}: ${String(error.response.data)}`);
+    }
 
     throw error;
   }
 }
 
-// --------------------------------------------------
-// PASSWORD RESET SMS
-// --------------------------------------------------
+// -------------------------------------------------------------
+// Verify / Register OTP
+// -------------------------------------------------------------
 
-async function sendPasswordResetCode(phone, code) {
-  return sendVerifyCode(phone, code, MELIPAYAMAK_RESET_BODY_ID);
+async function sendVerifyCode(to, code) {
+  if (!MELIPAYAMAK_BODY_ID) {
+    throw new Error('MELIPAYAMAK_BODY_ID is not configured');
+  }
+
+  if (!code) {
+    throw new Error('Verification code is required');
+  }
+
+  return sendPatternSMS(to, [code], MELIPAYAMAK_BODY_ID);
 }
 
-// --------------------------------------------------
-// EXPORTS
-// --------------------------------------------------
+// -------------------------------------------------------------
+// Password reset OTP
+// -------------------------------------------------------------
+
+async function sendPasswordResetCode(to, code) {
+  if (!MELIPAYAMAK_RESET_BODY_ID) {
+    throw new Error('MELIPAYAMAK_RESET_BODY_ID is not configured');
+  }
+
+  if (!code) {
+    throw new Error('Password reset code is required');
+  }
+
+  return sendPatternSMS(to, [code], MELIPAYAMAK_RESET_BODY_ID);
+}
+
+// -------------------------------------------------------------
+// Order confirmation SMS
+// Body ID: 534447
+// -------------------------------------------------------------
+
+async function sendOrderConfirmationSMS({ phone, fullName, orderCode, amount, date, time, status }) {
+  const bodyId = process.env.MELIPAYAMAK_ORDER_BODY_ID || '534447';
+
+  return sendPatternSMS(phone, [fullName, orderCode, amount, date, time, status], bodyId);
+}
+// -------------------------------------------------------------
+// Exports
+// -------------------------------------------------------------
 
 module.exports = {
   normalizePhone,
-
   isValidIranianPhone,
 
+  sendPatternSMS,
   sendVerifyCode,
-
   sendPasswordResetCode,
+  sendOrderConfirmationSMS,
 };

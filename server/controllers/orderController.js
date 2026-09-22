@@ -1,7 +1,10 @@
 const db = require('../models/dbConnection');
 const crypto = require('crypto');
 const axios = require('axios');
+
 const { requestPayment } = require('../services/zarinpal');
+
+const { sendOrderConfirmationSMS, normalizePhone } = require('../services/sms');
 
 // ---------- Helpers ----------
 async function getOrCreateCart(cartToken) {
@@ -27,6 +30,56 @@ const CART_ITEM_SELECT = `
 function generateOrderCode() {
   const part = Date.now().toString().slice(-8);
   return `SZ-${part}`;
+}
+
+function getIranDateTime() {
+  const now = new Date();
+
+  const date = new Intl.DateTimeFormat('fa-IR', {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+
+  const time = new Intl.DateTimeFormat('fa-IR', {
+    timeZone: 'Asia/Tehran',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(now);
+
+  return {
+    date,
+    time,
+  };
+}
+
+function normalizePhone(phone) {
+  if (!phone) return '';
+
+  let value = String(phone).trim();
+
+  // Persian digits -> English
+  value = value.replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
+
+  // Arabic digits -> English
+  value = value.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+
+  // Remove spaces, -, (, )
+  value = value.replace(/[\s\-()]/g, '');
+
+  // +98xxxxxxxxxx -> 09xxxxxxxxxx
+  if (value.startsWith('+98')) {
+    value = '0' + value.slice(3);
+  }
+
+  // 98xxxxxxxxxx -> 09xxxxxxxxxx
+  if (value.startsWith('98') && value.length === 12) {
+    value = '0' + value.slice(2);
+  }
+
+  return value;
 }
 
 // ---------- POST /api/v1/orders/checkout ----------
@@ -323,6 +376,8 @@ function generateOrderCode() {
 
 // ---------- GET /api/v1/payment/callback ----------
 // بازگشت از زرین‌پال
+// ---------- GET /api/v1/payment/callback ----------
+// بازگشت از زرین‌پال
 
 exports.paymentCallback = async (req, res) => {
   try {
@@ -342,10 +397,10 @@ exports.paymentCallback = async (req, res) => {
 
     const [orders] = await db.query(
       `
-        SELECT *
-        FROM orders
-        WHERE id = ?
-        LIMIT 1
+      SELECT *
+      FROM orders
+      WHERE id = ?
+      LIMIT 1
       `,
       [order_id]
     );
@@ -361,7 +416,7 @@ exports.paymentCallback = async (req, res) => {
     // ---------------------------------------------
 
     if (order.status === 'paid') {
-      return res.redirect(`${process.env.BASE_URL}/checkout/success?order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(order.ref_id || '')}`);
+      return res.redirect(`${process.env.BASE_URL}/checkout/success?payment=success&order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(order.ref_id || '')}`);
     }
 
     // ---------------------------------------------
@@ -385,12 +440,12 @@ exports.paymentCallback = async (req, res) => {
     if (!Status || String(Status).toUpperCase() !== 'OK') {
       await db.query(
         `
-          UPDATE orders
-          SET
-            status = 'payment_failed',
-            updated_at = NOW()
-          WHERE id = ?
-            AND status <> 'paid'
+        UPDATE orders
+        SET
+          status = 'payment_failed',
+          updated_at = NOW()
+        WHERE id = ?
+          AND status <> 'paid'
         `,
         [order.id]
       );
@@ -412,9 +467,6 @@ exports.paymentCallback = async (req, res) => {
 
     // ---------------------------------------------
     // تومان -> ریال
-    //
-    // مبلغ داخل DB شما تومان است
-    // زرین‌پال مبلغ را ریال می‌خواهد
     // ---------------------------------------------
 
     const amountInRial = Math.round(payableAmount * 10);
@@ -456,12 +508,12 @@ exports.paymentCallback = async (req, res) => {
 
       await db.query(
         `
-          UPDATE orders
-          SET
-            status = 'payment_failed',
-            updated_at = NOW()
-          WHERE id = ?
-            AND status <> 'paid'
+        UPDATE orders
+        SET
+          status = 'payment_failed',
+          updated_at = NOW()
+        WHERE id = ?
+          AND status <> 'paid'
         `,
         [order.id]
       );
@@ -473,61 +525,98 @@ exports.paymentCallback = async (req, res) => {
     // پرداخت موفق
     // ---------------------------------------------
 
-    const refId = data.data.ref_id;
+    const refId = data?.data?.ref_id;
 
     // ---------------------------------------------
     // Update Order
+    //
+    // فقط اگر سفارش قبلاً paid نشده باشد
     // ---------------------------------------------
 
     const [updateResult] = await db.query(
       `
-          UPDATE orders
-
-          SET
-            status = 'paid',
-            authority = ?,
-            ref_id = ?,
-            paid_at = NOW(),
-            updated_at = NOW()
-
-          WHERE id = ?
-            AND status <> 'paid'
-        `,
+      UPDATE orders
+      SET
+        status = 'paid',
+        authority = ?,
+        ref_id = ?,
+        paid_at = NOW(),
+        updated_at = NOW()
+      WHERE id = ?
+        AND status <> 'paid'
+      `,
       [Authority, refId, order.id]
     );
 
     // ---------------------------------------------
-    // افزایش مصرف کد تخفیف
-    //
-    // فقط اگر همین Callback سفارش را
-    // برای اولین بار paid کرده باشد
+    // فقط اگر همین callback واقعاً سفارش را
+    // از pending_payment به paid تغییر داده باشد
     // ---------------------------------------------
 
-    if (updateResult.affectedRows === 1 && order.discount_code) {
-      await db.query(
-        `
+    if (updateResult.affectedRows === 1) {
+      // -------------------------------------------
+      // افزایش مصرف کد تخفیف
+      // -------------------------------------------
+
+      if (order.discount_code) {
+        await db.query(
+          `
           UPDATE discount_codes
           SET
             used_count =
               COALESCE(used_count, 0) + 1
           WHERE code = ?
-        `,
-        [order.discount_code]
-      );
+          `,
+          [order.discount_code]
+        );
+      }
+
+      // -------------------------------------------
+      // ارسال SMS موفقیت پرداخت
+      // -------------------------------------------
+
+      try {
+        const { date, time } = getIranDateTime();
+
+        const phone = normalizePhone(order.phone);
+
+        if (!phone) {
+          throw new Error('شماره موبایل سفارش خالی است');
+        }
+
+        await sendOrderConfirmationSMS({
+          phone,
+          fullName: order.full_name,
+          orderCode: order.order_code,
+          amount: order.payable_amount,
+          date,
+          time,
+
+          // {5}
+          status: 'پرداخت شده',
+        });
+
+        console.log(`[SMS] Payment success SMS sent successfully: ${order.order_code}`);
+      } catch (smsError) {
+        // -----------------------------------------
+        // خطای SMS نباید پرداخت موفق را خراب کند
+        // -----------------------------------------
+
+        console.error(`[SMS] Failed to send payment success SMS for ${order.order_code}:`, smsError.message);
+      }
     }
 
     // ---------------------------------------------
     // Redirect به صفحه موفقیت
     // ---------------------------------------------
 
-    return res.redirect(`${process.env.BASE_URL}/checkout/success?payment=success&order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(refId)}`);
+    return res.redirect(`${process.env.BASE_URL}/checkout/success?payment=success&order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(refId || '')}`);
   } catch (error) {
     console.error('Payment Callback Error:', error.response?.data || error.message || error);
 
     return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
   }
 };
-
 // ---------- PATCH /api/v1/orders/:id/status (ادمین) ----------
 exports.updateOrderStatus = async (req, res) => {
   try {
