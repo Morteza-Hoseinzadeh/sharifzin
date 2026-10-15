@@ -63,7 +63,6 @@ const stats = [
   { number: '۱۰+', label: 'سال تجربه' },
   { number: '۵۰۰۰+', label: 'زین ساخته شده' },
   { number: '۹۸٪', label: 'رضایت مشتریان' },
-  { number: '۱۲', label: 'ماه گارانتی' },
 ];
 
 const timeline = [
@@ -102,8 +101,7 @@ function ValueCard({ icon: Icon, title, description }) {
           transform: 'translateY(-4px)',
           boxShadow: `10px 10px 22px ${SHADOW_DARK}, -8px -8px 18px ${SHADOW_LIGHT}`,
         },
-      }}
-    >
+      }}>
       <Box
         sx={{
           width: 52,
@@ -116,8 +114,7 @@ function ValueCard({ icon: Icon, title, description }) {
           boxShadow: `5px 5px 12px ${SHADOW_DARK}, -5px -5px 12px ${SHADOW_LIGHT}`,
           color: ACCENT_ORANGE,
           mb: 2.2,
-        }}
-      >
+        }}>
         <Icon size={26} variant="Bold" />
       </Box>
       <Typography sx={{ fontWeight: 700, fontSize: 16, color: INK, mb: 1.2 }}>{title}</Typography>

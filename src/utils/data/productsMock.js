@@ -163,10 +163,41 @@ export const products = [
 ];
 
 export const BrandsMock = [
-  { title: 'هندا', src: '/assets/brands/honda.png', alt: 'تعویض زین هندا' },
-  { title: 'هندا', src: '/assets/brands/honda.png', alt: 'تعویض زین هندا' },
-  { title: 'هندا', src: '/assets/brands/honda.png', alt: 'تعویض زین هندا' },
-  { title: 'هندا', src: '/assets/brands/honda.png', alt: 'تعویض زین هندا' },
+  {
+    title: 'باجاج',
+    src: '/assets/brands/bajaj.png',
+    alt: 'تعویض زین باجاج',
+  },
+  {
+    title: 'بنلی',
+    src: '/assets/brands/beneli.png',
+    alt: 'تعویض زین بنلی',
+  },
+  {
+    title: 'هوندا',
+    src: '/assets/brands/honda.png',
+    alt: 'تعویض زین هوندا',
+  },
+  {
+    title: 'کاوازاکی',
+    src: '/assets/brands/kawazaki.png',
+    alt: 'تعویض زین کاوازاکی',
+  },
+  {
+    title: 'سوزوکی',
+    src: '/assets/brands/suzuki.png',
+    alt: 'تعویض زین سوزوکی',
+  },
+  {
+    title: 'SYM',
+    src: '/assets/brands/sym.png',
+    alt: 'تعویض زین اس وای ام',
+  },
+  {
+    title: 'یاماها',
+    src: '/assets/brands/yamaha.png',
+    alt: 'تعویض زین یاماها',
+  },
 ];
 
 export const categories = [
@@ -183,11 +214,6 @@ export const productFQ = [
     question: 'آیا این محصول ضد آب است؟',
     answer: 'بله، این محصول دارای پوشش ضد آب است و برای استفاده در شرایط مرطوب مناسب می‌باشد.',
     date: '۲ روز پیش',
-  },
-  {
-    question: 'گارانتی محصول چند ماه است؟',
-    answer: 'این محصول دارای ۱۲ ماه گارانتی اصالت و سلامت کالا می‌باشد.',
-    date: '۵ روز پیش',
   },
   {
     question: 'وزن تقریبی محصول چقدر است؟',

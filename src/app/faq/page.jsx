@@ -39,10 +39,6 @@ const faqData = [
     category: 'محصولات و کیفیت',
     items: [
       {
-        question: 'آیا محصولات شریف‌زین گارانتی دارند؟',
-        answer: 'بله، تمامی محصولات و خدمات شریف‌زین دارای ۱۲ ماه گارانتی اصالت و سلامت کالا هستند. در صورت بروز هرگونه مشکل ناشی از کیفیت ساخت، محصول تعویض یا تعمیر می‌شود.',
-      },
-      {
         question: 'جنس فوم و رویه زین‌ها چیست؟',
         answer: 'ما از فوم سرد با تراکم بالا و رویه‌های باکیفیت (چرم طبیعی یا مصنوعی درجه یک) استفاده می‌کنیم که دوام و راحتی بالایی دارند.',
       },
@@ -147,8 +143,7 @@ export default function FaqPage() {
               background: SURFACE,
               boxShadow: `6px 6px 14px ${SHADOW_DARK}, -6px -6px 14px ${SHADOW_LIGHT}`,
               color: ACCENT_ORANGE,
-            }}
-          >
+            }}>
             <MessageQuestion size={30} variant="Bold" />
           </Box>
 
@@ -158,8 +153,7 @@ export default function FaqPage() {
               fontSize: { xs: 24, md: 30 },
               color: INK,
               mb: 1.5,
-            }}
-          >
+            }}>
             سوالات متداول
           </Typography>
           <Typography
@@ -169,8 +163,7 @@ export default function FaqPage() {
               maxWidth: 480,
               mx: 'auto',
               lineHeight: 1.8,
-            }}
-          >
+            }}>
             پاسخ سوالات پرتکرار شما درباره محصولات، سفارش، گارانتی و خدمات شریف‌زین
           </Typography>
         </Box>
@@ -217,8 +210,7 @@ export default function FaqPage() {
                     color: INK,
                     mb: 1.8,
                     pr: 1,
-                  }}
-                >
+                  }}>
                   {category.category}
                 </Typography>
 
@@ -237,8 +229,7 @@ export default function FaqPage() {
                           borderRadius: '16px !important',
                           overflow: 'hidden',
                           transition: 'all 0.25s ease',
-                        }}
-                      >
+                        }}>
                         <AccordionSummary
                           expandIcon={<ArrowDown2 size={18} color={expanded === panelId ? ACCENT_ORANGE : INK_SOFT} />}
                           sx={{
@@ -248,15 +239,13 @@ export default function FaqPage() {
                             '& .MuiAccordionSummary-content': {
                               my: 1.5,
                             },
-                          }}
-                        >
+                          }}>
                           <Typography
                             sx={{
                               fontSize: 14,
                               fontWeight: 600,
                               color: expanded === panelId ? ACCENT_ORANGE : INK,
-                            }}
-                          >
+                            }}>
                             {item.question}
                           </Typography>
                         </AccordionSummary>
@@ -266,8 +255,7 @@ export default function FaqPage() {
                               fontSize: 13.5,
                               color: INK_SOFT,
                               lineHeight: 1.85,
-                            }}
-                          >
+                            }}>
                             {item.answer}
                           </Typography>
                         </AccordionDetails>
@@ -287,8 +275,7 @@ export default function FaqPage() {
             p: { xs: 3.5, md: 4.5 },
             mt: 5,
             textAlign: 'center',
-          }}
-        >
+          }}>
           <Typography sx={{ fontWeight: 700, fontSize: 18, color: INK, mb: 1.2 }}>سوال دیگری دارید؟</Typography>
           <Typography sx={{ fontSize: 14, color: INK_SOFT, mb: 3 }}>اگر پاسخ سوال خود را پیدا نکردید، با پشتیبانی ما در ارتباط باشید.</Typography>
           <Button
@@ -302,8 +289,7 @@ export default function FaqPage() {
               bgcolor: ACCENT_ORANGE,
               boxShadow: `6px 6px 14px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}`,
               '&:hover': { bgcolor: '#E06B10' },
-            }}
-          >
+            }}>
             تماس با پشتیبانی
           </Button>
         </Box>

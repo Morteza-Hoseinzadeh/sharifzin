@@ -120,16 +120,19 @@ const productToFormData = (product) => {
 /* -------------------------------------------------------------------------- */
 
 const normalizeArray = (value) => {
+  const separator = /[-–—,،]/;
+
   if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
+    return value
+      .flatMap((item) => String(item ?? '').split(separator))
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
-  if (!value) {
-    return [];
-  }
+  if (!value) return [];
 
   return String(value)
-    .split(',')
+    .split(separator)
     .map((item) => item.trim())
     .filter(Boolean);
 };
@@ -633,22 +636,20 @@ export default function AdminProductsPage() {
 
                   <Box>
                     <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      رنگ‌ها (جدا با کاما)
+                      رنگ‌ها (با خط تیره جدا کنید)
                     </Typography>
 
                     <TextField
                       fullWidth
                       multiline
                       rows={2}
-                      value={Array.isArray(formData.colors) ? formData.colors.join(', ') : formData.colors || ''}
+                      placeholder="مثال: آبی-مشکی-طلایی"
+                      value={Array.isArray(formData.colors) ? formData.colors.join('-') : formData.colors || ''}
                       disabled={mode === 'view'}
                       onChange={(event) =>
                         setFormData((prev) => ({
                           ...prev,
-                          colors: event.target.value
-                            .split(',')
-                            .map((item) => item.trim())
-                            .filter(Boolean),
+                          colors: normalizeArray(event.target.value),
                         }))
                       }
                     />
@@ -1033,8 +1034,7 @@ export default function AdminProductsPage() {
                   </TableRow>
                 ) : (
                   filtered.map((product) => {
-                    const colorsStr = Array.isArray(product.colors) ? product.colors.join('، ') : product.colors || '';
-
+                    const colorsStr = normalizeArray(product.colors).join('، ');
                     const finalPrice = product.final_price ?? product.price ?? 0;
 
                     return (

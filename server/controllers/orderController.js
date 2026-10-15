@@ -55,33 +55,6 @@ function getIranDateTime() {
   };
 }
 
-function normalizePhone(phone) {
-  if (!phone) return '';
-
-  let value = String(phone).trim();
-
-  // Persian digits -> English
-  value = value.replace(/[۰-۹]/g, (digit) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
-
-  // Arabic digits -> English
-  value = value.replace(/[٠-٩]/g, (digit) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
-
-  // Remove spaces, -, (, )
-  value = value.replace(/[\s\-()]/g, '');
-
-  // +98xxxxxxxxxx -> 09xxxxxxxxxx
-  if (value.startsWith('+98')) {
-    value = '0' + value.slice(3);
-  }
-
-  // 98xxxxxxxxxx -> 09xxxxxxxxxx
-  if (value.startsWith('98') && value.length === 12) {
-    value = '0' + value.slice(2);
-  }
-
-  return value;
-}
-
 // ---------- POST /api/v1/orders/checkout ----------
 exports.checkout = async (req, res) => {
   try {
