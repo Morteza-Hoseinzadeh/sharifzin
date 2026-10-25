@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Stack, Button, IconButton, CircularProgress, Alert, Stepper, Step, StepLabel, InputBase, Divider } from '@mui/material';
+import { Box, Container, Typography, Stack, Button, IconButton, CircularProgress, Alert, Stepper, Step, StepLabel, InputBase } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Location, Call, User, TickCircle, Card as CardIcon, Receipt, TicketDiscount, CloseCircle } from 'iconsax-reactjs';
+import { Location, Call, User, TickCircle, Card as CardIcon, TicketDiscount, CloseCircle, Shop, Truck, Box1, Box as BoxIcon } from 'iconsax-reactjs';
 import { useRouter } from 'next/navigation';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
@@ -41,6 +41,21 @@ const neoInset = {
 
 const steps = ['ثبت آدرس', 'پرداخت صورت‌حساب', 'فاکتور تایید'];
 
+// مقادیر ذخیره‌شده در دیتابیس (pickup_method / return_method)
+const PICKUP_METHODS = [
+  { value: 'in_person', label: 'تحویل حضوری', desc: 'خودم زین را به مغازه شریف‌زین می‌آورم', icon: Shop },
+  { value: 'snapp', label: 'اسنپ / پیک', desc: 'پیک از آدرس من زین را می‌گیرد', icon: Truck },
+  { value: 'tipax', label: 'تیپاکس', desc: 'با تیپاکس برای مغازه ارسال می‌کنم', icon: Box1 },
+  { value: 'post', label: 'پست', desc: 'با پست برای مغازه ارسال می‌کنم', icon: BoxIcon },
+];
+
+const RETURN_METHODS = [
+  { value: 'in_person', label: 'تحویل حضوری', desc: 'خودم از مغازه تحویل می‌گیرم', icon: Shop },
+  { value: 'snapp', label: 'اسنپ / پیک', desc: 'با پیک به آدرسم ارسال شود', icon: Truck },
+  { value: 'tipax', label: 'تیپاکس', desc: 'با تیپاکس به آدرسم ارسال شود', icon: Box1 },
+  { value: 'post', label: 'پست', desc: 'با پست به آدرسم ارسال شود', icon: BoxIcon },
+];
+
 function getCartToken() {
   if (typeof window === 'undefined') return null;
   let t = localStorage.getItem('cartToken');
@@ -77,6 +92,52 @@ function NeoField({ label, value, onChange, placeholder, icon: Icon, multiline =
   );
 }
 
+// گروه انتخاب نئومورفیک (انتخاب‌شده = فرورفته)
+function NeoChoiceGroup({ title, hint, options, value, onChange }) {
+  return (
+    <Box>
+      <Typography sx={{ fontSize: 15, fontWeight: 700, color: INK, mb: 0.5 }}>{title}</Typography>
+      {hint && <Typography sx={{ fontSize: 12.5, color: INK_SOFT, mb: 1.5, lineHeight: 1.9 }}>{hint}</Typography>}
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+        {options.map((opt) => {
+          const selected = value === opt.value;
+          const Icon = opt.icon;
+          return (
+            <Box
+              key={opt.value}
+              role="radio"
+              aria-checked={selected}
+              tabIndex={0}
+              onClick={() => onChange(opt.value)}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onChange(opt.value)}
+              sx={{
+                ...(selected ? neoInset : neoSoft),
+                p: 2,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                border: `1.5px solid ${selected ? ACCENT : 'transparent'}`,
+                transition: 'all .2s',
+                outline: 'none',
+              }}>
+              <Box sx={{ display: 'flex', color: selected ? ACCENT : INK_SOFT, flexShrink: 0 }}>
+                <Icon size={24} variant={selected ? 'Bold' : 'Linear'} />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: selected ? ACCENT : INK }}>{opt.label}</Typography>
+                <Typography sx={{ fontSize: 12, color: INK_SOFT, mt: 0.3 }}>{opt.desc}</Typography>
+              </Box>
+              {selected && <TickCircle size={20} variant="Bold" color={ACCENT} />}
+            </Box>
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [activeStep, setActiveStep] = useState(0);
@@ -87,13 +148,18 @@ export default function CheckoutPage() {
   const [subtotal, setSubtotal] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [discountApplied, setDiscountApplied] = useState(false);
+  const [shippingCost, setShippingCost] = useState(0);
   const [payable, setPayable] = useState(0);
   const [paying, setPaying] = useState(false);
   const [paymentError, setPaymentError] = useState('');
 
-  // ✅ new: کد تخفیفی که از صفحه‌ی سبد خرید قبلاً اعمال و در localStorage
-  // ذخیره شده. اگه وجود داشته باشه، دیگه کاربر رو مجبور به تایپ دوباره نمی‌کنیم -
-  // مستقیم همون کد رو استفاده می‌کنیم و فقط یه نوار "اعمال شده" نشون میدیم.
+  // ✅ new: آیا سبد شامل محصولی است که مشتری باید جنسش را به مغازه تحویل بدهد؟
+  const [requiresPhysical, setRequiresPhysical] = useState(false);
+  // ✅ new: دو انتخاب مستقل - روش رسوندن زین به مغازه / روش دریافت بعد از بررسی
+  const [pickupMethod, setPickupMethod] = useState('in_person');
+  const [returnMethod, setReturnMethod] = useState('in_person');
+
+  // کد تخفیفی که از صفحه‌ی سبد خرید قبلاً اعمال و در localStorage ذخیره شده
   const [cartDiscount, setCartDiscount] = useState(null);
 
   useEffect(() => {
@@ -104,14 +170,30 @@ export default function CheckoutPage() {
         if (parsed?.code) setCartDiscount(parsed);
       }
     } catch {
-      // localStorage خراب یا JSON نامعتبر - نادیده بگیر و بذار کاربر دستی وارد کنه
+      // localStorage خراب یا JSON نامعتبر - نادیده بگیر
     }
+  }, []);
+
+  // ✅ new: چک می‌کنیم آیتم‌های سبد requires_physical_item = 1 دارن یا نه.
+  // فرض: GET /api/v1/cart آیتم‌ها رو برمی‌گردونه. اگه ساختار پاسخ یا آدرس فرق داره،
+  // فقط همین بلاک رو با ساختار واقعی API خودت تنظیم کن.
+  useEffect(() => {
+    const token = getCartToken();
+    axiosInstance
+      .get('/api/v1/cart', { headers: { 'x-cart-token': token } })
+      .then(({ data }) => {
+        console.log(data);
+        const items = data?.items || data?.cart?.items || [];
+        const needs = items.some((it) => Number(it?.requires_physical_item ?? it?.requiresPhysicalItem ?? it?.product?.requires_physical_item) === 1);
+        setRequiresPhysical(needs);
+      })
+      .catch(() => {
+        // اگه سبد خونده نشد، بخش رو نشون نمیدیم؛ بک‌اند هم باید خودش دوباره چک کنه
+      });
   }, []);
 
   const handleChange = (field) => (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
 
-  // کد تخفیفی که واقعاً باید به سرور فرستاده بشه: اول کد اعمال‌شده تو سبد خرید،
-  // وگرنه چیزی که کاربر دستی تو همین صفحه تایپ کرده
   const effectiveDiscountCode = cartDiscount?.code || form.discountCode?.trim() || null;
 
   const handleForgetCartDiscount = () => {
@@ -125,19 +207,22 @@ export default function CheckoutPage() {
     if (!form.fullName || !form.phone || !form.address) return setError('همه فیلدها الزامی است');
 
     setLoading(true);
-    // ✅ was: localStorage.getItem('cartToken') directly — if this page is
-    // opened before any other page ever created a cart token, that returns
-    // null and the checkout request goes out with an empty x-cart-token.
-    // getCartToken() creates one on the spot if it doesn't exist yet.
     const token = getCartToken();
 
     try {
       const { data } = await axiosInstance.post(
         '/api/v1/orders/checkout',
-        // ✅ was: form.discountCode?.trim() only — now uses the code already
-        // applied on the cart page when one exists, so the user never has to
-        // re-enter it here.
-        { ...form, discountCode: effectiveDiscountCode },
+        {
+          ...form,
+          discountCode: effectiveDiscountCode,
+          // ✅ new: فقط برای سفارش‌های نیازمند تحویل کالا ارسال میشن.
+          // بک‌اند باید دوباره از روی دیتابیس چک کنه که واقعاً requires_physical_item دارن
+          // و مقدار رو با لیست مجاز (in_person/snapp/tipax/post/other) اعتبارسنجی کنه.
+          pickupMethod: requiresPhysical ? pickupMethod : null,
+          returnMethod: requiresPhysical ? returnMethod : null,
+          // آدرس مبدا برای دریافت کالا: اگه حضوری نیست همون آدرس فرم
+          pickupAddress: requiresPhysical && pickupMethod !== 'in_person' ? form.address : null,
+        },
         {
           headers: { 'x-cart-token': token },
         }
@@ -146,14 +231,11 @@ export default function CheckoutPage() {
       setSubtotal(data.subtotal ?? 0);
       setDiscountAmount(data.discountAmount ?? 0);
       setDiscountApplied(!!data.discountApplied);
+      setShippingCost(data.shippingCost ?? 0);
       setPayable(data.payableAmount);
 
-      // ✅ if a discount code was entered but the backend didn't accept it
-      // (expired / over-used / below minimum), tell the user instead of
-      // silently charging full price.
       if (effectiveDiscountCode && !data.discountApplied) {
         setError('کد تخفیف معتبر نبود یا قابل اعمال نیست، سفارش با قیمت اصلی ثبت شد');
-        // اگه کد از سبد خرید اومده بود و دیگه معتبر نیست، از localStorage هم پاکش کن
         if (cartDiscount) handleForgetCartDiscount();
       }
 
@@ -210,9 +292,6 @@ export default function CheckoutPage() {
       window.location.href = data.paymentUrl;
     } catch (error) {
       console.error('handlePayment error:', error);
-      // ✅ was: alert(...) only — the Alert box rendered in step 1 read from
-      // `error`, which handlePayment never set, so it was always empty.
-      // Using a dedicated paymentError state feeds that Alert correctly.
       setPaymentError(error?.response?.data?.message || error?.message || 'خطا در انتقال به درگاه پرداخت');
     } finally {
       setPaying(false);
@@ -220,10 +299,9 @@ export default function CheckoutPage() {
   };
 
   // ==================== فاکتور تایید ====================
-  // نکته: چون handlePayment بعد از موفقیت مستقیم ریدایرکت میکنه (window.location.href)،
-  // این مرحله در حال حاضر هیچ‌وقت رندر نمیشه مگر جایی صریحاً setActiveStep(2) صدا زده بشه.
-  // اگر می‌خوای این صفحه واقعاً دیده بشه، باید صفحه‌ی /checkout/payment-result همین بلاک رو
-  // نمایش بده، یا اینجا به‌جای ریدایرکت از setActiveStep(2) استفاده کنی.
+  // نکته: handlePayment بعد از موفقیت ریدایرکت می‌کنه، پس این مرحله فقط وقتی
+  // دیده میشه که صفحه‌ی /checkout/payment-result همین بلاک رو نشون بده یا
+  // setActiveStep(2) صدا زده بشه.
   if (activeStep === 2) {
     return (
       <ChildrenLayout>
@@ -235,7 +313,7 @@ export default function CheckoutPage() {
               </Box>
 
               <Typography sx={{ fontWeight: 800, fontSize: 26, color: INK, mb: 2 }}>پرداخت با موفقیت انجام شد</Typography>
-              <Typography sx={{ color: INK_SOFT, mb: 4, fontSize: 15 }}>فاکتور شما ثبت شد. پیک به زودی برای برداشتن زین از مغازه شریف‌زین مراجعه می‌کند.</Typography>
+              <Typography sx={{ color: INK_SOFT, mb: 4, fontSize: 15 }}>{requiresPhysical && pickupMethod === 'in_person' ? 'فاکتور شما ثبت شد. لطفاً زین را به مغازه شریف‌زین تحویل دهید.' : requiresPhysical ? 'فاکتور شما ثبت شد. هماهنگی دریافت زین از شما به‌زودی انجام می‌شود.' : 'فاکتور شما ثبت شد.'}</Typography>
 
               <Box sx={{ ...neoInset, p: 3, textAlign: 'right', mb: 4 }}>
                 <Typography sx={{ fontSize: 15, color: INK }}>
@@ -263,11 +341,11 @@ export default function CheckoutPage() {
       <Box sx={{ bgcolor: BG, minHeight: '100vh', py: 8 }}>
         <Container maxWidth="xl">
           <Typography sx={{ fontWeight: 800, fontSize: 26, color: INK, mb: 2 }}>ادامه فرآیند خرید</Typography>
-          <Typography sx={{ color: INK_SOFT, mb: 4 }}>آدرس خود را وارد کنید تا پیک برای برداشتن زین مراجعه کند.</Typography>
+          <Typography sx={{ color: INK_SOFT, mb: 4 }}>{requiresPhysical ? 'آدرس خود را وارد کنید و روش تحویل زین به مغازه و دریافت مجدد آن را انتخاب کنید.' : 'آدرس خود را وارد کنید.'}</Typography>
 
           {/* Stepper */}
           <Box sx={{ ...neoSoft, p: 3, mb: 5 }}>
-            <Stepper activeStep={activeStep} alternativeLabel>
+            <Stepper activeStep={activeStep}>
               {steps.map((label) => (
                 <Step key={label}>
                   <StepLabel sx={{ '& .MuiStepLabel-label': { fontSize: 13, color: INK_SOFT }, '& .MuiStepLabel-label.Mui-active': { color: ACCENT, fontWeight: 700 } }}>{label}</StepLabel>
@@ -290,10 +368,29 @@ export default function CheckoutPage() {
                 <NeoField label="آدرس کامل" value={form.address} onChange={handleChange('address')} icon={Location} required multiline minRows={3} placeholder="خیابان، کوچه، پلاک..." />
                 <NeoField label="کد پستی (اختیاری)" value={form.postalCode} onChange={handleChange('postalCode')} placeholder="۱۰ رقم" />
                 <NeoField label="توضیحات برای پیک (اختیاری)" value={form.addressNote} onChange={handleChange('addressNote')} multiline minRows={2} placeholder="مثلاً: زنگ واحد ۳" />
-                {/* ✅ new: اگه کد تخفیف قبلاً تو صفحه‌ی سبد خرید اعمال شده، دیگه
-                    اینپوت نشون نمیدیم - فقط یه نوار "اعمال شده" با گزینه‌ی حذف.
-                    فقط وقتی کاربر مستقیم اومده تو checkout (بدون اعمال کد تو سبد)
-                    اینپوت دستی نمایش داده میشه. */}
+
+                {/* ✅ new: فقط برای سفارش‌هایی که جنس مشتری باید به مغازه برسه */}
+                {requiresPhysical && (
+                  <Box sx={{ ...neoSoft, p: { xs: 2.5, md: 3.5 } }}>
+                    <Stack spacing={4}>
+                      <Box>
+                        <Typography sx={{ fontWeight: 800, fontSize: 17, color: INK, mb: 0.5 }}>تحویل و دریافت زین</Typography>
+                        <Typography sx={{ fontSize: 13, color: INK_SOFT, lineHeight: 2 }}>برای این سفارش باید زین خودتان را به مغازه شریف‌زین برسانید. بعد از دریافت و بررسی، زین را دوباره تحویل می‌گیرید. این دو انتخاب کاملاً مستقل از هم هستند.</Typography>
+                      </Box>
+
+                      <NeoChoiceGroup title="۱. زین را چطور به مغازه می‌رسانید؟" options={PICKUP_METHODS} value={pickupMethod} onChange={setPickupMethod} />
+
+                      {pickupMethod !== 'in_person' && (
+                        <Alert severity="info" sx={{ borderRadius: '14px' }}>
+                          دریافت زین از «آدرس کامل» بالا انجام می‌شود. هزینه ارسال در مرحله بعد در صورت‌حساب نمایش داده می‌شود.
+                        </Alert>
+                      )}
+
+                      <NeoChoiceGroup title="۲. بعد از بررسی، زین را چطور دریافت می‌کنید؟" options={RETURN_METHODS} value={returnMethod} onChange={setReturnMethod} />
+                    </Stack>
+                  </Box>
+                )}
+
                 {cartDiscount ? (
                   <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1.2, borderRadius: '14px', bgcolor: alpha(ACCENT_GREEN, 0.08), border: `1px solid ${alpha(ACCENT_GREEN, 0.25)}` }}>
                     <Stack direction="row" alignItems="center" gap={1}>
@@ -323,19 +420,24 @@ export default function CheckoutPage() {
               )}
               <Typography sx={{ fontWeight: 700, fontSize: 18, mb: 3 }}>صورت‌حساب شما</Typography>
 
-              {/* ✅ new: show subtotal / discount breakdown when a code was applied */}
-              {discountApplied && discountAmount > 0 && (
-                <Stack spacing={0.5} sx={{ mb: 2 }}>
-                  <Typography sx={{ fontSize: 14, color: INK_SOFT }}>جمع سبد خرید: {ConvertToPersianDigit(subtotal.toLocaleString())} تومان</Typography>
-                  <Typography sx={{ fontSize: 14, color: ACCENT_GREEN }}>تخفیف اعمال شد: {ConvertToPersianDigit(discountAmount.toLocaleString())}- تومان</Typography>
+              {/* خلاصه روش‌های تحویل */}
+              {requiresPhysical && (
+                <Stack spacing={0.5} sx={{ mb: 2, ...neoInset, p: 2 }}>
+                  <Typography sx={{ fontSize: 14, color: INK_SOFT }}>تحویل زین به مغازه: {PICKUP_METHODS.find((m) => m.value === pickupMethod)?.label}</Typography>
+                  <Typography sx={{ fontSize: 14, color: INK_SOFT }}>دریافت بعد از بررسی: {RETURN_METHODS.find((m) => m.value === returnMethod)?.label}</Typography>
                 </Stack>
               )}
 
+              {(discountApplied && discountAmount > 0) || shippingCost > 0 ? (
+                <Stack spacing={0.5} sx={{ mb: 2 }}>
+                  <Typography sx={{ fontSize: 14, color: INK_SOFT }}>جمع سبد خرید: {ConvertToPersianDigit(subtotal.toLocaleString())} تومان</Typography>
+                  {discountApplied && discountAmount > 0 && <Typography sx={{ fontSize: 14, color: ACCENT_GREEN }}>تخفیف اعمال شد: {ConvertToPersianDigit(discountAmount.toLocaleString())}- تومان</Typography>}
+                  {shippingCost > 0 && <Typography sx={{ fontSize: 14, color: INK_SOFT }}>هزینه ارسال: {ConvertToPersianDigit(shippingCost.toLocaleString())} تومان</Typography>}
+                </Stack>
+              ) : null}
+
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: ACCENT }}>مبلغ قابل پرداخت: {ConvertToPersianDigit(payable.toLocaleString())} تومان</Typography>
 
-              {/* ✅ was: disabled={loading} and CircularProgress driven by `loading`,
-                  which is only ever true during the address-submit step, so this
-                  button never showed a loading state and could be double-clicked. */}
               <Button fullWidth onClick={handlePayment} disabled={paying} sx={{ mt: 4, py: 2.5, borderRadius: '14px', bgcolor: '#2F9E44', color: '#fff', fontWeight: 700, fontSize: 17 }}>
                 {paying ? <CircularProgress size={24} color="inherit" /> : 'پرداخت با زرین‌پال'}
               </Button>

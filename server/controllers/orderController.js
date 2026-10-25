@@ -6,6 +6,21 @@ const { requestPayment } = require('../services/zarinpal');
 
 const { sendOrderConfirmationSMS, normalizePhone } = require('../services/sms');
 
+// ---------- Config: روش‌های تحویل زین ----------
+// ✅ new: مقادیر مجاز برای pickup_method / return_method
+const ALLOWED_METHODS = ['in_person', 'snapp', 'tipax', 'post', 'other'];
+
+// ✅ new: هزینه ارسال هر روش (تومان). فعلاً صفره چون معمولاً پس‌کرایه‌ست
+// (مشتری موقع تحویل به پیک/تیپاکس پرداخت می‌کنه). اگه می‌خوای هزینه ثابتی
+// تو سفارش حساب بشه، فقط اینجا عدد بذار.
+const SHIPPING_COSTS = {
+  in_person: 0,
+  snapp: 0,
+  tipax: 0,
+  post: 0,
+  other: 0,
+};
+
 // ---------- Helpers ----------
 async function getOrCreateCart(cartToken) {
   if (!cartToken) cartToken = crypto.randomUUID();
@@ -17,11 +32,12 @@ async function getOrCreateCart(cartToken) {
   return { id: result.insertId, token: cartToken };
 }
 
+// ✅ new: p.requires_physical_item اضافه شد
 const CART_ITEM_SELECT = `
   SELECT
     ci.id, ci.quantity, ci.color, ci.price_at_add,
     p.id AS product_id, p.title, p.slug, p.thumbnail,
-    p.price, p.final_price
+    p.price, p.final_price, p.requires_physical_item
   FROM cart_items ci
   JOIN products p ON p.id = ci.product_id
   WHERE ci.cart_id = ?
@@ -59,7 +75,7 @@ function getIranDateTime() {
 exports.checkout = async (req, res) => {
   try {
     const cartToken = req.headers['x-cart-token'];
-    const { fullName, phone, address, city = 'تهران', postalCode = null, addressNote = null, discountCode = null } = req.body;
+    const { fullName, phone, address, city = 'تهران', postalCode = null, addressNote = null, discountCode = null, pickupMethod = null, returnMethod = null, pickupAddress = null } = req.body;
 
     if (!fullName?.trim() || !phone?.trim() || !address?.trim()) {
       return res.status(400).json({ message: 'نام، شماره تماس و آدرس الزامی است' });
@@ -72,6 +88,35 @@ exports.checkout = async (req, res) => {
       return res.status(400).json({ message: 'سبد خرید خالی است' });
     }
 
+    // ✅ new: تشخیص نیاز به تحویل کالای فیزیکی از روی دیتابیس (نه از روی فرانت)
+    const requiresPhysical = items.some((i) => Number(i.requires_physical_item) === 1);
+
+    let finalPickupMethod = null;
+    let finalReturnMethod = null;
+    let finalPickupAddress = null;
+    let pickupRequestedAt = null;
+    let shippingCost = 0;
+
+    if (requiresPhysical) {
+      if (!ALLOWED_METHODS.includes(pickupMethod)) {
+        return res.status(400).json({ message: 'روش تحویل زین به مغازه را انتخاب کنید' });
+      }
+      if (!ALLOWED_METHODS.includes(returnMethod)) {
+        return res.status(400).json({ message: 'روش دریافت زین بعد از بررسی را انتخاب کنید' });
+      }
+
+      finalPickupMethod = pickupMethod;
+      finalReturnMethod = returnMethod;
+
+      // اگه حضوری نیست، باید از یه آدرس زین رو بگیرن
+      if (pickupMethod !== 'in_person') {
+        finalPickupAddress = (pickupAddress && String(pickupAddress).trim()) || address.trim();
+        pickupRequestedAt = new Date();
+      }
+
+      shippingCost = (SHIPPING_COSTS[pickupMethod] || 0) + (SHIPPING_COSTS[returnMethod] || 0);
+    }
+
     const subtotal = items.reduce((sum, i) => sum + i.quantity * i.price_at_add, 0);
 
     // اعتبارسنجی و اعمال تخفیف
@@ -79,11 +124,6 @@ exports.checkout = async (req, res) => {
     let finalDiscountCode = null;
 
     if (discountCode) {
-      // ✅ was: const discountRows = await db.query(...)
-      // db.query returns [rows, fields] (mysql2 tuple) - without destructuring,
-      // `discountRows` was the whole 2-element tuple (always truthy), and
-      // `discountRows[0]` was `rows` itself, not a row object. That made
-      // d.type / d.value / d.expires_at all undefined -> discountAmount became NaN.
       const [discountRows] = await db.query(
         `SELECT * FROM discount_codes 
          WHERE code = ? AND is_active = 1`,
@@ -108,16 +148,18 @@ exports.checkout = async (req, res) => {
       }
     }
 
-    const payableAmount = Math.max(0, subtotal - discountAmount);
+    // ✅ changed: هزینه ارسال به مبلغ نهایی اضافه میشه (تخفیف فقط روی subtotal اعمال میشه)
+    const payableAmount = Math.max(0, subtotal - discountAmount) + shippingCost;
 
     const orderCode = generateOrderCode();
 
     const [orderResult] = await db.query(
       `INSERT INTO orders (
         order_code, cart_token, full_name, phone, address, city, postal_code, address_note,
-        subtotal, discount_code, discount_amount, payable_amount, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment')`,
-      [orderCode, cart.token, fullName.trim(), phone.trim(), address.trim(), city, postalCode, addressNote, subtotal, finalDiscountCode, discountAmount, payableAmount]
+        subtotal, discount_code, discount_amount, shipping_cost, payable_amount, status,
+        pickup_method, return_method, pickup_address, pickup_requested_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_payment', ?, ?, ?, ?)`,
+      [orderCode, cart.token, fullName.trim(), phone.trim(), address.trim(), city, postalCode, addressNote, subtotal, finalDiscountCode, discountAmount, shippingCost, payableAmount, finalPickupMethod, finalReturnMethod, finalPickupAddress, pickupRequestedAt]
     );
 
     const orderId = orderResult.insertId;
@@ -138,10 +180,14 @@ exports.checkout = async (req, res) => {
       success: true,
       orderCode,
       subtotal,
-      discountApplied: !!finalDiscountCode, // ✅ new: lets frontend know if the code was actually accepted
+      discountApplied: !!finalDiscountCode,
       discountCode: finalDiscountCode,
       discountAmount,
+      shippingCost, // ✅ new
       payableAmount,
+      requiresPhysicalItem: requiresPhysical, // ✅ new
+      pickupMethod: finalPickupMethod, // ✅ new
+      returnMethod: finalReturnMethod, // ✅ new
       status: 'pending_payment',
       message: 'سفارش با موفقیت ثبت شد. برای تکمیل خرید، به پرداخت بروید.',
     });
@@ -196,14 +242,10 @@ exports.payOrder = async (req, res) => {
       });
     }
 
-    // -----------------------------------------
     // تومان -> ریال
-    // -----------------------------------------
     const amountInRial = payableAmount * 10;
 
-    // -----------------------------------------
     // ساخت درخواست پرداخت زرین پال
-    // -----------------------------------------
     const payment = await requestPayment({
       amount: amountInRial,
       description: `پرداخت سفارش ${order.order_code}`,
@@ -211,9 +253,7 @@ exports.payOrder = async (req, res) => {
       mobile: order.phone,
     });
 
-    // -----------------------------------------
     // ذخیره Authority در سفارش
-    // -----------------------------------------
     await db.query(
       `
         UPDATE orders
@@ -225,9 +265,6 @@ exports.payOrder = async (req, res) => {
       [payment.authority, order.id]
     );
 
-    // -----------------------------------------
-    // Response
-    // -----------------------------------------
     return res.json({
       success: true,
 
@@ -252,6 +289,7 @@ exports.payOrder = async (req, res) => {
 };
 
 // ---------- GET /api/v1/orders/:code ----------
+// (نسخه‌ی تکراری این تابع حذف شد - قبلاً دو بار تعریف شده بود)
 exports.getOrderByCode = async (req, res) => {
   try {
     const { code } = req.params;
@@ -278,8 +316,23 @@ exports.getOrderByCode = async (req, res) => {
         subtotal: order.subtotal,
         discountCode: order.discount_code,
         discountAmount: order.discount_amount,
+        shippingCost: order.shipping_cost,
         payableAmount: order.payable_amount,
         status: order.status,
+        // ✅ new: اطلاعات تحویل و دریافت زین
+        pickupMethod: order.pickup_method,
+        returnMethod: order.return_method,
+        pickupAddress: order.pickup_address,
+        pickupDriverName: order.pickup_driver_name,
+        pickupTrackingCode: order.pickup_tracking_code,
+        returnDriverName: order.return_driver_name,
+        returnTrackingCode: order.return_tracking_code,
+        pickupRequestedAt: order.pickup_requested_at,
+        pickedUpAt: order.picked_up_at,
+        receivedAtShopAt: order.received_at_shop_at,
+        inspectedAt: order.inspected_at,
+        returnShippedAt: order.return_shipped_at,
+        deliveredAt: order.delivered_at,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
       },
@@ -291,82 +344,15 @@ exports.getOrderByCode = async (req, res) => {
   }
 };
 
-// ---------- GET /api/v1/orders/:code ----------
-exports.getOrderByCode = async (req, res) => {
-  try {
-    const { code } = req.params;
-
-    const [orders] = await db.query('SELECT * FROM orders WHERE order_code = ?', [code]);
-
-    if (!orders.length) {
-      return res.status(404).json({ message: 'سفارش یافت نشد' });
-    }
-
-    const order = orders[0];
-    const [items] = await db.query('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
-
-    return res.json({
-      order: {
-        id: order.id,
-        orderCode: order.order_code,
-        fullName: order.full_name,
-        phone: order.phone,
-        address: order.address,
-        city: order.city,
-        postalCode: order.postal_code,
-        addressNote: order.address_note,
-        subtotal: order.subtotal,
-        discountCode: order.discount_code,
-        discountAmount: order.discount_amount,
-        payableAmount: order.payable_amount,
-        status: order.status,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at,
-      },
-      items,
-    });
-  } catch (error) {
-    console.error('Get order error:', error);
-    return res.status(500).json({ message: 'خطا در دریافت سفارش' });
-  }
-};
-
-// ---------- Helpers ----------
-async function getOrCreateCart(cartToken) {
-  if (!cartToken) cartToken = crypto.randomUUID();
-
-  const [rows] = await db.query('SELECT * FROM carts WHERE token = ?', [cartToken]);
-  if (rows.length) return rows[0];
-
-  const [result] = await db.query('INSERT INTO carts (token) VALUES (?)', [cartToken]);
-  return { id: result.insertId, token: cartToken };
-}
-
-function generateOrderCode() {
-  const part = Date.now().toString().slice(-8);
-  return `SZ-${part}`;
-}
-
 // ---------- GET /api/v1/payment/callback ----------
 // بازگشت از زرین‌پال
-// ---------- GET /api/v1/payment/callback ----------
-// بازگشت از زرین‌پال
-
 exports.paymentCallback = async (req, res) => {
   try {
     const { Authority, Status, order_id } = req.query;
 
-    // ---------------------------------------------
-    // بررسی اطلاعات Callback
-    // ---------------------------------------------
-
     if (!Authority || !order_id) {
       return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
     }
-
-    // ---------------------------------------------
-    // دریافت سفارش
-    // ---------------------------------------------
 
     const [orders] = await db.query(
       `
@@ -384,18 +370,12 @@ exports.paymentCallback = async (req, res) => {
 
     const order = orders[0];
 
-    // ---------------------------------------------
     // اگر سفارش قبلاً پرداخت شده
-    // ---------------------------------------------
-
     if (order.status === 'paid') {
       return res.redirect(`${process.env.BASE_URL}/checkout/success?payment=success&order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(order.ref_id || '')}`);
     }
 
-    // ---------------------------------------------
     // بررسی Authority
-    // ---------------------------------------------
-
     if (order.authority && order.authority !== Authority) {
       console.error('Authority mismatch:', {
         orderAuthority: order.authority,
@@ -406,10 +386,7 @@ exports.paymentCallback = async (req, res) => {
       return res.redirect(`${process.env.BASE_URL}/checkout?payment=error&order=${encodeURIComponent(order.order_code)}`);
     }
 
-    // ---------------------------------------------
     // پرداخت توسط کاربر لغو شده
-    // ---------------------------------------------
-
     if (!Status || String(Status).toUpperCase() !== 'OK') {
       await db.query(
         `
@@ -426,10 +403,7 @@ exports.paymentCallback = async (req, res) => {
       return res.redirect(`${process.env.BASE_URL}/checkout?payment=failed&order=${encodeURIComponent(order.order_code)}`);
     }
 
-    // ---------------------------------------------
     // مبلغ سفارش
-    // ---------------------------------------------
-
     const payableAmount = Number(order.payable_amount);
 
     if (!Number.isFinite(payableAmount) || payableAmount <= 0) {
@@ -438,16 +412,10 @@ exports.paymentCallback = async (req, res) => {
       return res.redirect(`${process.env.BASE_URL}/checkout?payment=error&order=${encodeURIComponent(order.order_code)}`);
     }
 
-    // ---------------------------------------------
     // تومان -> ریال
-    // ---------------------------------------------
-
     const amountInRial = Math.round(payableAmount * 10);
 
-    // ---------------------------------------------
     // ZarinPal Verify
-    // ---------------------------------------------
-
     const merchantId = process.env.ZARINPAL_MERCHANT_ID;
 
     const isSandbox = process.env.ZARINPAL_SANDBOX === 'true';
@@ -470,10 +438,6 @@ exports.paymentCallback = async (req, res) => {
 
     console.log('ZarinPal Verify:', data);
 
-    // ---------------------------------------------
-    // بررسی نتیجه Verify
-    // ---------------------------------------------
-
     const verifyCode = Number(data?.data?.code);
 
     if (verifyCode !== 100 && verifyCode !== 101) {
@@ -494,17 +458,8 @@ exports.paymentCallback = async (req, res) => {
       return res.redirect(`${process.env.BASE_URL}/checkout?payment=failed&order=${encodeURIComponent(order.order_code)}`);
     }
 
-    // ---------------------------------------------
     // پرداخت موفق
-    // ---------------------------------------------
-
     const refId = data?.data?.ref_id;
-
-    // ---------------------------------------------
-    // Update Order
-    //
-    // فقط اگر سفارش قبلاً paid نشده باشد
-    // ---------------------------------------------
 
     const [updateResult] = await db.query(
       `
@@ -521,16 +476,8 @@ exports.paymentCallback = async (req, res) => {
       [Authority, refId, order.id]
     );
 
-    // ---------------------------------------------
-    // فقط اگر همین callback واقعاً سفارش را
-    // از pending_payment به paid تغییر داده باشد
-    // ---------------------------------------------
-
     if (updateResult.affectedRows === 1) {
-      // -------------------------------------------
       // افزایش مصرف کد تخفیف
-      // -------------------------------------------
-
       if (order.discount_code) {
         await db.query(
           `
@@ -544,10 +491,7 @@ exports.paymentCallback = async (req, res) => {
         );
       }
 
-      // -------------------------------------------
       // ارسال SMS موفقیت پرداخت
-      // -------------------------------------------
-
       try {
         const { date, time } = getIranDateTime();
 
@@ -564,24 +508,15 @@ exports.paymentCallback = async (req, res) => {
           amount: order.payable_amount,
           date,
           time,
-
-          // {5}
           status: 'پرداخت شده',
         });
 
         console.log(`[SMS] Payment success SMS sent successfully: ${order.order_code}`);
       } catch (smsError) {
-        // -----------------------------------------
         // خطای SMS نباید پرداخت موفق را خراب کند
-        // -----------------------------------------
-
         console.error(`[SMS] Failed to send payment success SMS for ${order.order_code}:`, smsError.message);
       }
     }
-
-    // ---------------------------------------------
-    // Redirect به صفحه موفقیت
-    // ---------------------------------------------
 
     return res.redirect(`${process.env.BASE_URL}/checkout/success?payment=success&order=${encodeURIComponent(order.order_code)}&ref=${encodeURIComponent(refId || '')}`);
   } catch (error) {
@@ -590,6 +525,7 @@ exports.paymentCallback = async (req, res) => {
     return res.redirect(`${process.env.BASE_URL}/checkout?payment=error`);
   }
 };
+
 // ---------- PATCH /api/v1/orders/:id/status (ادمین) ----------
 exports.updateOrderStatus = async (req, res) => {
   try {
@@ -602,16 +538,22 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ message: 'وضعیت نامعتبر است' });
     }
 
+    // ✅ new: زمان هر مرحله فقط یک بار (اولین باری که وضعیت به اون مرحله میرسه) ثبت میشه
     const [result] = await db.query(
       `UPDATE orders SET
         status = ?,
+        picked_up_at = IF(? = 'picked_up' AND picked_up_at IS NULL, NOW(), picked_up_at),
+        received_at_shop_at = IF(? = 'at_shop' AND received_at_shop_at IS NULL, NOW(), received_at_shop_at),
+        inspected_at = IF(? = 'ready_to_ship' AND inspected_at IS NULL, NOW(), inspected_at),
+        return_shipped_at = IF(? = 'return_dispatched' AND return_shipped_at IS NULL, NOW(), return_shipped_at),
+        delivered_at = IF(? = 'delivered' AND delivered_at IS NULL, NOW(), delivered_at),
         pickup_driver_name = COALESCE(?, pickup_driver_name),
         pickup_tracking_code = COALESCE(?, pickup_tracking_code),
         return_driver_name = COALESCE(?, return_driver_name),
         return_tracking_code = COALESCE(?, return_tracking_code),
         admin_note = COALESCE(?, admin_note)
        WHERE id = ?`,
-      [status, pickupDriverName || null, pickupTrackingCode || null, returnDriverName || null, returnTrackingCode || null, adminNote || null, id]
+      [status, status, status, status, status, status, pickupDriverName || null, pickupTrackingCode || null, returnDriverName || null, returnTrackingCode || null, adminNote || null, id]
     );
 
     if (!result.affectedRows) {

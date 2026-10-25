@@ -40,7 +40,7 @@ const values = [
   {
     icon: ShieldTick,
     title: 'کیفیت و اصالت',
-    description: 'ما فقط از بهترین متریال استفاده می‌کنیم و تمام محصولات و خدمات ما دارای گارانتی اصالت هستند.',
+    description: 'در انتخاب متریال، کیفیت ساخت و جزئیات دوخت دقت می‌کنیم تا محصولی بادوام و متناسب با نیاز موتورسوار ارائه دهیم.',
   },
   {
     icon: Heart,
@@ -55,14 +55,13 @@ const values = [
   {
     icon: Cup,
     title: 'تجربه و تخصص',
-    description: 'بیش از یک دهه تجربه در زین‌سازی و تعمیرات تخصصی موتورسیکلت.',
+    description: 'با ۳۰ سال تجربه در صنعت زین‌سازی، کیفیت و دقت را در ساخت و تعمیر هر زین جدی می‌گیریم.',
   },
 ];
 
 const stats = [
-  { number: '۱۰+', label: 'سال تجربه' },
-  { number: '۵۰۰۰+', label: 'زین ساخته شده' },
-  { number: '۹۸٪', label: 'رضایت مشتریان' },
+  { number: '۳۰+', label: 'سال تجربه در زین‌سازی' },
+  { number: '+۲۰٬۰۰۰', label: 'زین تولیدشده' },
 ];
 
 const timeline = [
@@ -131,13 +130,13 @@ export default function AboutUsPage() {
         {/* ========== Hero ========== */}
         <Box sx={{ ...neoRaised, p: { xs: 3.5, md: 5 }, mb: 5, textAlign: 'center' }}>
           <Typography sx={{ fontWeight: 800, fontSize: { xs: 26, md: 34 }, color: INK, mb: 1.5, letterSpacing: '-0.5px' }}>درباره شریف‌زین</Typography>
-          <Typography sx={{ fontSize: { xs: 14, md: 16 }, color: INK_SOFT, maxWidth: 620, mx: 'auto', lineHeight: 1.85 }}>شریف‌زین با تکیه بر تجربه صنعتگرانی که هر بخیه را با دست می‌زنند، زین‌هایی طراحی می‌کند که هم به بدنه موتور وفادارند و هم به راحتی سرنشین. تضمین اصالت چرم، دوخت دستی و ارسال سریع، همراه هر سفارش شریف‌زین است.</Typography>
+          <Typography sx={{ fontSize: { xs: 14, md: 16 }, color: INK_SOFT, maxWidth: 620, mx: 'auto', lineHeight: 1.85 }}>شریف‌زین با تکیه بر تجربه صنعتگرانی که هر بخیه را با دست می‌زنند، زین‌هایی طراحی می‌کند که هم به بدنه موتور وفادارند و هم به راحتی سرنشین. تجربه ۳۰ ساله، دقت در دوخت و توجه به کیفیت، پایه کار ما در شریف‌زین است.</Typography>
         </Box>
 
         {/* ========== Stats ========== */}
         <Grid container spacing={2.5} sx={{ mb: 6 }}>
           {stats.map((item, index) => (
-            <Grid size={{ xs: 6, md: 3 }} key={index}>
+            <Grid size={{ xs: 6, md: 6 }} key={index}>
               <Box sx={{ ...neoRaised, py: 3.5, px: 2, textAlign: 'center' }}>
                 <Typography sx={{ fontWeight: 800, fontSize: { xs: 28, md: 34 }, color: ACCENT_ORANGE, mb: 0.5 }}>{item.number}</Typography>
                 <Typography sx={{ fontSize: 13.5, color: INK_SOFT, fontWeight: 600 }}>{item.label}</Typography>
@@ -152,7 +151,7 @@ export default function AboutUsPage() {
             <Box sx={{ ...neoRaised, p: { xs: 3, md: 4 } }}>
               <Typography sx={{ fontWeight: 800, fontSize: 22, color: INK, mb: 2 }}>داستان ما</Typography>
               <Typography sx={{ fontSize: 14.5, color: INK_SOFT, lineHeight: 1.9, mb: 2 }}>شریف‌زین از یک کارگاه کوچک با چند ابزار ساده شروع شد. هدف ما از ابتدا ساده بود: ساختن زینی که هم زیبا باشد، هم بادوام، و مهم‌تر از همه، راحت.</Typography>
-              <Typography sx={{ fontSize: 14.5, color: INK_SOFT, lineHeight: 1.9, mb: 2 }}>با گذشت سال‌ها، تجربه ما بیشتر شد، تیم‌مان بزرگ‌تر شد و امروز به یکی از تخصصی‌ترین مجموعه‌های زین‌سازی در کشور تبدیل شده‌ایم.</Typography>
+              <Typography sx={{ fontSize: 14.5, color: INK_SOFT, lineHeight: 1.9, mb: 2 }}>با تکیه بر ۳۰ سال تجربه در صنعت زین‌سازی، تیم ما تلاش می‌کند محصولاتی بادوام، زیبا و راحت ارائه دهد.</Typography>
               <Typography sx={{ fontSize: 14.5, color: INK_SOFT, lineHeight: 1.9 }}>ما هنوز هم هر زین را با همان دقت و عشق روزهای اول می‌سازیم.</Typography>
             </Box>
           </Grid>

@@ -6,8 +6,8 @@ import Image from 'next/image';
 import CardsTitle from '@/components/custom/Cards-Title/CardsTitle';
 
 const stats = [
-  { value: '+۱۵', label: 'سال تجربه در صنعت زین‌سازی' },
-  { value: '+۲۰,۰۰۰', label: 'زین تولید و تحویل‌شده' },
+  { value: '+۳۰', label: 'سال تجربه در صنعت زین‌سازی' },
+  { value: '+۲۰,۰۰۰', label: 'زین تولیدشده' },
   { value: '۱۰۰٪', label: 'دوخت دستی و کنترل کیفیت' },
 ];
 
@@ -130,8 +130,7 @@ export default function About() {
                     boxShadow: `inset 4px 4px 10px rgba(163, 177, 198, 0.22),inset -4px -4px 10px rgba(255, 255, 255, 0.85)`,
                     transition: 'all .3s ease',
                     '&:hover': { boxShadow: `7px 7px 16px rgba(163, 177, 198, 0.38),-7px -7px 16px rgba(255, 255, 255, 0.95)`, transform: 'translateY(-3px)' },
-                  }}
-                >
+                  }}>
                   {/* Small dot */}
                   <Box sx={{ position: 'absolute', top: 18, right: 20, width: 7, height: 7, borderRadius: '50%', background: 'primary.main', boxShadow: `2px 2px 5px rgba(163, 177, 198, .4),-2px -2px 5px rgba(255, 255, 255, .8)` }} />
 
@@ -228,8 +227,7 @@ export default function About() {
               transition: 'all .25s ease',
               '&:hover': { transform: 'translateY(-2px)', boxShadow: `8px 8px 15px rgba(163, 177, 198, 0.5),-7px -7px 13px rgba(255, 255, 255, 0.9)` },
               '&:active': { transform: 'translateY(1px)', boxShadow: `inset 4px 4px 8px rgba(0, 0, 0, 0.18),inset -3px -3px 7px rgba(255, 255, 255, 0.2)` },
-            }}
-          >
+            }}>
             مشاهده فروشگاه
           </Box>
         </Box>

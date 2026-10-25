@@ -110,7 +110,8 @@ exports.getAllOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    // ✅ new: اطلاعات رهگیری زین (فقط وقتی فرانت بفرسته ذخیره میشن)
+    const { status, pickupDriverName, pickupTrackingCode, returnDriverName, returnTrackingCode, adminNote } = req.body;
 
     // ---------------------------------------------------------
     // Validate status
@@ -159,10 +160,20 @@ exports.updateOrderStatus = async (req, res) => {
       UPDATE orders
       SET
         status = ?,
+        picked_up_at = IF(? = 'picked_up' AND picked_up_at IS NULL, NOW(), picked_up_at),
+        received_at_shop_at = IF(? = 'at_shop' AND received_at_shop_at IS NULL, NOW(), received_at_shop_at),
+        inspected_at = IF(? = 'ready_to_ship' AND inspected_at IS NULL, NOW(), inspected_at),
+        return_shipped_at = IF(? = 'return_dispatched' AND return_shipped_at IS NULL, NOW(), return_shipped_at),
+        delivered_at = IF(? = 'delivered' AND delivered_at IS NULL, NOW(), delivered_at),
+        pickup_driver_name = COALESCE(?, pickup_driver_name),
+        pickup_tracking_code = COALESCE(?, pickup_tracking_code),
+        return_driver_name = COALESCE(?, return_driver_name),
+        return_tracking_code = COALESCE(?, return_tracking_code),
+        admin_note = COALESCE(?, admin_note),
         updated_at = NOW()
       WHERE id = ?
       `,
-      [status, id]
+      [status, status, status, status, status, status, pickupDriverName || null, pickupTrackingCode || null, returnDriverName || null, returnTrackingCode || null, adminNote || null, id]
     );
 
     if (result.affectedRows === 0) {
@@ -248,6 +259,7 @@ exports.deleteUser = async (req, res) => {
 // ==================== PRODUCTS ====================
 exports.getAllProducts = async (req, res) => {
   try {
+    // SELECT * شامل requires_physical_item هم هست
     const [rows] = await db.query('SELECT * FROM products');
     return res.json({ data: rows });
   } catch (error) {
@@ -267,7 +279,8 @@ function slugify(title) {
 
 exports.createProduct = async (req, res) => {
   try {
-    const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications } = req.body;
+    // ✅ new: requires_physical_item اضافه شد
+    const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications, requires_physical_item } = req.body;
 
     // if (!title || !title.trim()) {
     //   return res.status(400).json({ message: 'عنوان محصول الزامی است' });
@@ -288,19 +301,18 @@ exports.createProduct = async (req, res) => {
     // ✅ was Math.random(0, 999999) - invalid, produced a float, not an id
     const productId = randomUUID();
 
+    // ✅ new: فقط 0 یا 1 ذخیره میشه
+    const physicalFlag = Number(requires_physical_item) === 1 ? 1 : 0;
+
     const [result] = await db.query(
       `
-      INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications, requires_physical_item)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {})]
+      [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {}), physicalFlag]
     );
 
-    // ✅ new: پاسخ قبلاً فقط { message, id, slug } بود - یعنی title و بقیه‌ی
-    // فیلدهای محصول تو پاسخ نبودن. اگه فرانت بعد از ساخت محصول بخواد همون
-    // محصول رو مستقیم به لیست اضافه کنه یا نمایش بده (مثلاً newProduct.title)،
-    // undefined می‌شد و باعث خطای "Cannot read properties of undefined
-    // (reading 'title')" می‌شد. حالا کل رکورد ساخته‌شده برگردونده میشه.
+    // ✅ پاسخ کل رکورد ساخته‌شده رو برمی‌گردونه تا فرانت بتونه مستقیم نمایشش بده
     return res.status(201).json({
       message: 'محصول با موفقیت اضافه شد',
       product: {
@@ -323,6 +335,7 @@ exports.createProduct = async (req, res) => {
         description: description || null,
         features: Array.isArray(features) ? features : [],
         specifications: specifications && typeof specifications === 'object' ? specifications : {},
+        requires_physical_item: physicalFlag, // ✅ new
       },
     });
   } catch (error) {
@@ -334,7 +347,8 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, description, features, specifications } = req.body;
+    // ✅ new: requires_physical_item اضافه شد
+    const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, description, features, specifications, requires_physical_item } = req.body;
 
     const [existing] = await db.query('SELECT slug FROM products WHERE id = ?', [id]);
 
@@ -346,14 +360,18 @@ exports.updateProduct = async (req, res) => {
     // Previously: if `title` was omitted, slug was set to null and overwrote the existing one.
     const slug = title ? slugify(title) : existing[0].slug;
 
+    // ✅ new: اگه فرانت این فیلد رو نفرستاد (null)، مقدار قبلی دست‌نخورده می‌مونه
+    const physicalFlag = requires_physical_item === undefined || requires_physical_item === null ? null : Number(requires_physical_item) === 1 ? 1 : 0;
+
     await db.query(
       `UPDATE products SET
         title = ?, subtitle = ?, brand = ?, category = ?, category_fa = ?, model = ?,
         price = ?, discount = ?, final_price = ?, thumbnail = ?, images = ?, colors = ?,
         material = ?, description = ?, features = ?, specifications = ?,
+        requires_physical_item = COALESCE(?, requires_physical_item),
         slug = ?
        WHERE id = ?`,
-      [title, subtitle, brand, category, category_fa, model, price || 0, discount || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), slug, id]
+      [title, subtitle, brand, category, category_fa, model, price || 0, discount || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), physicalFlag, slug, id]
     );
 
     return res.json({ message: 'محصول به‌روزرسانی شد' });

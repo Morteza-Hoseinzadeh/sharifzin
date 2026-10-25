@@ -21,11 +21,12 @@ async function getOrCreateCart(cartToken) {
   };
 }
 
+// ✅ new: p.requires_physical_item اضافه شد تا فرانت بفهمه سبد نیاز به تحویل زین داره
 const CART_ITEM_SELECT = `
   SELECT
     ci.id, ci.quantity, ci.color, ci.price_at_add,
     p.id AS product_id, p.title, p.slug, p.thumbnail,
-    p.price, p.final_price
+    p.price, p.final_price, p.requires_physical_item
   FROM cart_items ci
   JOIN products p ON p.id = ci.product_id
   WHERE ci.cart_id = ?

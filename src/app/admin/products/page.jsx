@@ -1,21 +1,23 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Box, Typography, Stack, Button, TextField, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Modal, Grid, Paper } from '@mui/material';
+import { Box, Typography, Stack, Button, TextField, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Modal, Grid, Switch, Chip } from '@mui/material';
 
 import { alpha } from '@mui/material/styles';
 
-import { Add, SearchNormal1, Edit2, Trash, Eye, Box1, Filter } from 'iconsax-reactjs';
+import { Add, SearchNormal1, Edit2, Trash, Eye, Box1, Filter, Truck } from 'iconsax-reactjs';
 
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import AdminLayout from '@/components/admin/AdminLayout';
 import axiosInstance from '@/utils/API/axiosInstance';
 import NewProductModal from './NewProductModal';
 
+const BG = '#E8ECF1';
 const SURFACE = '#F0F4F8';
 const INK = '#2D3748';
 const INK_SOFT = '#718096';
 const ACCENT_ORANGE = '#F57C1F';
+const ACCENT_GREEN = '#2F9E44';
 
 const SHADOW_LIGHT = 'rgba(255, 255, 255, 0.9)';
 const SHADOW_DARK = 'rgba(163, 177, 198, 0.55)';
@@ -34,11 +36,47 @@ const neoSoft = {
 
 const neoInset = {
   background: SURFACE,
-  borderRadius: '12px',
-  boxShadow: `inset 3px 3px 6px ${SHADOW_DARK}, inset -3px -3px 6px ${SHADOW_LIGHT}`,
+  borderRadius: '14px',
+  boxShadow: `inset 4px 4px 8px ${SHADOW_DARK}, inset -4px -4px 8px ${SHADOW_LIGHT}`,
 };
 
 const PRODUCTS_ENDPOINT = '/api/v1/admin/products';
+
+/* -------------------------------------------------------------------------- */
+/*                              NEO INPUT FIELD                               */
+/* -------------------------------------------------------------------------- */
+
+// ✅ was: TextField پیش‌فرض MUI با لیبل شناور (روی استایل inset خراب دیده می‌شد
+// و حالت disabled خاکستریِ کم‌رنگ داشت). حالا لیبل بالای فیلد قرار می‌گیره،
+// دقیقاً مثل فرم checkout، و متن disabled هم خوانا می‌مونه.
+function NeoInput({ label, helperText, error, ...props }) {
+  return (
+    <Box>
+      {label && <Typography sx={{ fontSize: 13, fontWeight: 600, color: INK_SOFT, mb: 0.8, pr: 0.5 }}>{label}</Typography>}
+
+      <TextField
+        fullWidth
+        error={error}
+        {...props}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            ...neoInset,
+            fontSize: 14,
+            color: INK,
+            '& fieldset': { border: 'none' },
+            '&.Mui-error': { outline: '1.5px solid #E53E3E' },
+          },
+          '& .MuiInputBase-input.Mui-disabled': {
+            WebkitTextFillColor: INK,
+            opacity: 0.85,
+          },
+        }}
+      />
+
+      {helperText && helperText.trim() && <Typography sx={{ fontSize: 12, color: error ? '#E53E3E' : INK_SOFT, mt: 0.6, pr: 0.5 }}>{helperText}</Typography>}
+    </Box>
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /*                              NORMALIZE PRODUCT                             */
@@ -74,6 +112,9 @@ const normalizeProduct = (product = {}) => ({
   features: Array.isArray(product.features) ? product.features : [],
 
   specifications: product.specifications && typeof product.specifications === 'object' ? product.specifications : {},
+
+  // ✅ new: 1 = مشتری باید زین خودش رو به مغازه تحویل بده
+  requires_physical_item: Number(product.requires_physical_item) === 1 ? 1 : 0,
 });
 
 /* -------------------------------------------------------------------------- */
@@ -112,6 +153,8 @@ const productToFormData = (product) => {
     features: normalized.features,
 
     specifications: normalized.specifications,
+
+    requires_physical_item: normalized.requires_physical_item, // ✅ new
   };
 };
 
@@ -169,6 +212,9 @@ const buildProductPayload = (data) => ({
   features: normalizeArray(data.features),
 
   specifications: data.specifications && typeof data.specifications === 'object' ? data.specifications : {},
+
+  // ✅ new
+  requires_physical_item: Number(data.requires_physical_item) === 1 ? 1 : 0,
 });
 
 /* -------------------------------------------------------------------------- */
@@ -182,6 +228,9 @@ export default function AdminProductsPage() {
 
   const [search, setSearch] = useState('');
 
+  // ✅ new: دکمه‌ی «فیلتر» قبلاً هیچ کاری نمی‌کرد؛ حالا فقط محصولات نیازمند تحویل زین رو نشون میده
+  const [onlyPhysical, setOnlyPhysical] = useState(false);
+
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -193,6 +242,11 @@ export default function AdminProductsPage() {
   const [specsText, setSpecsText] = useState('{}');
 
   const [specsError, setSpecsError] = useState(false);
+
+  // ✅ new: متن خام فیلدهای رنگ و ویژگی. قبلاً با هر کاراکتر تایپ‌شده آرایه ساخته و دوباره
+  // join می‌شد و کاما بلافاصله پاک می‌شد؛ پس نمی‌شد چند مقدار تایپ کرد.
+  const [colorsText, setColorsText] = useState('');
+  const [featuresText, setFeaturesText] = useState('');
 
   const [openNewModal, setOpenNewModal] = useState(false);
 
@@ -224,17 +278,9 @@ export default function AdminProductsPage() {
     }
   }, []);
 
-  /* ------------------------------------------------------------------------ */
-  /*                              INITIAL LOAD                                */
-  /* ------------------------------------------------------------------------ */
-
   useEffect(() => {
     getAllProducts(true);
   }, [getAllProducts]);
-
-  /* ------------------------------------------------------------------------ */
-  /*                       SET FORM WHEN PRODUCT CHANGES                      */
-  /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     if (!selectedProduct) {
@@ -245,16 +291,13 @@ export default function AdminProductsPage() {
 
     setFormData(nextFormData);
 
-    const specifications = nextFormData.specifications || {};
+    setSpecsText(JSON.stringify(nextFormData.specifications || {}, null, 2));
 
-    setSpecsText(JSON.stringify(specifications, null, 2));
+    setColorsText(normalizeArray(nextFormData.colors).join('-'));
+    setFeaturesText(normalizeArray(nextFormData.features).join(', '));
 
     setSpecsError(false);
   }, [selectedProduct]);
-
-  /* ------------------------------------------------------------------------ */
-  /*                              CLOSE MODAL                                 */
-  /* ------------------------------------------------------------------------ */
 
   const handleCloseModal = () => {
     if (saving) {
@@ -262,33 +305,20 @@ export default function AdminProductsPage() {
     }
 
     setModalOpen(false);
-
     setSelectedProduct(null);
-
     setMode('view');
-
     setFormData({});
-
     setSpecsText('{}');
-
+    setColorsText('');
+    setFeaturesText('');
     setSpecsError(false);
   };
 
-  /* ------------------------------------------------------------------------ */
-  /*                               OPEN MODAL                                 */
-  /* ------------------------------------------------------------------------ */
-
   const openModal = (nextMode, product = null) => {
     setMode(nextMode);
-
     setSelectedProduct(product);
-
     setModalOpen(true);
   };
-
-  /* ------------------------------------------------------------------------ */
-  /*                              FIELD CHANGE                                */
-  /* ------------------------------------------------------------------------ */
 
   const handleFieldChange = (field) => (event) => {
     const value = event.target.value;
@@ -298,10 +328,6 @@ export default function AdminProductsPage() {
       [field]: value,
     }));
   };
-
-  /* ------------------------------------------------------------------------ */
-  /*                          SPECIFICATIONS CHANGE                           */
-  /* ------------------------------------------------------------------------ */
 
   const handleSpecsChange = (value) => {
     setSpecsText(value);
@@ -323,10 +349,6 @@ export default function AdminProductsPage() {
       setSpecsError(true);
     }
   };
-
-  /* ------------------------------------------------------------------------ */
-  /*                              DELETE PRODUCT                              */
-  /* ------------------------------------------------------------------------ */
 
   const handleDelete = async (id) => {
     if (!id) {
@@ -351,10 +373,6 @@ export default function AdminProductsPage() {
       alert(err?.response?.data?.message || 'حذف محصول با مشکل مواجه شد');
     }
   };
-
-  /* ------------------------------------------------------------------------ */
-  /*                           SAVE EDITED PRODUCT                            */
-  /* ------------------------------------------------------------------------ */
 
   const handleSave = async () => {
     if (mode === 'view') {
@@ -399,39 +417,15 @@ export default function AdminProductsPage() {
     }
   };
 
-  /* ------------------------------------------------------------------------ */
-  /*                         CREATE PRODUCT CALLBACK                           */
-  /* ------------------------------------------------------------------------ */
-
   const handleNewProduct = async ({ productData, images = [] }) => {
     try {
       setSaving(true);
-
-      /*
-       * فعلاً create را بر اساس endpoint اصلی
-       * products انجام می‌دهیم.
-       *
-       * اگر route آپلود تصاویر backend جدا باشد،
-       * بعد از مشخص شدن route آن را نیز اینجا
-       * به صورت multipart اضافه می‌کنیم.
-       */
 
       const payload = buildProductPayload(productData);
 
       const response = await axiosInstance.post(PRODUCTS_ENDPOINT, payload);
 
       console.log('Created product:', response?.data);
-
-      /*
-       * images فعلاً فقط برای اینکه callback
-       * اطلاعات آن را از Modal دریافت کند نگه داشته شده.
-       *
-       * چون API createProduct بر اساس controller
-       * شما URL تصاویر را دریافت می‌کند،
-       * برای آپلود واقعی باید route دقیق
-       * uploadProductImages مشخص باشد.
-       */
-
       console.log('Selected images:', images);
 
       await getAllProducts(false);
@@ -457,6 +451,10 @@ export default function AdminProductsPage() {
   const normalizedSearch = search.trim().toLowerCase();
 
   const filtered = products.filter((product) => {
+    if (onlyPhysical && product.requires_physical_item !== 1) {
+      return false;
+    }
+
     if (!normalizedSearch) {
       return true;
     }
@@ -468,272 +466,154 @@ export default function AdminProductsPage() {
   /*                              RENDER MODAL                                */
   /* ------------------------------------------------------------------------ */
 
+  const isView = mode === 'view';
+  const physicalOn = Number(formData.requires_physical_item) === 1;
+
   const renderModal = () => (
-    <Modal
-      open={modalOpen}
-      onClose={handleCloseModal}
-      aria-labelledby="product-modal"
-      sx={{
-        overflowY: 'auto',
-      }}>
+    <Modal open={modalOpen} onClose={handleCloseModal} aria-labelledby="product-modal" sx={{ overflowY: 'auto' }}>
       <Box
         sx={{
-          width: {
-            xs: '95%',
-            sm: '90%',
-            md: '80%',
-            lg: '70%',
-          },
-
+          width: { xs: '95%', sm: '90%', md: '80%', lg: '70%' },
           maxWidth: 1100,
-
           mx: 'auto',
-
-          mt: 4,
-          mb: 4,
+          my: 4,
+          outline: 'none',
         }}>
-        <Paper
-          sx={{
-            borderRadius: '24px',
-            overflow: 'hidden',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.12)',
-          }}>
+        <Box sx={{ ...neoRaised, bgcolor: BG, background: BG, overflow: 'hidden' }}>
           {/* HEADER */}
-
-          <Box
-            sx={{
-              bgcolor: SURFACE,
-              p: 3,
-              borderBottom: `1px solid ${INK_SOFT}20`,
-            }}>
-            <Typography
-              sx={{
-                fontWeight: 800,
-                fontSize: 24,
-                color: INK,
-              }}>
+          <Box sx={{ p: 3, borderBottom: `1px solid ${alpha(INK_SOFT, 0.15)}` }}>
+            <Typography id="product-modal" sx={{ fontWeight: 800, fontSize: 22, color: INK }}>
               {mode === 'create' ? 'اضافه کردن محصول جدید' : mode === 'edit' ? 'ویرایش محصول' : 'مشاهده محصول'}
             </Typography>
+            {formData.title && <Typography sx={{ fontSize: 13, color: INK_SOFT, mt: 0.5 }}>{formData.title}</Typography>}
           </Box>
 
           {/* CONTENT */}
-
-          <Box
-            sx={{
-              p: {
-                xs: 2,
-                sm: 3,
-              },
-
-              maxHeight: '70vh',
-
-              overflowY: 'auto',
-            }}>
+          <Box sx={{ p: { xs: 2, sm: 3 }, maxHeight: '70vh', overflowY: 'auto' }}>
             <Grid container spacing={3}>
               {/* LEFT COLUMN */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={2.5}>
+                  <NeoInput label="عنوان محصول" value={formData.title || ''} disabled={isView} onChange={handleFieldChange('title')} />
+                  <NeoInput label="زیرعنوان" value={formData.subtitle || ''} disabled={isView} onChange={handleFieldChange('subtitle')} />
+                  <NeoInput label="برند" value={formData.brand || ''} disabled={isView} onChange={handleFieldChange('brand')} />
+                  <NeoInput label="مدل" value={formData.model || ''} disabled={isView} onChange={handleFieldChange('model')} />
 
-              <Grid
-                size={{
-                  xs: 12,
-                  md: 6,
-                }}>
-                <Grid container spacing={2}>
-                  <Grid size={12}>
-                    <TextField fullWidth label="عنوان محصول" value={formData.title || ''} disabled={mode === 'view'} onChange={handleFieldChange('title')} />
+                  <Grid container spacing={2}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <NeoInput label="قیمت (تومان)" type="number" value={formData.price ?? ''} disabled={isView} onChange={handleFieldChange('price')} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <NeoInput label="تخفیف (%)" type="number" value={formData.discount ?? ''} disabled={isView} onChange={handleFieldChange('discount')} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                      <NeoInput label="قیمت نهایی" type="number" value={formData.final_price ?? ''} disabled={isView} onChange={handleFieldChange('final_price')} />
+                    </Grid>
                   </Grid>
 
-                  <Grid size={12}>
-                    <TextField fullWidth label="زیرعنوان" value={formData.subtitle || ''} disabled={mode === 'view'} onChange={handleFieldChange('subtitle')} />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <TextField fullWidth label="برند" value={formData.brand || ''} disabled={mode === 'view'} onChange={handleFieldChange('brand')} />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <TextField fullWidth label="مدل" value={formData.model || ''} disabled={mode === 'view'} onChange={handleFieldChange('model')} />
-                  </Grid>
-
-                  <Grid
-                    size={{
-                      xs: 12,
-                      md: 6,
-                    }}>
-                    <TextField
-                      fullWidth
-                      label="قیمت"
-                      type="number"
-                      value={formData.price ?? ''}
-                      disabled={mode === 'view'}
-                      onChange={(event) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          price: event.target.value,
-                        }))
-                      }
-                    />
-                  </Grid>
-
-                  <Grid
-                    size={{
-                      xs: 12,
-                      md: 6,
-                    }}>
-                    <TextField
-                      fullWidth
-                      label="تخفیف (%)"
-                      type="number"
-                      value={formData.discount ?? ''}
-                      disabled={mode === 'view'}
-                      onChange={(event) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          discount: event.target.value,
-                        }))
-                      }
-                    />
-                  </Grid>
-
-                  <Grid
-                    size={{
-                      xs: 12,
-                      md: 6,
-                    }}>
-                    <TextField
-                      fullWidth
-                      label="قیمت نهایی"
-                      type="number"
-                      value={formData.final_price ?? ''}
-                      disabled={mode === 'view'}
-                      onChange={(event) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          final_price: event.target.value,
-                        }))
-                      }
-                    />
-                  </Grid>
-
-                  <Grid size={12}>
-                    <TextField fullWidth label="توضیحات" multiline rows={4} value={formData.description || ''} disabled={mode === 'view'} onChange={handleFieldChange('description')} />
-                  </Grid>
-                </Grid>
+                  <NeoInput label="توضیحات" multiline rows={4} value={formData.description || ''} disabled={isView} onChange={handleFieldChange('description')} />
+                </Stack>
               </Grid>
 
               {/* RIGHT COLUMN */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Stack spacing={2.5}>
+                  <NeoInput label="دسته‌بندی" value={formData.category || ''} disabled={isView} onChange={handleFieldChange('category')} />
+                  <NeoInput label="دسته‌بندی فارسی" value={formData.category_fa || ''} disabled={isView} onChange={handleFieldChange('category_fa')} />
+                  <NeoInput label="مواد" value={formData.material || ''} disabled={isView} onChange={handleFieldChange('material')} />
 
-              <Grid
-                size={{
-                  xs: 12,
-                  md: 6,
-                }}>
-                <Stack spacing={2}>
-                  <TextField fullWidth label="دسته‌بندی" value={formData.category || ''} disabled={mode === 'view'} onChange={handleFieldChange('category')} />
+                  <NeoInput
+                    label="رنگ‌ها (با خط تیره جدا کنید)"
+                    multiline
+                    rows={2}
+                    placeholder="مثال: آبی-مشکی-طلایی"
+                    value={colorsText}
+                    disabled={isView}
+                    onChange={(event) => {
+                      setColorsText(event.target.value);
+                      setFormData((prev) => ({ ...prev, colors: normalizeArray(event.target.value) }));
+                    }}
+                  />
 
-                  <TextField fullWidth label="دسته‌بندی فارسی" value={formData.category_fa || ''} disabled={mode === 'view'} onChange={handleFieldChange('category_fa')} />
+                  <NeoInput
+                    label="ویژگی‌ها (با کاما جدا کنید)"
+                    multiline
+                    rows={2}
+                    value={featuresText}
+                    disabled={isView}
+                    onChange={(event) => {
+                      setFeaturesText(event.target.value);
+                      setFormData((prev) => ({ ...prev, features: normalizeArray(event.target.value) }));
+                    }}
+                  />
 
-                  <TextField fullWidth label="مواد" value={formData.material || ''} disabled={mode === 'view'} onChange={handleFieldChange('material')} />
+                  <NeoInput label="مشخصات (JSON)" multiline rows={6} value={specsText} disabled={isView} onChange={(event) => handleSpecsChange(event.target.value)} error={specsError} helperText={specsError ? 'فرمت JSON معتبر نیست' : ''} />
+                </Stack>
+              </Grid>
 
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      رنگ‌ها (با خط تیره جدا کنید)
-                    </Typography>
+              {/* ✅ new: سوییچ تحویل کالای فیزیکی - تمام عرض */}
+              <Grid size={12}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  gap={2}
+                  sx={{
+                    ...(physicalOn ? neoInset : neoSoft),
+                    p: 2.5,
+                    border: `1.5px solid ${physicalOn ? ACCENT_ORANGE : 'transparent'}`,
+                    transition: 'all .2s',
+                  }}>
+                  <Stack direction="row" alignItems="center" gap={1.5}>
+                    <Box sx={{ display: 'flex', color: physicalOn ? ACCENT_ORANGE : INK_SOFT }}>
+                      <Truck size={26} variant={physicalOn ? 'Bold' : 'Linear'} />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>نیاز به تحویل زین از مشتری</Typography>
+                      <Typography sx={{ fontSize: 12.5, color: INK_SOFT, mt: 0.3, lineHeight: 1.9 }}>اگر روشن باشد، مشتری هنگام پرداخت باید روش رساندن زین به مغازه و روش دریافت مجدد آن را انتخاب کند.</Typography>
+                    </Box>
+                  </Stack>
 
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      placeholder="مثال: آبی-مشکی-طلایی"
-                      value={Array.isArray(formData.colors) ? formData.colors.join('-') : formData.colors || ''}
-                      disabled={mode === 'view'}
-                      onChange={(event) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          colors: normalizeArray(event.target.value),
-                        }))
-                      }
-                    />
-                  </Box>
-
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      ویژگی‌ها (جدا با کاما)
-                    </Typography>
-
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      value={Array.isArray(formData.features) ? formData.features.join(', ') : formData.features || ''}
-                      disabled={mode === 'view'}
-                      onChange={(event) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          features: event.target.value
-                            .split(',')
-                            .map((item) => item.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                    />
-                  </Box>
-
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                      مشخصات (JSON)
-                    </Typography>
-
-                    <TextField fullWidth multiline rows={7} value={specsText} disabled={mode === 'view'} onChange={(event) => handleSpecsChange(event.target.value)} error={specsError} helperText={specsError ? 'فرمت JSON معتبر نیست' : ' '} />
-                  </Box>
+                  <Switch
+                    checked={physicalOn}
+                    disabled={isView}
+                    onChange={(event) => setFormData((prev) => ({ ...prev, requires_physical_item: event.target.checked ? 1 : 0 }))}
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': { color: ACCENT_ORANGE },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: ACCENT_ORANGE },
+                    }}
+                  />
                 </Stack>
               </Grid>
             </Grid>
           </Box>
 
           {/* FOOTER */}
-
-          <Box
-            sx={{
-              p: 3,
-
-              borderTop: `1px solid ${INK_SOFT}20`,
-
-              display: 'flex',
-
-              gap: 2,
-
-              justifyContent: 'flex-end',
-            }}>
-            <Button
-              onClick={handleCloseModal}
-              disabled={saving}
-              sx={{
-                color: INK_SOFT,
-              }}>
-              لغو
+          <Box sx={{ p: 3, borderTop: `1px solid ${alpha(INK_SOFT, 0.15)}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button onClick={handleCloseModal} disabled={saving} sx={{ ...neoSoft, px: 3, py: 1.2, color: INK_SOFT, fontWeight: 600 }}>
+              {isView ? 'بستن' : 'لغو'}
             </Button>
 
-            {mode !== 'view' && (
+            {!isView && (
               <Button
-                variant="contained"
                 onClick={handleSave}
                 disabled={saving}
                 sx={{
-                  bgcolor: ACCENT_ORANGE,
-
                   px: 4,
-
                   py: 1.2,
-
-                  '&:hover': {
-                    bgcolor: '#E06B10',
-                  },
+                  borderRadius: '14px',
+                  fontWeight: 700,
+                  color: '#fff',
+                  bgcolor: ACCENT_ORANGE,
+                  boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`,
+                  '&:hover': { bgcolor: '#E06B10' },
+                  '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.5), color: '#fff' },
                 }}>
                 {saving ? 'در حال ذخیره...' : mode === 'create' ? 'ذخیره محصول جدید' : 'ذخیره تغییرات'}
               </Button>
             )}
           </Box>
-        </Paper>
+        </Box>
       </Box>
     </Modal>
   );
@@ -742,92 +622,41 @@ export default function AdminProductsPage() {
   /*                                  RENDER                                  */
   /* ------------------------------------------------------------------------ */
 
+  const headCellSx = { fontWeight: 700, color: INK_SOFT, fontSize: { xs: 11, sm: 13 }, bgcolor: SURFACE, borderBottom: `1px solid ${alpha(INK_SOFT, 0.15)}` };
+  const bodyCellSx = { borderBottom: `1px solid ${alpha(INK_SOFT, 0.1)}` };
+
   return (
     <AdminLayout>
       <Box width="100%">
         {/* PAGE HEADER */}
-
-        <Stack
-          direction={{
-            xs: 'column',
-            sm: 'row',
-          }}
-          justifyContent="space-between"
-          alignItems={{
-            sm: 'center',
-          }}
-          gap={2}
-          sx={{
-            mb: 3.5,
-          }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={2} sx={{ mb: 3.5 }}>
           <Box>
-            <Typography
-              sx={{
-                fontWeight: 800,
-                fontSize: 22,
-                color: INK,
-              }}>
-              مدیریت محصولات
-            </Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: 22, color: INK }}>مدیریت محصولات</Typography>
 
-            <Typography
-              sx={{
-                fontSize: 14,
-                color: INK_SOFT,
-                mt: 0.5,
-              }}>
-              {ConvertToPersianDigit(products.length)} محصول ثبت‌شده
-            </Typography>
+            <Typography sx={{ fontSize: 14, color: INK_SOFT, mt: 0.5 }}>{ConvertToPersianDigit(products.length)} محصول ثبت‌شده</Typography>
           </Box>
 
           <Button
             onClick={() => setOpenNewModal(true)}
-            startIcon={
-              <Add
-                size={18}
-                style={{
-                  marginLeft: 4,
-                }}
-              />
-            }
+            startIcon={<Add size={18} style={{ marginLeft: 4 }} />}
             sx={{
               px: 2.5,
               py: 1.2,
-
               borderRadius: '12px',
-
               fontWeight: 600,
-
               fontSize: 14,
-
               color: '#fff',
-
               bgcolor: ACCENT_ORANGE,
-
               boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`,
-
-              '&:hover': {
-                bgcolor: '#E06B10',
-              },
+              '&:hover': { bgcolor: '#E06B10' },
             }}>
             افزودن محصول
           </Button>
         </Stack>
 
         {/* SEARCH */}
-
-        <Box
-          sx={{
-            ...neoSoft,
-            p: 2,
-            mb: 3,
-          }}>
-          <Stack
-            direction={{
-              xs: 'column',
-              sm: 'row',
-            }}
-            gap={2}>
+        <Box sx={{ ...neoSoft, p: 2, mb: 3 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
             <TextField
               fullWidth
               placeholder="جستجو در محصولات..."
@@ -843,165 +672,46 @@ export default function AdminProductsPage() {
               }}
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
                   ...neoInset,
-
-                  '& fieldset': {
-                    border: 'none',
-                  },
+                  '& fieldset': { border: 'none' },
                 },
               }}
             />
 
+            {/* ✅ was: دکمه‌ی بدون onClick. حالا فیلتر «نیازمند تحویل زین» رو روشن/خاموش می‌کنه */}
             <Button
-              startIcon={
-                <Filter
-                  size={16}
-                  style={{
-                    marginLeft: 4,
-                  }}
-                />
-              }
+              onClick={() => setOnlyPhysical((v) => !v)}
+              startIcon={<Filter size={16} style={{ marginLeft: 4 }} variant={onlyPhysical ? 'Bold' : 'Linear'} />}
               sx={{
                 px: 2.5,
-
                 borderRadius: '12px',
-
                 fontWeight: 600,
-
-                color: INK,
-
-                ...neoSoft,
-
+                color: onlyPhysical ? ACCENT_ORANGE : INK,
+                ...(onlyPhysical ? neoInset : neoSoft),
+                border: `1.5px solid ${onlyPhysical ? ACCENT_ORANGE : 'transparent'}`,
                 whiteSpace: 'nowrap',
               }}>
-              فیلتر
+              نیازمند تحویل زین
             </Button>
           </Stack>
         </Box>
 
         {/* TABLE */}
-
-        <Box
-          sx={{
-            ...neoRaised,
-
-            overflow: 'hidden',
-
-            width: '100%',
-          }}>
-          <TableContainer
-            sx={{
-              overflowX: 'auto',
-            }}>
-            <Table
-              sx={{
-                minWidth: 1100,
-              }}>
+        <Box sx={{ ...neoRaised, overflow: 'hidden', width: '100%' }}>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table sx={{ minWidth: 1200 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 180,
-                    }}>
-                    محصول
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 110,
-                    }}>
-                    دسته‌بندی
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 90,
-                    }}>
-                    قیمت نهایی
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 70,
-                    }}>
-                    تخفیف
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 110,
-                    }}>
-                    برند
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 110,
-                    }}>
-                    مدل
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 130,
-                    }}>
-                    رنگ‌ها
-                  </TableCell>
-
-                  <TableCell
-                    align="left"
-                    sx={{
-                      fontWeight: 700,
-                      color: INK_SOFT,
-                      fontSize: {
-                        xs: 11,
-                        sm: 13,
-                      },
-                      minWidth: 140,
-                    }}>
+                  <TableCell sx={{ ...headCellSx, minWidth: 200 }}>محصول</TableCell>
+                  <TableCell sx={{ ...headCellSx, minWidth: 110 }}>دسته‌بندی</TableCell>
+                  <TableCell sx={{ ...headCellSx, minWidth: 90 }}>قیمت نهایی</TableCell>
+                  <TableCell sx={{ ...headCellSx, minWidth: 70 }}>تخفیف</TableCell>
+                  <TableCell sx={{ ...headCellSx, minWidth: 110 }}>برند</TableCell>
+                  <TableCell sx={{ ...headCellSx, minWidth: 110 }}>مدل</TableCell>
+                  <TableCell sx={{ ...headCellSx, minWidth: 130 }}>رنگ‌ها</TableCell>
+                  {/* ✅ new */}
+                  <TableCell sx={{ ...headCellSx, minWidth: 130 }}>تحویل زین</TableCell>
+                  <TableCell align="left" sx={{ ...headCellSx, minWidth: 140 }}>
                     عملیات
                   </TableCell>
                 </TableRow>
@@ -1010,25 +720,13 @@ export default function AdminProductsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      align="center"
-                      sx={{
-                        py: 6,
-                        color: INK_SOFT,
-                      }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 6, color: INK_SOFT }}>
                       در حال دریافت محصولات...
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      align="center"
-                      sx={{
-                        py: 6,
-                        color: INK_SOFT,
-                      }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 6, color: INK_SOFT }}>
                       محصولی پیدا نشد
                     </TableCell>
                   </TableRow>
@@ -1038,146 +736,60 @@ export default function AdminProductsPage() {
                     const finalPrice = product.final_price ?? product.price ?? 0;
 
                     return (
-                      <TableRow key={product.id} hover>
-                        <TableCell>
-                          <Stack direction="row" alignItems="center" gap={1}>
-                            <Box
-                              sx={{
-                                width: 36,
-                                height: 36,
+                      <TableRow key={product.id} hover sx={{ '&:hover': { bgcolor: alpha(ACCENT_ORANGE, 0.04) } }}>
+                        <TableCell sx={bodyCellSx}>
+                          <Stack direction="row" alignItems="center" gap={1.2}>
+                            {/* ✅ was: همیشه آیکون جعبه. حالا اگه تصویر بندانگشتی هست همون نشون داده میشه */}
+                            {product.thumbnail ? (
+                              <Box component="img" src={product.thumbnail} alt={product.title} sx={{ width: 40, height: 40, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, ...neoSoft }} />
+                            ) : (
+                              <Box sx={{ width: 40, height: 40, borderRadius: '10px', flexShrink: 0, bgcolor: alpha(ACCENT_ORANGE, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT_ORANGE }}>
+                                <Box1 size={18} variant="Bold" />
+                              </Box>
+                            )}
 
-                                borderRadius: '8px',
-
-                                bgcolor: alpha(ACCENT_ORANGE, 0.1),
-
-                                display: 'flex',
-
-                                alignItems: 'center',
-
-                                justifyContent: 'center',
-
-                                color: ACCENT_ORANGE,
-                              }}>
-                              <Box1 size={18} variant="Bold" />
-                            </Box>
-
-                            <Typography
-                              sx={{
-                                fontWeight: 600,
-
-                                fontSize: {
-                                  xs: 12,
-                                  sm: 13.5,
-                                },
-
-                                color: INK,
-
-                                lineHeight: 1.2,
-                              }}>
-                              {product.title}
-                            </Typography>
+                            <Typography sx={{ fontWeight: 600, fontSize: { xs: 12, sm: 13.5 }, color: INK, lineHeight: 1.5 }}>{product.title}</Typography>
                           </Stack>
                         </TableCell>
 
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontSize: {
-                                xs: 12,
-                                sm: 13,
-                              },
-
-                              color: INK_SOFT,
-                            }}>
-                            {product.category_fa}
-                          </Typography>
+                        <TableCell sx={bodyCellSx}>
+                          <Typography sx={{ fontSize: { xs: 12, sm: 13 }, color: INK_SOFT }}>{product.category_fa}</Typography>
                         </TableCell>
 
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontWeight: 600,
-
-                              fontSize: {
-                                xs: 12,
-                                sm: 13.5,
-                              },
-
-                              color: INK,
-                            }}>
-                            {ConvertToPersianDigit(Number(finalPrice).toLocaleString())}
-                          </Typography>
+                        <TableCell sx={bodyCellSx}>
+                          <Typography sx={{ fontWeight: 600, fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{ConvertToPersianDigit(Number(finalPrice).toLocaleString())}</Typography>
                         </TableCell>
 
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontSize: {
-                                xs: 12,
-                                sm: 13.5,
-                              },
-
-                              color: INK,
-                            }}>
-                            {ConvertToPersianDigit(product.discount ?? 0)}٪
-                          </Typography>
+                        <TableCell sx={bodyCellSx}>
+                          <Typography sx={{ fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{ConvertToPersianDigit(product.discount ?? 0)}٪</Typography>
                         </TableCell>
 
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontSize: {
-                                xs: 12,
-                                sm: 13.5,
-                              },
-
-                              color: INK,
-                            }}>
-                            {product.brand}
-                          </Typography>
+                        <TableCell sx={bodyCellSx}>
+                          <Typography sx={{ fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{product.brand}</Typography>
                         </TableCell>
 
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontSize: {
-                                xs: 12,
-                                sm: 13.5,
-                              },
-
-                              color: INK,
-                            }}>
-                            {product.model}
-                          </Typography>
+                        <TableCell sx={bodyCellSx}>
+                          <Typography sx={{ fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{product.model}</Typography>
                         </TableCell>
 
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontSize: {
-                                xs: 12,
-                                sm: 13,
-                              },
-
-                              color: INK_SOFT,
-
-                              whiteSpace: 'nowrap',
-                            }}>
-                            {colorsStr}
-                          </Typography>
+                        <TableCell sx={bodyCellSx}>
+                          <Typography sx={{ fontSize: { xs: 12, sm: 13 }, color: INK_SOFT, whiteSpace: 'nowrap' }}>{colorsStr}</Typography>
                         </TableCell>
 
-                        <TableCell align="left">
+                        {/* ✅ new */}
+                        <TableCell sx={bodyCellSx}>{product.requires_physical_item === 1 ? <Chip size="small" icon={<Truck size={14} color={ACCENT_ORANGE} />} label="نیاز دارد" sx={{ fontWeight: 700, fontSize: 12, color: ACCENT_ORANGE, bgcolor: alpha(ACCENT_ORANGE, 0.12), '& .MuiChip-icon': { mr: 0.5, ml: -0.3 } }} /> : <Chip size="small" label="ندارد" sx={{ fontSize: 12, color: INK_SOFT, bgcolor: alpha(INK_SOFT, 0.1) }} />}</TableCell>
+
+                        <TableCell align="left" sx={bodyCellSx}>
                           <Stack direction="row" gap={0.5}>
-                            <IconButton size="small" onClick={() => openModal('view', product)}>
+                            <IconButton size="small" onClick={() => openModal('view', product)} aria-label="مشاهده">
                               <Eye size={17} color={INK_SOFT} />
                             </IconButton>
 
-                            <IconButton size="small" onClick={() => openModal('edit', product)}>
+                            <IconButton size="small" onClick={() => openModal('edit', product)} aria-label="ویرایش">
                               <Edit2 size={17} color={ACCENT_ORANGE} />
                             </IconButton>
 
-                            <IconButton size="small" onClick={() => handleDelete(product.id)}>
+                            <IconButton size="small" onClick={() => handleDelete(product.id)} aria-label="حذف">
                               <Trash size={17} color="#E53E3E" />
                             </IconButton>
                           </Stack>
@@ -1192,12 +804,10 @@ export default function AdminProductsPage() {
         </Box>
 
         {/* EDIT / VIEW MODAL */}
-
         {renderModal()}
       </Box>
 
       {/* NEW PRODUCT MODAL */}
-
       <NewProductModal open={openNewModal} onClose={() => setOpenNewModal(false)} onSave={handleNewProduct} />
     </AdminLayout>
   );

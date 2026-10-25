@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Container, Typography, Stack, CircularProgress, Stepper, Step, StepLabel, Divider, Button, Alert } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Box1, TruckFast, Shop, TickCircle, Location, Call, ArrowRight2 } from 'iconsax-reactjs';
+import { TruckFast, Shop, Location, Call, ArrowRight2 } from 'iconsax-reactjs';
 import { useParams, useRouter } from 'next/navigation';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import ChildrenLayout from '@/components/ChildrenLayout';
@@ -18,29 +18,93 @@ const GREEN = '#2F9E44';
 const SHADOW_DARK = 'rgba(163, 177, 198, 0.55)';
 const SHADOW_LIGHT = 'rgba(255, 255, 255, 0.9)';
 
-const STATUS_FLOW = [
-  { key: 'paid', label: 'ثبت سفارش', icon: Box1 },
-  { key: 'pickup_dispatched', label: 'پیک برای برداشتن زین', icon: TruckFast },
-  { key: 'picked_up', label: 'زین تحویل گرفته شد', icon: TruckFast },
-  { key: 'at_shop', label: 'رسیدن به مغازه', icon: Shop },
-  { key: 'inspecting', label: 'در حال بررسی', icon: Shop },
-  { key: 'ready_to_ship', label: 'آماده ارسال برگشت', icon: Box1 },
-  { key: 'return_dispatched', label: 'پیک برگشت به شما', icon: TruckFast },
-  { key: 'delivered', label: 'تحویل داده شد', icon: TickCircle },
-];
-
-const STATUS_INDEX = {
-  pending_payment: 0,
-  paid: 0,
-  pickup_dispatched: 1,
-  picked_up: 2,
-  at_shop: 3,
-  inspecting: 4,
-  ready_to_ship: 5,
-  return_dispatched: 6,
-  delivered: 7,
-  cancelled: -1,
+const neoRaised = {
+  bgcolor: SURFACE,
+  borderRadius: '22px',
+  boxShadow: `8px 8px 18px ${SHADOW_DARK}, -8px -8px 18px ${SHADOW_LIGHT}`,
 };
+
+const neoInset = {
+  bgcolor: SURFACE,
+  borderRadius: '14px',
+  boxShadow: `inset 4px 4px 8px ${SHADOW_DARK}, inset -4px -4px 8px ${SHADOW_LIGHT}`,
+};
+
+// ✅ new: عنوان روش‌های تحویل (مقادیر pickup_method / return_method)
+const METHOD_LABELS = {
+  in_person: 'تحویل حضوری',
+  snapp: 'اسنپ / پیک',
+  tipax: 'تیپاکس',
+  post: 'پست',
+  other: 'سایر روش‌ها',
+};
+
+// ترتیب خطی وضعیت‌ها؛ برای تعیین اینکه کدوم مرحله‌ها انجام شده
+const STATUS_RANK = ['pending_payment', 'paid', 'pickup_dispatched', 'picked_up', 'at_shop', 'inspecting', 'ready_to_ship', 'return_dispatched', 'delivered'];
+
+// ✅ new: سفارشی که روش تحویل زین داره = محصولش requires_physical_item = 1 بوده
+function isPhysicalOrder(order) {
+  return Boolean(order?.pickupMethod || order?.returnMethod);
+}
+
+// ✅ was: یک مسیر ثابت برای همه‌ی سفارش‌ها (حتی سفارش‌هایی که اصلاً زین نمی‌خواستن).
+// حالا مراحل بر اساس نوع سفارش و روش‌های انتخابی مشتری ساخته میشه.
+function buildSteps(order) {
+  if (!isPhysicalOrder(order)) {
+    return [
+      { key: 'paid', label: 'ثبت سفارش' },
+      { key: 'delivered', label: 'تحویل داده شد' },
+    ];
+  }
+
+  const steps = [{ key: 'paid', label: 'ثبت سفارش' }];
+
+  if (order.pickupMethod !== 'in_person') {
+    steps.push({ key: 'pickup_dispatched', label: 'پیک برای برداشتن زین' }, { key: 'picked_up', label: 'زین تحویل گرفته شد' });
+  }
+
+  steps.push({ key: 'at_shop', label: order.pickupMethod === 'in_person' ? 'تحویل زین به مغازه' : 'رسیدن به مغازه' }, { key: 'inspecting', label: 'در حال بررسی' }, { key: 'ready_to_ship', label: order.returnMethod === 'in_person' ? 'آماده تحویل حضوری' : 'آماده ارسال برگشت' });
+
+  if (order.returnMethod !== 'in_person') {
+    steps.push({ key: 'return_dispatched', label: 'ارسال زین به شما' });
+  }
+
+  steps.push({ key: 'delivered', label: 'تحویل داده شد' });
+
+  return steps;
+}
+
+function getActiveStep(order, steps) {
+  if (order.status === 'delivered') return steps.length; // همه‌ی مراحل کامل
+  const rank = STATUS_RANK.indexOf(order.status);
+  if (rank < 0) return 0;
+
+  let active = 0;
+  steps.forEach((s, i) => {
+    if (STATUS_RANK.indexOf(s.key) <= rank) active = i;
+  });
+  return active;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(dateStr));
+  } catch {
+    return '';
+  }
+}
+
+// ✅ new: ردیف «عنوان: مقدار»
+function InfoRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}>
+      <Typography sx={{ fontSize: 13, color: INK_SOFT, flexShrink: 0 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: INK, textAlign: 'left', wordBreak: 'break-word' }}>{value}</Typography>
+    </Stack>
+  );
+}
 
 export default function OrderTrackingPage() {
   const { code } = useParams();
@@ -93,8 +157,13 @@ export default function OrderTrackingPage() {
   }
 
   const { order, items } = data;
-  const activeStep = STATUS_INDEX[order.status] ?? 0;
   const isCancelled = order.status === 'cancelled';
+  const physical = isPhysicalOrder(order);
+  const steps = buildSteps(order);
+  const activeStep = getActiveStep(order, steps);
+
+  const needsPickup = order.pickupMethod && order.pickupMethod !== 'in_person';
+  const needsReturn = order.returnMethod && order.returnMethod !== 'in_person';
 
   return (
     <ChildrenLayout>
@@ -117,37 +186,79 @@ export default function OrderTrackingPage() {
             </Alert>
           )}
 
+          {/* ✅ new: پرداخت ناتمام */}
+          {order.status === 'pending_payment' && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              پرداخت این سفارش هنوز تکمیل نشده است.
+            </Alert>
+          )}
+
+          {/* ✅ new: راهنمای مرحله‌ی فعلی برای سفارش‌های زین‌دار */}
+          {physical && order.status === 'paid' && (
+            <Alert severity="info" icon={order.pickupMethod === 'in_person' ? <Shop size={20} /> : <TruckFast size={20} />} sx={{ mb: 3 }}>
+              {order.pickupMethod === 'in_person' ? 'پرداخت شما ثبت شد. لطفاً زین خود را به مغازه شریف‌زین تحویل دهید.' : 'پرداخت شما ثبت شد. هماهنگی دریافت زین از آدرس شما به‌زودی انجام می‌شود.'}
+            </Alert>
+          )}
+
+          {physical && order.status === 'ready_to_ship' && order.returnMethod === 'in_person' && (
+            <Alert severity="success" sx={{ mb: 3 }}>
+              بررسی زین شما تمام شد و آماده تحویل حضوری در مغازه است.
+            </Alert>
+          )}
+
           {/* Stepper */}
           {!isCancelled && (
-            <Box sx={{ bgcolor: SURFACE, borderRadius: '22px', p: { xs: 2, md: 3 }, mb: 3, boxShadow: `8px 8px 18px ${SHADOW_DARK}, -8px -8px 18px ${SHADOW_LIGHT}`, overflowX: 'auto' }}>
-              <Stepper activeStep={activeStep} alternativeLabel>
-                {STATUS_FLOW.map((s) => (
+            <Box sx={{ ...neoRaised, p: { xs: 2, md: 3 }, mb: 3, overflowX: 'auto' }}>
+              <Stepper activeStep={activeStep} alternativeLabel sx={{ minWidth: steps.length > 4 ? 640 : 'auto' }}>
+                {steps.map((s) => (
                   <Step key={s.key}>
-                    <StepLabel>{s.label}</StepLabel>
+                    <StepLabel sx={{ '& .MuiStepLabel-label.Mui-active': { color: ACCENT, fontWeight: 700 } }}>{s.label}</StepLabel>
                   </Step>
                 ))}
               </Stepper>
-
-              {(order.pickupTrackingCode || order.returnTrackingCode) && (
-                <Stack spacing={1} sx={{ mt: 3 }}>
-                  {order.pickupTrackingCode && (
-                    <Typography sx={{ fontSize: 13, color: INK_SOFT }}>
-                      کد رهگیری پیک رفت: <b style={{ color: INK }}>{order.pickupTrackingCode}</b>
-                    </Typography>
-                  )}
-                  {order.returnTrackingCode && (
-                    <Typography sx={{ fontSize: 13, color: INK_SOFT }}>
-                      کد رهگیری پیک برگشت: <b style={{ color: INK }}>{order.returnTrackingCode}</b>
-                    </Typography>
-                  )}
-                </Stack>
-              )}
             </Box>
           )}
 
           <Stack spacing={3}>
+            {/* ✅ new: تحویل و دریافت زین - فقط برای سفارش‌های زین‌دار */}
+            {physical && (
+              <Box sx={{ ...neoRaised, p: 3 }}>
+                <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
+                  <TruckFast size={20} color={ACCENT} variant="Bold" />
+                  <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>تحویل و دریافت زین</Typography>
+                </Stack>
+
+                <Stack spacing={2}>
+                  <Box sx={{ ...neoInset, p: 2 }}>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: INK, mb: 1.2 }}>۱. رساندن زین به مغازه</Typography>
+                    <Stack spacing={0.9}>
+                      <InfoRow label="روش" value={METHOD_LABELS[order.pickupMethod] || order.pickupMethod} />
+                      {needsPickup && <InfoRow label="آدرس دریافت" value={order.pickupAddress || order.address} />}
+                      {needsPickup && <InfoRow label="پیک" value={order.pickupDriverName} />}
+                      {needsPickup && <InfoRow label="کد رهگیری" value={order.pickupTrackingCode ? ConvertToPersianDigit(order.pickupTrackingCode) : ''} />}
+                      <InfoRow label="رسیدن به مغازه" value={formatDate(order.receivedAtShopAt)} />
+                    </Stack>
+                    {order.pickupMethod === 'in_person' && !order.receivedAtShopAt && <Typography sx={{ fontSize: 12.5, color: INK_SOFT, mt: 1 }}>زین را خودتان به مغازه می‌رسانید.</Typography>}
+                  </Box>
+
+                  <Box sx={{ ...neoInset, p: 2 }}>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: INK, mb: 1.2 }}>۲. دریافت زین بعد از بررسی</Typography>
+                    <Stack spacing={0.9}>
+                      <InfoRow label="روش" value={METHOD_LABELS[order.returnMethod] || order.returnMethod} />
+                      {needsReturn && <InfoRow label="آدرس ارسال" value={order.address} />}
+                      {needsReturn && <InfoRow label="پیک" value={order.returnDriverName} />}
+                      {needsReturn && <InfoRow label="کد رهگیری" value={order.returnTrackingCode ? ConvertToPersianDigit(order.returnTrackingCode) : ''} />}
+                      <InfoRow label="زمان ارسال" value={formatDate(order.returnShippedAt)} />
+                      <InfoRow label="تحویل نهایی" value={formatDate(order.deliveredAt)} />
+                    </Stack>
+                    {order.returnMethod === 'in_person' && !order.deliveredAt && <Typography sx={{ fontSize: 12.5, color: INK_SOFT, mt: 1 }}>بعد از آماده‌شدن، زین را حضوری از مغازه تحویل می‌گیرید.</Typography>}
+                  </Box>
+                </Stack>
+              </Box>
+            )}
+
             {/* آدرس */}
-            <Box sx={{ bgcolor: SURFACE, borderRadius: '22px', p: 3, boxShadow: `8px 8px 18px ${SHADOW_DARK}, -8px -8px 18px ${SHADOW_LIGHT}` }}>
+            <Box sx={{ ...neoRaised, p: 3 }}>
               <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK, mb: 2 }}>اطلاعات تحویل</Typography>
               <Stack spacing={1.2}>
                 <Stack direction="row" gap={1} alignItems="center">
@@ -168,7 +279,7 @@ export default function OrderTrackingPage() {
             </Box>
 
             {/* آیتم‌ها */}
-            <Box sx={{ bgcolor: SURFACE, borderRadius: '22px', p: 3, boxShadow: `8px 8px 18px ${SHADOW_DARK}, -8px -8px 18px ${SHADOW_LIGHT}` }}>
+            <Box sx={{ ...neoRaised, p: 3 }}>
               <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK, mb: 2 }}>اقلام سفارش</Typography>
               <Stack spacing={2}>
                 {items?.map((item) => (
@@ -196,6 +307,13 @@ export default function OrderTrackingPage() {
                   <Stack direction="row" justifyContent="space-between">
                     <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>تخفیف {order.discountCode ? `(${order.discountCode})` : ''}</Typography>
                     <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: GREEN }}>{ConvertToPersianDigit(Number(order.discountAmount).toLocaleString())}- تومان</Typography>
+                  </Stack>
+                )}
+                {/* ✅ new */}
+                {order.shippingCost > 0 && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>هزینه ارسال</Typography>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: INK }}>{ConvertToPersianDigit(Number(order.shippingCost).toLocaleString())} تومان</Typography>
                   </Stack>
                 )}
                 <Stack direction="row" justifyContent="space-between">

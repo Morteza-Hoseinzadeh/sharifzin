@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Box, Typography, Stack, Button, Chip, Divider, Grid, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, IconButton } from '@mui/material';
+import { Box, Typography, Stack, Button, Chip, Divider, Grid, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, RadioGroup, FormControlLabel, Radio, IconButton, InputBase } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { ArrowRight2, TickCircle, TruckFast, Clock, CloseCircle, Location, Call, User, CloseSquare } from 'iconsax-reactjs';
+import { ArrowRight2, TickCircle, TruckFast, Clock, CloseCircle, Location, Call, User, CloseSquare, Shop } from 'iconsax-reactjs';
 import Link from 'next/link';
 import ConvertToPersianDigit from '@/utils/functions/convertToPersianDigit';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -14,7 +14,6 @@ const SURFACE = '#F0F4F8';
 const INK = '#2D3748';
 const INK_SOFT = '#718096';
 const ACCENT_ORANGE = '#F57C1F';
-const ACCENT_BLUE = '#3B82F6';
 const SHADOW_LIGHT = 'rgba(255, 255, 255, 0.9)';
 const SHADOW_DARK = 'rgba(163, 177, 198, 0.55)';
 
@@ -22,7 +21,7 @@ const neoRaised = { background: SURFACE, borderRadius: '22px', boxShadow: `8px 8
 const neoSoft = { background: SURFACE, borderRadius: '16px', boxShadow: `5px 5px 12px ${SHADOW_DARK}, -5px -5px 12px ${SHADOW_LIGHT}` };
 const neoInset = { background: SURFACE, borderRadius: '14px', boxShadow: `inset 4px 4px 8px ${SHADOW_DARK}, inset -4px -4px 8px ${SHADOW_LIGHT}` };
 
-// Full status list from the backend. Order here also defines the linear timeline order.
+// Full status list from the backend.
 const statusMap = {
   pending_payment: { color: '#F59E0B', title: 'در انتظار پرداخت' },
   paid: { color: '#38A169', title: 'پرداخت شده' },
@@ -36,8 +35,58 @@ const statusMap = {
   cancelled: { color: '#EF4444', title: 'لغو شده' },
 };
 
-// Linear order (everything except cancelled, which is a terminal branch shown separately).
+// Linear order used to decide which steps are "done" (cancelled is a separate terminal branch).
 const STATUS_ORDER = ['pending_payment', 'paid', 'pickup_dispatched', 'picked_up', 'at_shop', 'inspecting', 'ready_to_ship', 'return_dispatched', 'delivered'];
+
+// ✅ new: عنوان روش‌های تحویل (مقادیر pickup_method / return_method)
+const METHOD_LABELS = {
+  in_person: 'تحویل حضوری',
+  snapp: 'اسنپ / پیک',
+  tipax: 'تیپاکس',
+  post: 'پست',
+  other: 'سایر روش‌ها',
+};
+
+// ✅ new: سفارشی که روش تحویل زین داره = سفارش نیازمند تحویل کالای فیزیکی
+// (pickup_method / return_method فقط برای محصولات requires_physical_item = 1 ذخیره میشن)
+function isPhysicalOrder(order) {
+  return Boolean(order?.pickupMethod || order?.returnMethod);
+}
+
+// ✅ new: مراحل مرتبط با هر سفارش. سفارش عادی وارد چرخه‌ی زین نمیشه؛ و اگه مشتری
+// خودش زین رو میاره/میبره، مراحل پیک مربوط حذف میشن.
+function getFlow(order) {
+  if (!isPhysicalOrder(order)) return ['pending_payment', 'paid', 'delivered'];
+
+  const flow = ['pending_payment', 'paid'];
+  if (order.pickupMethod !== 'in_person') flow.push('pickup_dispatched', 'picked_up');
+  flow.push('at_shop', 'inspecting', 'ready_to_ship');
+  if (order.returnMethod !== 'in_person') flow.push('return_dispatched');
+  flow.push('delivered');
+  return flow;
+}
+
+// زمان واقعی هر مرحله (از ستون‌های جدید orders)
+function dateForStatus(key, order) {
+  switch (key) {
+    case 'pending_payment':
+      return order.createdAt;
+    case 'pickup_dispatched':
+      return order.pickupRequestedAt;
+    case 'picked_up':
+      return order.pickedUpAt;
+    case 'at_shop':
+      return order.receivedAtShopAt;
+    case 'ready_to_ship':
+      return order.inspectedAt;
+    case 'return_dispatched':
+      return order.returnShippedAt;
+    case 'delivered':
+      return order.deliveredAt;
+    default:
+      return '';
+  }
+}
 
 function getStatusIcon(key) {
   if (key === 'cancelled') return CloseCircle;
@@ -53,12 +102,22 @@ function buildTimeline(order) {
       { status: statusMap.cancelled.title, date: order.updatedAt, done: true },
     ];
   }
-  const currentIdx = STATUS_ORDER.indexOf(order.status);
-  return STATUS_ORDER.map((key, i) => ({
-    status: statusMap[key].title,
-    date: i === 0 ? order.createdAt : i <= currentIdx ? order.updatedAt : '',
-    done: currentIdx >= 0 && i <= currentIdx,
-  }));
+
+  const currentOrderIdx = STATUS_ORDER.indexOf(order.status);
+
+  return getFlow(order).map((key) => {
+    const done = currentOrderIdx >= 0 && STATUS_ORDER.indexOf(key) <= currentOrderIdx;
+    // اگه زمان اختصاصی مرحله ثبت نشده ولی مرحله‌ی فعلیه، آخرین به‌روزرسانی رو نشون بده
+    const date = dateForStatus(key, order) || (key === order.status ? order.updatedAt : '');
+    return { status: statusMap[key].title, date: done ? date : '', done };
+  });
+}
+
+// گزینه‌های مودال تغییر وضعیت: فقط مراحل مرتبط + لغو (+ وضعیت فعلی اگه توی مسیر نبود)
+function getStatusOptions(order) {
+  const keys = [...getFlow(order), 'cancelled'];
+  if (order.status && !keys.includes(order.status) && statusMap[order.status]) keys.push(order.status);
+  return keys;
 }
 
 function formatToman(value) {
@@ -73,6 +132,29 @@ function formatDate(dateStr) {
   } catch {
     return dateStr;
   }
+}
+
+// ✅ new: ردیف کوچک «عنوان: مقدار»
+function InfoRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={2}>
+      <Typography sx={{ fontSize: 12.5, color: INK_SOFT, flexShrink: 0 }}>{label}</Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 600, color: INK, textAlign: 'left', wordBreak: 'break-word' }}>{value}</Typography>
+    </Stack>
+  );
+}
+
+// ✅ new: فیلد نئومورفیک کوچک برای مودال
+function ModalField({ label, value, onChange, placeholder }) {
+  return (
+    <Box>
+      <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: INK_SOFT, mb: 0.6 }}>{label}</Typography>
+      <Box sx={{ ...neoInset, px: 1.5, minHeight: 42, display: 'flex', alignItems: 'center' }}>
+        <InputBase fullWidth value={value} onChange={onChange} placeholder={placeholder} sx={{ fontSize: 13.5, color: INK, fontFamily: 'inherit' }} />
+      </Box>
+    </Box>
+  );
 }
 
 export default function AdminOrderDetailPage() {
@@ -90,23 +172,32 @@ export default function AdminOrderDetailPage() {
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusError, setStatusError] = useState(null);
 
-  const fetchOrder = useCallback(async () => {
-    if (!code) return;
-    setLoading(true);
-    setError(null);
-    try {
-      // NOTE: adjust base URL / auth headers to match your API setup
-      const res = await axiosInstance.get(`/api/v1/orders/${code}`);
-      const data = res.data;
+  // ✅ new: اطلاعات رهگیری که ادمین موقع تغییر وضعیت وارد می‌کنه
+  const [pickupDriver, setPickupDriver] = useState('');
+  const [pickupTracking, setPickupTracking] = useState('');
+  const [returnDriver, setReturnDriver] = useState('');
+  const [returnTracking, setReturnTracking] = useState('');
 
-      setOrder(data.order);
-      setItems(data.items || []);
-    } catch (err) {
-      setError(err.message || 'خطا در دریافت سفارش');
-    } finally {
-      setLoading(false);
-    }
-  }, [code]);
+  // silent = true: بدون نمایش اسپینر تمام‌صفحه (برای رفرش بعد از تغییر وضعیت)
+  const fetchOrder = useCallback(
+    async (silent = false) => {
+      if (!code) return;
+      if (!silent) setLoading(true);
+      setError(null);
+      try {
+        const res = await axiosInstance.get(`/api/v1/orders/${code}`);
+        const data = res.data;
+
+        setOrder(data.order);
+        setItems(data.items || []);
+      } catch (err) {
+        setError(err.message || 'خطا در دریافت سفارش');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [code]
+  );
 
   useEffect(() => {
     fetchOrder();
@@ -115,33 +206,41 @@ export default function AdminOrderDetailPage() {
   const handleOpenStatusModal = () => {
     setSelectedStatus(order.status);
     setStatusError(null);
+    setPickupDriver(order.pickupDriverName || '');
+    setPickupTracking(order.pickupTrackingCode || '');
+    setReturnDriver(order.returnDriverName || '');
+    setReturnTracking(order.returnTrackingCode || '');
     setStatusModalOpen(true);
   };
 
   const handleCloseStatusModal = () => {
-    if (statusUpdating) return; // don't allow closing mid-request
+    if (statusUpdating) return;
     setStatusModalOpen(false);
   };
 
   const handleConfirmStatusChange = async () => {
-    if (!selectedStatus || selectedStatus === order.status) {
+    const trackingChanged = pickupDriver !== (order.pickupDriverName || '') || pickupTracking !== (order.pickupTrackingCode || '') || returnDriver !== (order.returnDriverName || '') || returnTracking !== (order.returnTrackingCode || '');
+
+    if (!selectedStatus || (selectedStatus === order.status && !trackingChanged)) {
       setStatusModalOpen(false);
       return;
     }
     setStatusUpdating(true);
     setStatusError(null);
     try {
-      // NOTE: adjust endpoint/method/payload shape to match your real API
-      const res = await axiosInstance.patch(`/api/v1/admin/orders/${order.id}/status`, {
+      await axiosInstance.patch(`/api/v1/admin/orders/${order.id}/status`, {
         status: selectedStatus,
+        // ✅ new: فقط برای سفارش‌های زین‌دار فرستاده میشن؛ بک‌اند مقدار خالی رو نادیده می‌گیره
+        ...(isPhysicalOrder(order) && {
+          pickupDriverName: pickupDriver.trim() || null,
+          pickupTrackingCode: pickupTracking.trim() || null,
+          returnDriverName: returnDriver.trim() || null,
+          returnTrackingCode: returnTracking.trim() || null,
+        }),
       });
-      const updatedOrder = res.data?.order;
 
-      setOrder((prev) => ({
-        ...prev,
-        status: selectedStatus,
-        updatedAt: updatedOrder?.updatedAt || new Date().toISOString(),
-      }));
+      // بعد از موفقیت، سفارش دوباره خونده میشه تا زمان مراحل و کدهای رهگیری هم به‌روز بشن
+      await fetchOrder(true);
       setStatusModalOpen(false);
     } catch (err) {
       setStatusError(err?.response?.data?.message || err.message || 'خطا در تغییر وضعیت سفارش');
@@ -176,6 +275,11 @@ export default function AdminOrderDetailPage() {
   const st = statusMap[order.status] || statusMap.pending_payment;
   const StatusIcon = getStatusIcon(order.status);
   const timeline = buildTimeline(order);
+  const physical = isPhysicalOrder(order);
+  const statusOptions = getStatusOptions(order);
+
+  const needsPickup = order.pickupMethod && order.pickupMethod !== 'in_person';
+  const needsReturn = order.returnMethod && order.returnMethod !== 'in_person';
 
   return (
     <AdminLayout>
@@ -184,6 +288,8 @@ export default function AdminOrderDetailPage() {
           بازگشت
         </Button>
         <Typography sx={{ fontWeight: 800, fontSize: 20, color: INK }}>جزئیات سفارش {order.orderCode}</Typography>
+        {/* ✅ new */}
+        {physical && <Chip size="small" icon={<TruckFast size={14} color={ACCENT_ORANGE} />} label="نیاز به تحویل زین" sx={{ fontWeight: 700, color: ACCENT_ORANGE, bgcolor: alpha(ACCENT_ORANGE, 0.12), borderRadius: '8px', '& .MuiChip-icon': { mr: 0.5, ml: -0.3 } }} />}
       </Stack>
 
       <Grid container spacing={3}>
@@ -226,6 +332,13 @@ export default function AdminOrderDetailPage() {
                   <Typography sx={{ fontWeight: 600, color: '#38A169' }}>-{formatToman(order.discountAmount)} تومان</Typography>
                 </Stack>
               )}
+              {/* ✅ new */}
+              {order.shippingCost > 0 && (
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography sx={{ color: INK_SOFT, fontSize: 13.5 }}>هزینه ارسال</Typography>
+                  <Typography sx={{ fontWeight: 600, color: INK }}>{formatToman(order.shippingCost)} تومان</Typography>
+                </Stack>
+              )}
               <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
                 <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>مبلغ نهایی</Typography>
                 <Typography sx={{ fontWeight: 800, fontSize: 16, color: ACCENT_ORANGE }}>{formatToman(order.payableAmount)} تومان</Typography>
@@ -266,7 +379,7 @@ export default function AdminOrderDetailPage() {
             </Stack>
           </Box>
 
-          <Box sx={{ ...neoRaised, p: 3 }}>
+          <Box sx={{ ...neoRaised, p: 3, mb: physical ? 3 : 0 }}>
             <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK, mb: 2 }}>آدرس ارسال</Typography>
             <Stack direction="row" gap={1.5} alignItems="flex-start">
               <Location size={18} color={INK_SOFT} style={{ marginTop: 2 }} />
@@ -278,6 +391,49 @@ export default function AdminOrderDetailPage() {
               </Box>
             </Stack>
           </Box>
+
+          {/* ✅ new: کارت تحویل و دریافت زین - فقط برای سفارش‌های نیازمند تحویل کالا */}
+          {physical && (
+            <Box sx={{ ...neoRaised, p: 3 }}>
+              <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 2 }}>
+                <TruckFast size={20} color={ACCENT_ORANGE} variant="Bold" />
+                <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>تحویل و دریافت زین</Typography>
+              </Stack>
+
+              {/* مرحله ۱: مشتری -> مغازه */}
+              <Box sx={{ ...neoInset, p: 2, mb: 2 }}>
+                <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.2 }}>
+                  {order.pickupMethod === 'in_person' ? <Shop size={16} color={INK_SOFT} /> : <TruckFast size={16} color={INK_SOFT} />}
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: INK }}>۱. رساندن زین به مغازه</Typography>
+                </Stack>
+                <Stack gap={0.8}>
+                  <InfoRow label="روش" value={METHOD_LABELS[order.pickupMethod] || order.pickupMethod} />
+                  {needsPickup && <InfoRow label="آدرس مبدا" value={order.pickupAddress || order.address} />}
+                  {needsPickup && <InfoRow label="راننده / پیک" value={order.pickupDriverName} />}
+                  {needsPickup && <InfoRow label="کد رهگیری" value={order.pickupTrackingCode ? ConvertToPersianDigit(order.pickupTrackingCode) : ''} />}
+                  <InfoRow label="دریافت در مغازه" value={formatDate(order.receivedAtShopAt)} />
+                </Stack>
+                {order.pickupMethod === 'in_person' && <Typography sx={{ fontSize: 12, color: INK_SOFT, mt: 1 }}>مشتری خودش زین را به مغازه می‌آورد.</Typography>}
+              </Box>
+
+              {/* مرحله ۲: مغازه -> مشتری */}
+              <Box sx={{ ...neoInset, p: 2 }}>
+                <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.2 }}>
+                  {order.returnMethod === 'in_person' ? <Shop size={16} color={INK_SOFT} /> : <TruckFast size={16} color={INK_SOFT} />}
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: INK }}>۲. دریافت زین بعد از بررسی</Typography>
+                </Stack>
+                <Stack gap={0.8}>
+                  <InfoRow label="روش" value={METHOD_LABELS[order.returnMethod] || order.returnMethod} />
+                  {needsReturn && <InfoRow label="آدرس مقصد" value={order.address} />}
+                  {needsReturn && <InfoRow label="راننده / پیک" value={order.returnDriverName} />}
+                  {needsReturn && <InfoRow label="کد رهگیری" value={order.returnTrackingCode ? ConvertToPersianDigit(order.returnTrackingCode) : ''} />}
+                  <InfoRow label="ارسال مجدد" value={formatDate(order.returnShippedAt)} />
+                  <InfoRow label="تحویل نهایی" value={formatDate(order.deliveredAt)} />
+                </Stack>
+                {order.returnMethod === 'in_person' && <Typography sx={{ fontSize: 12, color: INK_SOFT, mt: 1 }}>مشتری زین را حضوری از مغازه تحویل می‌گیرد.</Typography>}
+              </Box>
+            </Box>
+          )}
 
           <Stack gap={1.5} sx={{ mt: 3 }}>
             <Button fullWidth onClick={handleOpenStatusModal} sx={{ py: 1.3, borderRadius: '12px', fontWeight: 600, fontSize: 14, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`, '&:hover': { bgcolor: '#E06B10' } }}>
@@ -304,23 +460,44 @@ export default function AdminOrderDetailPage() {
 
           <RadioGroup value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
             <Stack gap={1}>
-              {Object.entries(statusMap).map(([key, val]) => (
-                <Box key={key} sx={{ ...(selectedStatus === key ? neoInset : neoSoft), px: 1.5, py: 0.5, cursor: 'pointer', mb: 2 }} onClick={() => setSelectedStatus(key)}>
-                  <FormControlLabel
-                    value={key}
-                    control={<Radio size="small" sx={{ color: alpha(val.color, 0.5), '&.Mui-checked': { color: val.color } }} />}
-                    label={
-                      <Stack direction="row" alignItems="center" gap={1}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: val.color, flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: INK }}>{val.title}</Typography>
-                      </Stack>
-                    }
-                    sx={{ m: 0, width: '100%', justifyContent: 'flex-start' }}
-                  />
-                </Box>
-              ))}
+              {statusOptions.map((key) => {
+                const val = statusMap[key];
+                return (
+                  <Box key={key} sx={{ ...(selectedStatus === key ? neoInset : neoSoft), px: 1.5, py: 0.5, cursor: 'pointer', mb: 1 }} onClick={() => setSelectedStatus(key)}>
+                    <FormControlLabel
+                      value={key}
+                      control={<Radio size="small" sx={{ color: alpha(val.color, 0.5), '&.Mui-checked': { color: val.color } }} />}
+                      label={
+                        <Stack direction="row" alignItems="center" gap={1}>
+                          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: val.color, flexShrink: 0 }} />
+                          <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: INK }}>{val.title}</Typography>
+                        </Stack>
+                      }
+                      sx={{ m: 0, width: '100%', justifyContent: 'flex-start' }}
+                    />
+                  </Box>
+                );
+              })}
             </Stack>
           </RadioGroup>
+
+          {/* ✅ new: اطلاعات پیک موقع برداشتن زین از مشتری */}
+          {physical && needsPickup && selectedStatus === 'pickup_dispatched' && (
+            <Stack gap={1.5} sx={{ mt: 2 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: INK }}>اطلاعات دریافت زین از مشتری</Typography>
+              <ModalField label="نام راننده / پیک" value={pickupDriver} onChange={(e) => setPickupDriver(e.target.value)} placeholder="مثلاً: علی رضایی" />
+              <ModalField label="کد رهگیری" value={pickupTracking} onChange={(e) => setPickupTracking(e.target.value)} placeholder="اختیاری" />
+            </Stack>
+          )}
+
+          {/* ✅ new: اطلاعات پیک/تیپاکس موقع ارسال مجدد زین */}
+          {physical && needsReturn && selectedStatus === 'return_dispatched' && (
+            <Stack gap={1.5} sx={{ mt: 2 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: INK }}>اطلاعات ارسال زین به مشتری</Typography>
+              <ModalField label="نام راننده / پیک" value={returnDriver} onChange={(e) => setReturnDriver(e.target.value)} placeholder="مثلاً: علی رضایی" />
+              <ModalField label="کد رهگیری" value={returnTracking} onChange={(e) => setReturnTracking(e.target.value)} placeholder="اختیاری" />
+            </Stack>
+          )}
 
           {statusError && <Typography sx={{ fontSize: 12.5, color: '#E53E3E', mt: 1.5 }}>{statusError}</Typography>}
         </DialogContent>
