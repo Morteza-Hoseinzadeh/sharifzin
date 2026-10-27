@@ -394,8 +394,6 @@ export default function AdminProductsPage() {
 
       const payload = buildProductPayload(formData);
 
-      console.log(formData);
-
       if (mode === 'edit') {
         if (!formData.id) {
           alert('شناسه محصول پیدا نشد');
