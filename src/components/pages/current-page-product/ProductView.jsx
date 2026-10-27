@@ -343,7 +343,7 @@ export default function ProductView({ product }) {
 
   const best_for = Array.isArray(rawBestFor) ? rawBestFor : normalizeProductImages(rawBestFor);
 
-  const specifications = rawSpecifications && typeof rawSpecifications === 'object' && !Array.isArray(rawSpecifications) ? rawSpecifications : {};
+  const specifications = rawSpecifications;
 
   // Update selected color when the product changes.
   useEffect(() => {
@@ -1004,14 +1004,6 @@ export default function ProductView({ product }) {
                   ))}
                 </Stack>
               </Grid>
-
-              <Grid size={{ xs: 12, md: 4 }}>
-                <Typography sx={{ fontSize: 14.5, color: INK, mb: 2 }}>مناسب برای</Typography>
-
-                {best_for.map((item, index) => (
-                  <CheckListItem key={index} text={item} accent={ACCENT_BLUE} />
-                ))}
-              </Grid>
             </Grid>
           )}
 
@@ -1021,41 +1013,14 @@ export default function ProductView({ product }) {
               <Typography sx={{ fontSize: 15, color: INK, mb: 2.5 }}>مشخصات فنی</Typography>
 
               <Stack gap={1.2}>
-                {Object.entries(specifications).map(([key, value]) => {
-                  const labels = {
-                    foam: 'نوع فوم',
-                    stitching: 'نوع دوخت',
-                    waterproof: 'ضد آب',
-                    warranty: 'گارانتی',
-                    weight: 'وزن',
-                  };
+                {Array.isArray(specifications) &&
+                  specifications.map((item, index) => (
+                    <Stack key={`${item.key}-${index}`} direction="row" alignItems="center" justifyContent="space-between" gap={2} sx={{ ...neoSoft, px: 2, py: 1.4, mb: 2 }}>
+                      <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>{item.key}</Typography>
 
-                  const displayValue = typeof value === 'boolean' ? (value ? 'دارد' : 'ندارد') : value;
-
-                  return (
-                    <Stack
-                      key={key}
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      sx={{
-                        ...neoSoft,
-                        px: 2,
-                        py: 1.4,
-                      }}>
-                      <Typography sx={{ fontSize: 13.5, color: INK_SOFT }}>{labels[key] || key}</Typography>
-
-                      <Typography
-                        sx={{
-                          fontSize: 13.5,
-                          fontWeight: 600,
-                          color: INK,
-                        }}>
-                        {String(displayValue ?? '-')}
-                      </Typography>
+                      <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: INK, textAlign: 'left' }}>{item.value}</Typography>
                     </Stack>
-                  );
-                })}
+                  ))}
               </Stack>
             </Box>
           )}

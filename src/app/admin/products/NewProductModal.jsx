@@ -309,26 +309,54 @@ const NewProductModal = ({ open, onClose, onSave }) => {
   const uploadImages = async (files) => {
     const uploadedUrls = [];
 
+    const token = typeof window !== 'undefined' ? localStorage.getItem('sharifzin_auth_token') : null;
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+
       const form = new FormData();
       form.append('attachment', file);
 
-      const res = await fetch(`${API_URL}/admin/products/upload-images`, {
-        method: 'POST',
-        body: form,
-      });
+      const headers = {};
 
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody?.message || `آپلود تصویر «${file.name}» ناموفق بود`);
+      if (token) {
+        let authToken = token;
+
+        // اگر مقدار ذخیره‌شده JSON باشد، توکن داخلی آن را استخراج کن.
+        try {
+          const parsed = JSON.parse(token);
+
+          if (parsed && typeof parsed === 'object') {
+            authToken = parsed.token || token;
+          }
+        } catch {
+          // مقدار ذخیره‌شده خودش توکن خام است.
+        }
+
+        headers.Authorization = `Bearer ${authToken}`;
       }
 
-      const data = await res.json();
-      // بک‌اند { image, thumbnail } برمی‌گردونه (هر دو یکسان‌اند تو کنترلر فعلی)
-      uploadedUrls.push(data.image || data.thumbnail);
+      const response = await fetch(`${API_URL}/admin/products/upload-images`, {
+        method: 'POST',
+        headers,
+        body: form,
+        credentials: 'include',
+      });
 
-      // پیشرفت آپلود عکس‌ها رو بین ۴۰٪ تا ۸۰٪ نمایش بده
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.message || data?.error || `آپلود تصویر «${file.name}» ناموفق بود. کد خطا: ${response.status}`);
+      }
+
+      const imageUrl = data?.image || data?.thumbnail;
+
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        throw new Error(`سرور برای تصویر «${file.name}» آدرس معتبری برنگرداند.`);
+      }
+
+      uploadedUrls.push(imageUrl);
+
       setUploadProgress(40 + Math.round(((i + 1) / files.length) * 40));
     }
 
@@ -364,23 +392,22 @@ const NewProductModal = ({ open, onClose, onSave }) => {
       const productData = {
         ...formData,
 
-        price: Number(formData.price) || 0,
+        price: Number(formData.price),
 
-        discount: Number(formData.discount) || 0,
+        discount: Number(formData.discount || 0),
 
-        final_price: Number(formData.final_price) || Math.max(0, Number(formData.price || 0) - (Number(formData.price || 0) * Number(formData.discount || 0)) / 100),
+        final_price: Math.round(Number(formData.final_price) || Number(formData.price) * (1 - Number(formData.discount || 0) / 100)),
 
         colors: parseCommaSeparated(formData.colors),
-
         best_for: parseCommaSeparated(formData.best_for),
-
         features: parseCommaSeparated(formData.features),
 
         specifications: buildSpecifications(),
 
-        // ✅ NEW: دیگه فایل خام فرستاده نمیشه - URL واقعی که از سرور برگشته
         images: uploadedImageUrls,
         thumbnail: uploadedImageUrls[0] || null,
+
+        requires_physical_item: 0,
       };
 
       setUploadProgress(95);
@@ -388,13 +415,11 @@ const NewProductModal = ({ open, onClose, onSave }) => {
       // ✅ CHANGED: onSave دیگه لازم نیست خودش آپلود کنه - فقط باید محصول رو
       // با این productData (که already شامل URL عکس‌هاست) بسازه، یعنی چیزی شبیه:
       //   await axiosInstance.post('/api/v1/admin/products', productData)
-      if (onSave) {
-        await onSave({
-          productData,
-          images: images.map((item) => item.file),
-        });
+      if (typeof onSave !== 'function') {
+        throw new Error('تابع ثبت محصول به مودال ارسال نشده است.');
       }
 
+      await onSave(productData);
       setUploadProgress(100);
 
       setTimeout(() => {
@@ -594,12 +619,6 @@ const NewProductModal = ({ open, onClose, onSave }) => {
             <Grid container spacing={2.5}>
               <Grid size={{ xs: 12, md: 4 }}>
                 <Field label="رنگ‌ها" field="colors" multiline rows={4} placeholder="مشکی، قرمز، آبی" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
-
-                <Typography sx={{ mt: 0.8, fontSize: 11, color: palette.text }}>موارد را با کاما جدا کنید.</Typography>
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 4 }}>
-                <Field label="مناسب برای" field="best_for" multiline rows={4} placeholder="موتور شهری، موتور اسپرت" formData={formData} handleChange={handleChange} palette={palette} inputSx={inputSx} />
 
                 <Typography sx={{ mt: 0.8, fontSize: 11, color: palette.text }}>موارد را با کاما جدا کنید.</Typography>
               </Grid>
