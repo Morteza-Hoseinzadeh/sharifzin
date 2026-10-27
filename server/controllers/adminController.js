@@ -304,12 +304,12 @@ exports.createProduct = async (req, res) => {
     // ✅ new: فقط 0 یا 1 ذخیره میشه
     const physicalFlag = Number(requires_physical_item) === 1 ? 1 : 0;
 
-    const [result] = await db.query(
+    await db.query(
       `
       INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications, requires_physical_item)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
-      [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(discount) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {}), physicalFlag]
+      [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(Math?.floor(discount)) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {}), physicalFlag]
     );
 
     // ✅ پاسخ کل رکورد ساخته‌شده رو برمی‌گردونه تا فرانت بتونه مستقیم نمایشش بده
@@ -371,7 +371,7 @@ exports.updateProduct = async (req, res) => {
         requires_physical_item = COALESCE(?, requires_physical_item),
         slug = ?
        WHERE id = ?`,
-      [title, subtitle, brand, category, category_fa, model, price || 0, discount || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), physicalFlag, slug, id]
+      [title, subtitle, brand, category, category_fa, model, price || 0, Number(Math?.floor(discount)) || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), physicalFlag, slug, id]
     );
 
     return res.json({ message: 'محصول به‌روزرسانی شد' });

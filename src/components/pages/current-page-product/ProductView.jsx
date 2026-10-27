@@ -467,7 +467,7 @@ export default function ProductView({ product }) {
 
   const selectedImage = cachedImages[activeImage]?.displaySrc || cachedImages[0]?.displaySrc || '';
 
-  const final_price = discountedPrice ?? price;
+  const final_price = discountedPrice ?? product?.final_price;
 
   // --------------------------------------------------
   // Add to cart

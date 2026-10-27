@@ -28,8 +28,8 @@ export const storeDetials = [
   },
   {
     icon: Refresh2,
-    title: 'بازگشت کالا',
-    description: '۷ روز ضمانت بازگشت',
+    title: 'ضمانت کالا',
+    description: 'ضمانت اصلیل بودن کالا',
   },
 ];
 

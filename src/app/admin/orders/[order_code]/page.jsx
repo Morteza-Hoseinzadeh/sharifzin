@@ -439,12 +439,140 @@ export default function AdminOrderDetailPage() {
             <Button fullWidth onClick={handleOpenStatusModal} sx={{ py: 1.3, borderRadius: '12px', fontWeight: 600, fontSize: 14, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`, '&:hover': { bgcolor: '#E06B10' } }}>
               تغییر وضعیت سفارش
             </Button>
-            <Button fullWidth sx={{ py: 1.3, borderRadius: '12px', fontWeight: 600, fontSize: 14, color: INK, ...neoSoft }}>
+            <Button fullWidth onClick={() => window.print()} sx={{ py: 1.3, borderRadius: '12px', fontWeight: 600, fontSize: 14, color: INK, ...neoSoft }}>
               چاپ فاکتور
             </Button>
           </Stack>
         </Grid>
       </Grid>
+
+      {/* فاکتور مخصوص چاپ؛ در صفحه عادی نمایش داده نمی‌شود */}
+      <Box className="print-invoice" dir="rtl">
+        <Box className="invoice-header">
+          <Box>
+            <Typography className="invoice-title">فاکتور فروش</Typography>
+            <Typography className="invoice-muted">نسخه چاپی سفارش</Typography>
+          </Box>
+          <Box className="invoice-meta">
+            <Typography>
+              <strong>شماره سفارش:</strong> {order.orderCode || order.id}
+            </Typography>
+            <Typography>
+              <strong>تاریخ ثبت:</strong> {formatDate(order.createdAt) || '—'}
+            </Typography>
+            <Typography>
+              <strong>وضعیت:</strong> {(statusMap[order.status] || statusMap.pending_payment).title}
+            </Typography>
+          </Box>
+        </Box>
+
+        <Box className="invoice-customer">
+          <Typography className="invoice-section-title">اطلاعات مشتری</Typography>
+          <Box className="invoice-customer-grid">
+            <Typography>
+              <strong>نام و نام خانوادگی:</strong> {order.fullName || '—'}
+            </Typography>
+            <Typography>
+              <strong>شماره تماس:</strong> {ConvertToPersianDigit(order.phone || '—')}
+            </Typography>
+            <Typography>
+              <strong>شهر:</strong> {order.city || '—'}
+            </Typography>
+            <Typography>
+              <strong>کد پستی:</strong> {ConvertToPersianDigit(order.postalCode || '—')}
+            </Typography>
+            <Typography className="invoice-address">
+              <strong>آدرس:</strong> {order.address || '—'}
+            </Typography>
+            {order.addressNote && (
+              <Typography className="invoice-address">
+                <strong>توضیحات آدرس:</strong> {order.addressNote}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        <Typography className="invoice-section-title">اقلام سفارش</Typography>
+        <table className="invoice-table">
+          <thead>
+            <tr>
+              <th>ردیف</th>
+              <th>شرح کالا</th>
+              <th>رنگ</th>
+              <th>تعداد</th>
+              <th>قیمت واحد (تومان)</th>
+              <th>مبلغ (تومان)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item, index) => (
+              <tr key={item.id || index}>
+                <td>{ConvertToPersianDigit(index + 1)}</td>
+                <td>{item.title || '—'}</td>
+                <td>{item.color || '—'}</td>
+                <td>{ConvertToPersianDigit(item.quantity || 0)}</td>
+                <td>{formatToman(item.unit_price)}</td>
+                <td>{formatToman((Number(item.unit_price) || 0) * (Number(item.quantity) || 0))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <Box className="invoice-totals">
+          <Box className="invoice-total-row">
+            <span>جمع اقلام</span>
+            <strong>{formatToman(order.subtotal)} تومان</strong>
+          </Box>
+          {Number(order.discountAmount) > 0 && (
+            <Box className="invoice-total-row">
+              <span>تخفیف{order.discountCode ? ` (${order.discountCode})` : ''}</span>
+              <strong>−{formatToman(order.discountAmount)} تومان</strong>
+            </Box>
+          )}
+          {Number(order.shippingCost) > 0 && (
+            <Box className="invoice-total-row">
+              <span>هزینه ارسال</span>
+              <strong>{formatToman(order.shippingCost)} تومان</strong>
+            </Box>
+          )}
+          <Divider />
+          <Box className="invoice-total-row invoice-grand-total">
+            <span>مبلغ قابل پرداخت</span>
+            <strong>{formatToman(order.payableAmount)} تومان</strong>
+          </Box>
+        </Box>
+
+        <Box className="invoice-footer">
+          <Typography>از خرید شما سپاسگزاریم.</Typography>
+          <Typography>این فاکتور بر اساس اطلاعات ثبت‌شده سفارش تهیه شده است.</Typography>
+        </Box>
+      </Box>
+
+      <style>{`
+        .print-invoice { display: none; }
+        @media print {
+          @page { size: A4; margin: 12mm; }
+          body * { visibility: hidden !important; }
+          .print-invoice, .print-invoice * { visibility: visible !important; }
+          .print-invoice { display: block !important; position: absolute !important; inset: 0 auto auto 0 !important; width: 100% !important; color: #222 !important; background: #fff !important; font-family: Arial, sans-serif !important; font-size: 11pt !important; direction: rtl !important; }
+          .invoice-header { display: flex !important; justify-content: space-between !important; align-items: flex-start !important; gap: 20px !important; padding-bottom: 16px !important; border-bottom: 2px solid #333 !important; margin-bottom: 18px !important; }
+          .invoice-title { font-size: 22pt !important; font-weight: 800 !important; color: #111 !important; }
+          .invoice-muted { color: #666 !important; font-size: 9pt !important; margin-top: 4px !important; }
+          .invoice-meta { text-align: left !important; font-size: 9.5pt !important; line-height: 2 !important; }
+          .invoice-customer { border: 1px solid #ccc !important; border-radius: 6px !important; padding: 12px !important; margin-bottom: 18px !important; break-inside: avoid !important; }
+          .invoice-section-title { font-weight: 800 !important; font-size: 12pt !important; margin: 0 0 10px !important; color: #222 !important; }
+          .invoice-customer-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px 16px !important; font-size: 9.5pt !important; }
+          .invoice-address { grid-column: 1 / -1 !important; }
+          .invoice-table { width: 100% !important; border-collapse: collapse !important; margin: 8px 0 18px !important; font-size: 9pt !important; }
+          .invoice-table th, .invoice-table td { border: 1px solid #bbb !important; padding: 8px 6px !important; text-align: center !important; color: #222 !important; }
+          .invoice-table th { background: #f0f0f0 !important; font-weight: 800 !important; }
+          .invoice-table td:nth-child(2) { text-align: right !important; }
+          .invoice-totals { width: 55% !important; margin-right: auto !important; break-inside: avoid !important; }
+          .invoice-total-row { display: flex !important; justify-content: space-between !important; gap: 16px !important; padding: 7px 0 !important; font-size: 10pt !important; }
+          .invoice-grand-total { font-size: 12pt !important; font-weight: 800 !important; border-top: 1px solid #777 !important; margin-top: 4px !important; padding-top: 12px !important; }
+          .invoice-footer { border-top: 1px solid #ddd !important; margin-top: 28px !important; padding-top: 12px !important; text-align: center !important; color: #555 !important; font-size: 9pt !important; line-height: 1.8 !important; }
+        }
+      `}</style>
 
       {/* --- Status change modal --- */}
       <Dialog open={statusModalOpen} onClose={handleCloseStatusModal} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '20px', background: SURFACE } }}>
