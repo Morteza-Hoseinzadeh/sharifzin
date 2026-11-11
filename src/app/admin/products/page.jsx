@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+
 import { Box, Typography, Stack, Button, TextField, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, InputAdornment, Modal, Grid, Switch, Chip } from '@mui/material';
 
 import { alpha } from '@mui/material/styles';
@@ -46,13 +47,21 @@ const PRODUCTS_ENDPOINT = '/api/v1/admin/products';
 /*                              NEO INPUT FIELD                               */
 /* -------------------------------------------------------------------------- */
 
-// ✅ was: TextField پیش‌فرض MUI با لیبل شناور (روی استایل inset خراب دیده می‌شد
-// و حالت disabled خاکستریِ کم‌رنگ داشت). حالا لیبل بالای فیلد قرار می‌گیره،
-// دقیقاً مثل فرم checkout، و متن disabled هم خوانا می‌مونه.
 function NeoInput({ label, helperText, error, ...props }) {
   return (
     <Box>
-      {label && <Typography sx={{ fontSize: 13, fontWeight: 600, color: INK_SOFT, mb: 0.8, pr: 0.5 }}>{label}</Typography>}
+      {label && (
+        <Typography
+          sx={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: INK_SOFT,
+            mb: 0.8,
+            pr: 0.5,
+          }}>
+          {label}
+        </Typography>
+      )}
 
       <TextField
         fullWidth
@@ -63,8 +72,12 @@ function NeoInput({ label, helperText, error, ...props }) {
             ...neoInset,
             fontSize: 14,
             color: INK,
-            '& fieldset': { border: 'none' },
-            '&.Mui-error': { outline: '1.5px solid #E53E3E' },
+            '& fieldset': {
+              border: 'none',
+            },
+            '&.Mui-error': {
+              outline: '1.5px solid #E53E3E',
+            },
           },
           '& .MuiInputBase-input.Mui-disabled': {
             WebkitTextFillColor: INK,
@@ -73,7 +86,17 @@ function NeoInput({ label, helperText, error, ...props }) {
         }}
       />
 
-      {helperText && helperText.trim() && <Typography sx={{ fontSize: 12, color: error ? '#E53E3E' : INK_SOFT, mt: 0.6, pr: 0.5 }}>{helperText}</Typography>}
+      {helperText && helperText.trim() && (
+        <Typography
+          sx={{
+            fontSize: 12,
+            color: error ? '#E53E3E' : INK_SOFT,
+            mt: 0.6,
+            pr: 0.5,
+          }}>
+          {helperText}
+        </Typography>
+      )}
     </Box>
   );
 }
@@ -83,38 +106,38 @@ function NeoInput({ label, helperText, error, ...props }) {
 /* -------------------------------------------------------------------------- */
 
 const normalizeProduct = (product = {}) => ({
-  id: product.id,
+  id: product?.id,
 
-  title: product.title || '',
-  subtitle: product.subtitle || '',
+  title: product?.title || '',
+  subtitle: product?.subtitle || '',
 
-  brand: product.brand || '',
+  brand: product?.brand || '',
 
-  category: product.category || '',
-  category_fa: product.category_fa || '',
+  category: product?.category || '',
+  category_fa: product?.category_fa || '',
 
-  model: product.model || '',
+  model: product?.model || '',
 
-  price: Number(product.price) || 0,
-  discount: Number(product.discount) || 0,
-  final_price: Number(product.final_price) || Number(product.price) || 0,
+  price: Number(product?.price) || 0,
+  discount: Number(product?.discount) || 0,
 
-  thumbnail: product.thumbnail || '',
+  final_price: Number(product?.final_price) || Number(product?.price) || 0,
 
-  images: Array.isArray(product.images) ? product.images : product.thumbnail ? [product.thumbnail] : [],
+  thumbnail: product?.thumbnail || '',
 
-  colors: Array.isArray(product.colors) ? product.colors : [],
+  images: Array.isArray(product?.images) ? product.images : product?.thumbnail ? [product.thumbnail] : [],
 
-  material: product.material || '',
+  colors: Array.isArray(product?.colors) ? product.colors : [],
 
-  description: product.description || '',
+  material: product?.material || '',
 
-  features: Array.isArray(product.features) ? product.features : [],
+  description: product?.description || '',
 
-  specifications: product.specifications && typeof product.specifications === 'object' ? product.specifications : {},
+  features: Array.isArray(product?.features) ? product.features : [],
 
-  // ✅ new: 1 = مشتری باید زین خودش رو به مغازه تحویل بده
-  requires_physical_item: Number(product.requires_physical_item) === 1 ? 1 : 0,
+  specifications: product?.specifications && typeof product.specifications === 'object' && !Array.isArray(product.specifications) ? product.specifications : {},
+
+  requires_physical_item: Number(product?.requires_physical_item) === 1 ? 1 : 0,
 });
 
 /* -------------------------------------------------------------------------- */
@@ -154,7 +177,7 @@ const productToFormData = (product) => {
 
     specifications: normalized.specifications,
 
-    requires_physical_item: normalized.requires_physical_item, // ✅ new
+    requires_physical_item: normalized.requires_physical_item,
   };
 };
 
@@ -184,38 +207,48 @@ const normalizeArray = (value) => {
 /*                         API PRODUCT PAYLOAD                                */
 /* -------------------------------------------------------------------------- */
 
-const buildProductPayload = (data) => ({
-  title: data.title?.trim() || '',
-  subtitle: data.subtitle?.trim() || '',
+const buildProductPayload = (data = {}) => {
+  const price = Number(data.price) || 0;
+  const discount = Number(data.discount) || 0;
 
-  brand: data.brand?.trim() || '',
+  const finalPrice = Number(data.final_price) || Math.round(price * (1 - discount / 100));
 
-  category: data.category?.trim() || '',
-  category_fa: data.category_fa?.trim() || '',
+  return {
+    title: String(data.title ?? '').trim(),
 
-  model: data.model?.trim() || '',
+    subtitle: String(data.subtitle ?? '').trim(),
 
-  price: Number(data.price) || 0,
-  discount: Number(data.discount) || 0,
-  final_price: Number(data.final_price) || 0,
+    brand: String(data.brand ?? '').trim(),
 
-  thumbnail: data.thumbnail || '',
+    category: String(data.category ?? '').trim(),
 
-  images: Array.isArray(data.images) ? data.images : [],
+    category_fa: String(data.category_fa ?? '').trim(),
 
-  colors: normalizeArray(data.colors),
+    model: String(data.model ?? '').trim(),
 
-  material: data.material?.trim() || '',
+    price,
 
-  description: data.description?.trim() || '',
+    discount,
 
-  features: normalizeArray(data.features),
+    final_price: finalPrice,
 
-  specifications: data.specifications && typeof data.specifications === 'object' ? data.specifications : {},
+    thumbnail: data.thumbnail || '',
 
-  // ✅ new
-  requires_physical_item: Number(data.requires_physical_item) === 1 ? 1 : 0,
-});
+    images: Array.isArray(data.images) ? data.images : [],
+
+    colors: normalizeArray(data.colors),
+
+    material: String(data.material ?? '').trim(),
+
+    description: String(data.description ?? '').trim(),
+
+    features: normalizeArray(data.features),
+
+    specifications: data.specifications && typeof data.specifications === 'object' && !Array.isArray(data.specifications) ? data.specifications : {},
+
+    requires_physical_item: Number(data.requires_physical_item) === 1 ? 1 : 0,
+  };
+};
 
 /* -------------------------------------------------------------------------- */
 /*                              MAIN COMPONENT                                */
@@ -228,7 +261,6 @@ export default function AdminProductsPage() {
 
   const [search, setSearch] = useState('');
 
-  // ✅ new: دکمه‌ی «فیلتر» قبلاً هیچ کاری نمی‌کرد؛ حالا فقط محصولات نیازمند تحویل زین رو نشون میده
   const [onlyPhysical, setOnlyPhysical] = useState(false);
 
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -243,9 +275,8 @@ export default function AdminProductsPage() {
 
   const [specsError, setSpecsError] = useState(false);
 
-  // ✅ new: متن خام فیلدهای رنگ و ویژگی. قبلاً با هر کاراکتر تایپ‌شده آرایه ساخته و دوباره
-  // join می‌شد و کاما بلافاصله پاک می‌شد؛ پس نمی‌شد چند مقدار تایپ کرد.
   const [colorsText, setColorsText] = useState('');
+
   const [featuresText, setFeaturesText] = useState('');
 
   const [openNewModal, setOpenNewModal] = useState(false);
@@ -282,6 +313,10 @@ export default function AdminProductsPage() {
     getAllProducts(true);
   }, [getAllProducts]);
 
+  /* ------------------------------------------------------------------------ */
+  /*                         SELECTED PRODUCT EFFECT                          */
+  /* ------------------------------------------------------------------------ */
+
   useEffect(() => {
     if (!selectedProduct) {
       return;
@@ -294,10 +329,15 @@ export default function AdminProductsPage() {
     setSpecsText(JSON.stringify(nextFormData.specifications || {}, null, 2));
 
     setColorsText(normalizeArray(nextFormData.colors).join('-'));
+
     setFeaturesText(normalizeArray(nextFormData.features).join(', '));
 
     setSpecsError(false);
   }, [selectedProduct]);
+
+  /* ------------------------------------------------------------------------ */
+  /*                              CLOSE MODAL                                 */
+  /* ------------------------------------------------------------------------ */
 
   const handleCloseModal = () => {
     if (saving) {
@@ -305,20 +345,37 @@ export default function AdminProductsPage() {
     }
 
     setModalOpen(false);
+
     setSelectedProduct(null);
+
     setMode('view');
+
     setFormData({});
+
     setSpecsText('{}');
+
     setColorsText('');
+
     setFeaturesText('');
+
     setSpecsError(false);
   };
 
+  /* ------------------------------------------------------------------------ */
+  /*                               OPEN MODAL                                 */
+  /* ------------------------------------------------------------------------ */
+
   const openModal = (nextMode, product = null) => {
     setMode(nextMode);
+
     setSelectedProduct(product);
+
     setModalOpen(true);
   };
+
+  /* ------------------------------------------------------------------------ */
+  /*                             FIELD CHANGE                                 */
+  /* ------------------------------------------------------------------------ */
 
   const handleFieldChange = (field) => (event) => {
     const value = event.target.value;
@@ -328,6 +385,10 @@ export default function AdminProductsPage() {
       [field]: value,
     }));
   };
+
+  /* ------------------------------------------------------------------------ */
+  /*                            SPECIFICATIONS                                */
+  /* ------------------------------------------------------------------------ */
 
   const handleSpecsChange = (value) => {
     setSpecsText(value);
@@ -350,6 +411,10 @@ export default function AdminProductsPage() {
     }
   };
 
+  /* ------------------------------------------------------------------------ */
+  /*                             DELETE PRODUCT                               */
+  /* ------------------------------------------------------------------------ */
+
   const handleDelete = async (id) => {
     if (!id) {
       return;
@@ -364,7 +429,7 @@ export default function AdminProductsPage() {
     try {
       await axiosInstance.delete(`${PRODUCTS_ENDPOINT}/${id}`);
 
-      setProducts((prev) => prev.filter((product) => product.id !== id));
+      setProducts((prev) => prev.filter((product) => product?.id !== id));
 
       alert('محصول با موفقیت حذف شد');
     } catch (err) {
@@ -374,8 +439,12 @@ export default function AdminProductsPage() {
     }
   };
 
+  /* ------------------------------------------------------------------------ */
+  /*                              SAVE PRODUCT                                */
+  /* ------------------------------------------------------------------------ */
+
   const handleSave = async () => {
-    if (mode === 'view') {
+    if (mode === 'view' || saving) {
       return;
     }
 
@@ -396,8 +465,7 @@ export default function AdminProductsPage() {
 
       if (mode === 'edit') {
         if (!formData.id) {
-          alert('شناسه محصول پیدا نشد');
-          return;
+          throw new Error('شناسه محصول پیدا نشد');
         }
 
         await axiosInstance.patch(`${PRODUCTS_ENDPOINT}/${formData.id}`, payload);
@@ -407,28 +475,78 @@ export default function AdminProductsPage() {
 
       await getAllProducts(false);
 
-      handleCloseModal();
+      setModalOpen(false);
+
+      setSelectedProduct(null);
+
+      setMode('view');
+
+      setFormData({});
+
+      setSpecsText('{}');
+
+      setColorsText('');
+
+      setFeaturesText('');
+
+      setSpecsError(false);
     } catch (err) {
       console.error('Save product error:', err);
 
-      alert(err?.response?.data?.message || 'عملیات با مشکل مواجه شد');
+      alert(err?.response?.data?.message || err?.message || 'عملیات با مشکل مواجه شد');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleNewProduct = async ({ productData, images = [] }) => {
+  /* ------------------------------------------------------------------------ */
+  /*                         CREATE NEW PRODUCT                               */
+  /* ------------------------------------------------------------------------ */
+
+  // نکته مهم:
+  // NewProductModal مستقیماً productData را به onSave ارسال می‌کند.
+  // بنابراین این تابع باید خود productData را دریافت کند،
+  // نه آبجکتی شامل { productData }.
+
+  const handleNewProduct = async (productData) => {
+    if (saving) {
+      return;
+    }
+
+    if (!productData || typeof productData !== 'object' || Array.isArray(productData)) {
+      throw new Error('اطلاعات محصول معتبر نیست');
+    }
+
     try {
       setSaving(true);
 
       const payload = buildProductPayload(productData);
 
+      // اعتبارسنجی فیلدهای ضروری
+
+      if (!payload.title) {
+        throw new Error('عنوان محصول الزامی است');
+      }
+
+      if (!payload.category) {
+        throw new Error('دسته‌بندی محصول الزامی است');
+      }
+
+      if (payload.price <= 0) {
+        throw new Error('قیمت محصول باید بیشتر از صفر باشد');
+      }
+
+      // ارسال اطلاعات محصول به API
+
       const response = await axiosInstance.post(PRODUCTS_ENDPOINT, payload);
 
       console.log('Created product:', response?.data);
-      console.log('Selected images:', images);
+
+      // دریافت مجدد لیست محصولات
 
       await getAllProducts(false);
+
+      // بستن مودال
 
       setOpenNewModal(false);
 
@@ -436,7 +554,7 @@ export default function AdminProductsPage() {
     } catch (err) {
       console.error('Create product error:', err);
 
-      alert(err?.response?.data?.message || 'افزودن محصول با مشکل مواجه شد');
+      alert(err?.response?.data?.message || err?.message || 'افزودن محصول با مشکل مواجه شد');
 
       throw err;
     } finally {
@@ -451,7 +569,7 @@ export default function AdminProductsPage() {
   const normalizedSearch = search.trim().toLowerCase();
 
   const filtered = products.filter((product) => {
-    if (onlyPhysical && product.requires_physical_item !== 1) {
+    if (onlyPhysical && product?.requires_physical_item !== 1) {
       return false;
     }
 
@@ -459,7 +577,7 @@ export default function AdminProductsPage() {
       return true;
     }
 
-    return product.title?.toLowerCase().includes(normalizedSearch) || product.category_fa?.toLowerCase().includes(normalizedSearch) || product.brand?.toLowerCase().includes(normalizedSearch) || product.model?.toLowerCase().includes(normalizedSearch);
+    return product?.title?.toLowerCase().includes(normalizedSearch) || product?.category_fa?.toLowerCase().includes(normalizedSearch) || product?.brand?.toLowerCase().includes(normalizedSearch) || product?.model?.toLowerCase().includes(normalizedSearch);
   });
 
   /* ------------------------------------------------------------------------ */
@@ -467,45 +585,90 @@ export default function AdminProductsPage() {
   /* ------------------------------------------------------------------------ */
 
   const isView = mode === 'view';
+
   const physicalOn = Number(formData.requires_physical_item) === 1;
 
   const renderModal = () => (
     <Modal open={modalOpen} onClose={handleCloseModal} aria-labelledby="product-modal" sx={{ overflowY: 'auto' }}>
       <Box
         sx={{
-          width: { xs: '95%', sm: '90%', md: '80%', lg: '70%' },
+          width: {
+            xs: '95%',
+            sm: '90%',
+            md: '80%',
+            lg: '70%',
+          },
           maxWidth: 1100,
           mx: 'auto',
           my: 4,
           outline: 'none',
         }}>
-        <Box sx={{ ...neoRaised, bgcolor: BG, background: BG, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            ...neoRaised,
+            bgcolor: BG,
+            background: BG,
+            overflow: 'hidden',
+          }}>
           {/* HEADER */}
-          <Box sx={{ p: 3, borderBottom: `1px solid ${alpha(INK_SOFT, 0.15)}` }}>
-            <Typography id="product-modal" sx={{ fontWeight: 800, fontSize: 22, color: INK }}>
+
+          <Box
+            sx={{
+              p: 3,
+              borderBottom: `1px solid ${alpha(INK_SOFT, 0.15)}`,
+            }}>
+            <Typography
+              id="product-modal"
+              sx={{
+                fontWeight: 800,
+                fontSize: 22,
+                color: INK,
+              }}>
               {mode === 'create' ? 'اضافه کردن محصول جدید' : mode === 'edit' ? 'ویرایش محصول' : 'مشاهده محصول'}
             </Typography>
-            {formData.title && <Typography sx={{ fontSize: 13, color: INK_SOFT, mt: 0.5 }}>{formData.title}</Typography>}
+
+            {formData.title && (
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: INK_SOFT,
+                  mt: 0.5,
+                }}>
+                {formData.title}
+              </Typography>
+            )}
           </Box>
 
           {/* CONTENT */}
-          <Box sx={{ p: { xs: 2, sm: 3 }, maxHeight: '70vh', overflowY: 'auto' }}>
+
+          <Box
+            sx={{
+              p: { xs: 2, sm: 3 },
+              maxHeight: '70vh',
+              overflowY: 'auto',
+            }}>
             <Grid container spacing={3}>
               {/* LEFT COLUMN */}
+
               <Grid size={{ xs: 12, md: 6 }}>
                 <Stack spacing={2.5}>
                   <NeoInput label="عنوان محصول" value={formData.title || ''} disabled={isView} onChange={handleFieldChange('title')} />
+
                   <NeoInput label="زیرعنوان" value={formData.subtitle || ''} disabled={isView} onChange={handleFieldChange('subtitle')} />
+
                   <NeoInput label="برند" value={formData.brand || ''} disabled={isView} onChange={handleFieldChange('brand')} />
+
                   <NeoInput label="مدل" value={formData.model || ''} disabled={isView} onChange={handleFieldChange('model')} />
 
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <NeoInput label="قیمت (تومان)" type="number" value={formData.price ?? ''} disabled={isView} onChange={handleFieldChange('price')} />
                     </Grid>
+
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <NeoInput label="تخفیف (%)" type="number" value={formData.discount ?? ''} disabled={isView} onChange={handleFieldChange('discount')} />
                     </Grid>
+
                     <Grid size={{ xs: 12, sm: 4 }}>
                       <NeoInput label="قیمت نهایی" type="number" value={formData.final_price ?? ''} disabled={isView} onChange={handleFieldChange('final_price')} />
                     </Grid>
@@ -516,10 +679,13 @@ export default function AdminProductsPage() {
               </Grid>
 
               {/* RIGHT COLUMN */}
+
               <Grid size={{ xs: 12, md: 6 }}>
                 <Stack spacing={2.5}>
                   <NeoInput label="دسته‌بندی" value={formData.category || ''} disabled={isView} onChange={handleFieldChange('category')} />
+
                   <NeoInput label="دسته‌بندی فارسی" value={formData.category_fa || ''} disabled={isView} onChange={handleFieldChange('category_fa')} />
+
                   <NeoInput label="مواد" value={formData.material || ''} disabled={isView} onChange={handleFieldChange('material')} />
 
                   <NeoInput
@@ -531,7 +697,11 @@ export default function AdminProductsPage() {
                     disabled={isView}
                     onChange={(event) => {
                       setColorsText(event.target.value);
-                      setFormData((prev) => ({ ...prev, colors: normalizeArray(event.target.value) }));
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        colors: normalizeArray(event.target.value),
+                      }));
                     }}
                   />
 
@@ -543,7 +713,11 @@ export default function AdminProductsPage() {
                     disabled={isView}
                     onChange={(event) => {
                       setFeaturesText(event.target.value);
-                      setFormData((prev) => ({ ...prev, features: normalizeArray(event.target.value) }));
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        features: normalizeArray(event.target.value),
+                      }));
                     }}
                   />
 
@@ -551,7 +725,8 @@ export default function AdminProductsPage() {
                 </Stack>
               </Grid>
 
-              {/* ✅ new: سوییچ تحویل کالای فیزیکی - تمام عرض */}
+              {/* PHYSICAL ITEM SWITCH */}
+
               <Grid size={12}>
                 <Stack
                   direction="row"
@@ -565,22 +740,52 @@ export default function AdminProductsPage() {
                     transition: 'all .2s',
                   }}>
                   <Stack direction="row" alignItems="center" gap={1.5}>
-                    <Box sx={{ display: 'flex', color: physicalOn ? ACCENT_ORANGE : INK_SOFT }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        color: physicalOn ? ACCENT_ORANGE : INK_SOFT,
+                      }}>
                       <Truck size={26} variant={physicalOn ? 'Bold' : 'Linear'} />
                     </Box>
+
                     <Box>
-                      <Typography sx={{ fontWeight: 700, fontSize: 15, color: INK }}>نیاز به تحویل زین از مشتری</Typography>
-                      <Typography sx={{ fontSize: 12.5, color: INK_SOFT, mt: 0.3, lineHeight: 1.9 }}>اگر روشن باشد، مشتری هنگام پرداخت باید روش رساندن زین به مغازه و روش دریافت مجدد آن را انتخاب کند.</Typography>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: 15,
+                          color: INK,
+                        }}>
+                        نیاز به تحویل زین از مشتری
+                      </Typography>
+
+                      <Typography
+                        sx={{
+                          fontSize: 12.5,
+                          color: INK_SOFT,
+                          mt: 0.3,
+                          lineHeight: 1.9,
+                        }}>
+                        اگر روشن باشد، مشتری هنگام پرداخت باید روش رساندن زین به مغازه و روش دریافت مجدد آن را انتخاب کند.
+                      </Typography>
                     </Box>
                   </Stack>
 
                   <Switch
                     checked={physicalOn}
                     disabled={isView}
-                    onChange={(event) => setFormData((prev) => ({ ...prev, requires_physical_item: event.target.checked ? 1 : 0 }))}
+                    onChange={(event) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        requires_physical_item: event.target.checked ? 1 : 0,
+                      }))
+                    }
                     sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': { color: ACCENT_ORANGE },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: ACCENT_ORANGE },
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: ACCENT_ORANGE,
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        bgcolor: ACCENT_ORANGE,
+                      },
                     }}
                   />
                 </Stack>
@@ -589,8 +794,25 @@ export default function AdminProductsPage() {
           </Box>
 
           {/* FOOTER */}
-          <Box sx={{ p: 3, borderTop: `1px solid ${alpha(INK_SOFT, 0.15)}`, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-            <Button onClick={handleCloseModal} disabled={saving} sx={{ ...neoSoft, px: 3, py: 1.2, color: INK_SOFT, fontWeight: 600 }}>
+
+          <Box
+            sx={{
+              p: 3,
+              borderTop: `1px solid ${alpha(INK_SOFT, 0.15)}`,
+              display: 'flex',
+              gap: 2,
+              justifyContent: 'flex-end',
+            }}>
+            <Button
+              onClick={handleCloseModal}
+              disabled={saving}
+              sx={{
+                ...neoSoft,
+                px: 3,
+                py: 1.2,
+                color: INK_SOFT,
+                fontWeight: 600,
+              }}>
               {isView ? 'بستن' : 'لغو'}
             </Button>
 
@@ -606,8 +828,13 @@ export default function AdminProductsPage() {
                   color: '#fff',
                   bgcolor: ACCENT_ORANGE,
                   boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`,
-                  '&:hover': { bgcolor: '#E06B10' },
-                  '&.Mui-disabled': { bgcolor: alpha(ACCENT_ORANGE, 0.5), color: '#fff' },
+                  '&:hover': {
+                    bgcolor: '#E06B10',
+                  },
+                  '&.Mui-disabled': {
+                    bgcolor: alpha(ACCENT_ORANGE, 0.5),
+                    color: '#fff',
+                  },
                 }}>
                 {saving ? 'در حال ذخیره...' : mode === 'create' ? 'ذخیره محصول جدید' : 'ذخیره تغییرات'}
               </Button>
@@ -622,18 +849,42 @@ export default function AdminProductsPage() {
   /*                                  RENDER                                  */
   /* ------------------------------------------------------------------------ */
 
-  const headCellSx = { fontWeight: 700, color: INK_SOFT, fontSize: { xs: 11, sm: 13 }, bgcolor: SURFACE, borderBottom: `1px solid ${alpha(INK_SOFT, 0.15)}` };
-  const bodyCellSx = { borderBottom: `1px solid ${alpha(INK_SOFT, 0.1)}` };
+  const headCellSx = {
+    fontWeight: 700,
+    color: INK_SOFT,
+    fontSize: { xs: 11, sm: 13 },
+    bgcolor: SURFACE,
+    borderBottom: `1px solid ${alpha(INK_SOFT, 0.15)}`,
+  };
+
+  const bodyCellSx = {
+    borderBottom: `1px solid ${alpha(INK_SOFT, 0.1)}`,
+  };
 
   return (
     <AdminLayout>
       <Box width="100%">
         {/* PAGE HEADER */}
+
         <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={2} sx={{ mb: 3.5 }}>
           <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: 22, color: INK }}>مدیریت محصولات</Typography>
+            <Typography
+              sx={{
+                fontWeight: 800,
+                fontSize: 22,
+                color: INK,
+              }}>
+              مدیریت محصولات
+            </Typography>
 
-            <Typography sx={{ fontSize: 14, color: INK_SOFT, mt: 0.5 }}>{ConvertToPersianDigit(products.length)} محصول ثبت‌شده</Typography>
+            <Typography
+              sx={{
+                fontSize: 14,
+                color: INK_SOFT,
+                mt: 0.5,
+              }}>
+              {ConvertToPersianDigit(products.length)} محصول ثبت‌شده
+            </Typography>
           </Box>
 
           <Button
@@ -648,13 +899,16 @@ export default function AdminProductsPage() {
               color: '#fff',
               bgcolor: ACCENT_ORANGE,
               boxShadow: `4px 4px 12px ${alpha(ACCENT_ORANGE, 0.35)}`,
-              '&:hover': { bgcolor: '#E06B10' },
+              '&:hover': {
+                bgcolor: '#E06B10',
+              },
             }}>
             افزودن محصول
           </Button>
         </Stack>
 
         {/* SEARCH */}
+
         <Box sx={{ ...neoSoft, p: 2, mb: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} gap={2}>
             <TextField
@@ -673,14 +927,15 @@ export default function AdminProductsPage() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   ...neoInset,
-                  '& fieldset': { border: 'none' },
+                  '& fieldset': {
+                    border: 'none',
+                  },
                 },
               }}
             />
 
-            {/* ✅ was: دکمه‌ی بدون onClick. حالا فیلتر «نیازمند تحویل زین» رو روشن/خاموش می‌کنه */}
             <Button
-              onClick={() => setOnlyPhysical((v) => !v)}
+              onClick={() => setOnlyPhysical((value) => !value)}
               startIcon={<Filter size={16} style={{ marginLeft: 4 }} variant={onlyPhysical ? 'Bold' : 'Linear'} />}
               sx={{
                 px: 2.5,
@@ -697,20 +952,33 @@ export default function AdminProductsPage() {
         </Box>
 
         {/* TABLE */}
-        <Box sx={{ ...neoRaised, overflow: 'hidden', width: '100%' }}>
+
+        <Box
+          sx={{
+            ...neoRaised,
+            overflow: 'hidden',
+            width: '100%',
+          }}>
           <TableContainer sx={{ overflowX: 'auto' }}>
             <Table sx={{ minWidth: 1200 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ ...headCellSx, minWidth: 200 }}>محصول</TableCell>
+
                   <TableCell sx={{ ...headCellSx, minWidth: 110 }}>دسته‌بندی</TableCell>
+
                   <TableCell sx={{ ...headCellSx, minWidth: 90 }}>قیمت نهایی</TableCell>
+
                   <TableCell sx={{ ...headCellSx, minWidth: 70 }}>تخفیف</TableCell>
+
                   <TableCell sx={{ ...headCellSx, minWidth: 110 }}>برند</TableCell>
+
                   <TableCell sx={{ ...headCellSx, minWidth: 110 }}>مدل</TableCell>
+
                   <TableCell sx={{ ...headCellSx, minWidth: 130 }}>رنگ‌ها</TableCell>
-                  {/* ✅ new */}
+
                   <TableCell sx={{ ...headCellSx, minWidth: 130 }}>تحویل زین</TableCell>
+
                   <TableCell align="left" sx={{ ...headCellSx, minWidth: 140 }}>
                     عملیات
                   </TableCell>
@@ -732,52 +1000,176 @@ export default function AdminProductsPage() {
                   </TableRow>
                 ) : (
                   filtered.map((product) => {
-                    const colorsStr = normalizeArray(product.colors).join('، ');
-                    const finalPrice = product.final_price ?? product.price ?? 0;
+                    const colorsStr = normalizeArray(product?.colors).join('، ');
+
+                    const finalPrice = product?.final_price ?? product?.price ?? 0;
 
                     return (
-                      <TableRow key={product.id} hover sx={{ '&:hover': { bgcolor: alpha(ACCENT_ORANGE, 0.04) } }}>
+                      <TableRow
+                        key={product?.id}
+                        hover
+                        sx={{
+                          '&:hover': {
+                            bgcolor: alpha(ACCENT_ORANGE, 0.04),
+                          },
+                        }}>
                         <TableCell sx={bodyCellSx}>
                           <Stack direction="row" alignItems="center" gap={1.2}>
-                            {/* ✅ was: همیشه آیکون جعبه. حالا اگه تصویر بندانگشتی هست همون نشون داده میشه */}
-                            {product.thumbnail ? (
-                              <Box component="img" src={product.thumbnail} alt={product.title} sx={{ width: 40, height: 40, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, ...neoSoft }} />
+                            {product?.thumbnail ? (
+                              <Box
+                                component="img"
+                                src={product.thumbnail}
+                                alt={product.title}
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: '10px',
+                                  objectFit: 'cover',
+                                  flexShrink: 0,
+                                  ...neoSoft,
+                                }}
+                              />
                             ) : (
-                              <Box sx={{ width: 40, height: 40, borderRadius: '10px', flexShrink: 0, bgcolor: alpha(ACCENT_ORANGE, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', color: ACCENT_ORANGE }}>
+                              <Box
+                                sx={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: '10px',
+                                  flexShrink: 0,
+                                  bgcolor: alpha(ACCENT_ORANGE, 0.1),
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: ACCENT_ORANGE,
+                                }}>
                                 <Box1 size={18} variant="Bold" />
                               </Box>
                             )}
 
-                            <Typography sx={{ fontWeight: 600, fontSize: { xs: 12, sm: 13.5 }, color: INK, lineHeight: 1.5 }}>{product.title}</Typography>
+                            <Typography
+                              sx={{
+                                fontWeight: 600,
+                                fontSize: {
+                                  xs: 12,
+                                  sm: 13.5,
+                                },
+                                color: INK,
+                                lineHeight: 1.5,
+                              }}>
+                              {product?.title}
+                            </Typography>
                           </Stack>
                         </TableCell>
 
                         <TableCell sx={bodyCellSx}>
-                          <Typography sx={{ fontSize: { xs: 12, sm: 13 }, color: INK_SOFT }}>{product.category_fa}</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: {
+                                xs: 12,
+                                sm: 13,
+                              },
+                              color: INK_SOFT,
+                            }}>
+                            {product?.category_fa}
+                          </Typography>
                         </TableCell>
 
                         <TableCell sx={bodyCellSx}>
-                          <Typography sx={{ fontWeight: 600, fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{ConvertToPersianDigit(Number(finalPrice).toLocaleString())}</Typography>
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: {
+                                xs: 12,
+                                sm: 13.5,
+                              },
+                              color: INK,
+                            }}>
+                            {ConvertToPersianDigit(Number(finalPrice).toLocaleString())}
+                          </Typography>
                         </TableCell>
 
                         <TableCell sx={bodyCellSx}>
-                          <Typography sx={{ fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{ConvertToPersianDigit(product.discount ?? 0)}٪</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: {
+                                xs: 12,
+                                sm: 13.5,
+                              },
+                              color: INK,
+                            }}>
+                            {ConvertToPersianDigit(product?.discount ?? 0)}٪
+                          </Typography>
                         </TableCell>
 
                         <TableCell sx={bodyCellSx}>
-                          <Typography sx={{ fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{product.brand}</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: {
+                                xs: 12,
+                                sm: 13.5,
+                              },
+                              color: INK,
+                            }}>
+                            {product?.brand}
+                          </Typography>
                         </TableCell>
 
                         <TableCell sx={bodyCellSx}>
-                          <Typography sx={{ fontSize: { xs: 12, sm: 13.5 }, color: INK }}>{product.model}</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: {
+                                xs: 12,
+                                sm: 13.5,
+                              },
+                              color: INK,
+                            }}>
+                            {product?.model}
+                          </Typography>
                         </TableCell>
 
                         <TableCell sx={bodyCellSx}>
-                          <Typography sx={{ fontSize: { xs: 12, sm: 13 }, color: INK_SOFT, whiteSpace: 'nowrap' }}>{colorsStr}</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: {
+                                xs: 12,
+                                sm: 13,
+                              },
+                              color: INK_SOFT,
+                              whiteSpace: 'nowrap',
+                            }}>
+                            {colorsStr}
+                          </Typography>
                         </TableCell>
 
-                        {/* ✅ new */}
-                        <TableCell sx={bodyCellSx}>{product.requires_physical_item === 1 ? <Chip size="small" icon={<Truck size={14} color={ACCENT_ORANGE} />} label="نیاز دارد" sx={{ fontWeight: 700, fontSize: 12, color: ACCENT_ORANGE, bgcolor: alpha(ACCENT_ORANGE, 0.12), '& .MuiChip-icon': { mr: 0.5, ml: -0.3 } }} /> : <Chip size="small" label="ندارد" sx={{ fontSize: 12, color: INK_SOFT, bgcolor: alpha(INK_SOFT, 0.1) }} />}</TableCell>
+                        <TableCell sx={bodyCellSx}>
+                          {product?.requires_physical_item === 1 ? (
+                            <Chip
+                              size="small"
+                              icon={<Truck size={14} color={ACCENT_ORANGE} />}
+                              label="نیاز دارد"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: 12,
+                                color: ACCENT_ORANGE,
+                                bgcolor: alpha(ACCENT_ORANGE, 0.12),
+                                '& .MuiChip-icon': {
+                                  mr: 0.5,
+                                  ml: -0.3,
+                                },
+                              }}
+                            />
+                          ) : (
+                            <Chip
+                              size="small"
+                              label="ندارد"
+                              sx={{
+                                fontSize: 12,
+                                color: INK_SOFT,
+                                bgcolor: alpha(INK_SOFT, 0.1),
+                              }}
+                            />
+                          )}
+                        </TableCell>
 
                         <TableCell align="left" sx={bodyCellSx}>
                           <Stack direction="row" gap={0.5}>
@@ -789,7 +1181,7 @@ export default function AdminProductsPage() {
                               <Edit2 size={17} color={ACCENT_ORANGE} />
                             </IconButton>
 
-                            <IconButton size="small" onClick={() => handleDelete(product.id)} aria-label="حذف">
+                            <IconButton size="small" onClick={() => handleDelete(product?.id)} aria-label="حذف">
                               <Trash size={17} color="#E53E3E" />
                             </IconButton>
                           </Stack>
@@ -804,10 +1196,12 @@ export default function AdminProductsPage() {
         </Box>
 
         {/* EDIT / VIEW MODAL */}
+
         {renderModal()}
       </Box>
 
       {/* NEW PRODUCT MODAL */}
+
       <NewProductModal open={openNewModal} onClose={() => setOpenNewModal(false)} onSave={handleNewProduct} />
     </AdminLayout>
   );
