@@ -105,6 +105,31 @@ function NeoInput({ label, helperText, error, ...props }) {
 /*                              NORMALIZE PRODUCT                             */
 /* -------------------------------------------------------------------------- */
 
+const normalizeSpecifications = (value) => {
+  let parsed = value;
+
+  // اگر مقدار از دیتابیس به شکل JSON string برگشته باشد
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  // فقط آرایه معتبر است
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .filter((item) => item && typeof item === 'object' && !Array.isArray(item) && String(item.key ?? '').trim() !== '' && String(item.value ?? '').trim() !== '')
+    .map((item) => ({
+      key: String(item.key).trim(),
+      value: String(item.value).trim(),
+    }));
+};
+
 const normalizeProduct = (product = {}) => ({
   id: product?.id,
 
@@ -135,7 +160,8 @@ const normalizeProduct = (product = {}) => ({
 
   features: Array.isArray(product?.features) ? product.features : [],
 
-  specifications: product?.specifications && typeof product.specifications === 'object' && !Array.isArray(product.specifications) ? product.specifications : {},
+  // همیشه آرایه
+  specifications: normalizeSpecifications(product?.specifications),
 
   requires_physical_item: Number(product?.requires_physical_item) === 1 ? 1 : 0,
 });
@@ -175,7 +201,7 @@ const productToFormData = (product) => {
 
     features: normalized.features,
 
-    specifications: normalized.specifications,
+    specifications: normalizeSpecifications(normalized.specifications),
 
     requires_physical_item: normalized.requires_physical_item,
   };
@@ -213,7 +239,9 @@ const buildProductPayload = (data = {}) => {
 
   const finalPrice = Number(data.final_price) || Math.round(price * (1 - discount / 100));
 
-  return {
+  const specifications = normalizeSpecifications(data.specifications);
+
+  const payload = {
     title: String(data.title ?? '').trim(),
 
     subtitle: String(data.subtitle ?? '').trim(),
@@ -244,10 +272,17 @@ const buildProductPayload = (data = {}) => {
 
     features: normalizeArray(data.features),
 
-    specifications: data.specifications && typeof data.specifications === 'object' && !Array.isArray(data.specifications) ? data.specifications : {},
+    // فقط آرایه به API ارسال می‌شود
+    specifications,
 
     requires_physical_item: Number(data.requires_physical_item) === 1 ? 1 : 0,
   };
+
+  console.log('FINAL PRODUCT PAYLOAD:', payload);
+  console.log('SPECIFICATIONS:', payload.specifications);
+  console.log('SPECIFICATIONS IS ARRAY:', Array.isArray(payload.specifications));
+
+  return payload;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -271,7 +306,7 @@ export default function AdminProductsPage() {
 
   const [formData, setFormData] = useState({});
 
-  const [specsText, setSpecsText] = useState('{}');
+  const [specsText, setSpecsText] = useState('[]');
 
   const [specsError, setSpecsError] = useState(false);
 
@@ -396,13 +431,15 @@ export default function AdminProductsPage() {
     try {
       const parsed = JSON.parse(value);
 
-      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('Specifications must be an object');
+      if (!Array.isArray(parsed)) {
+        throw new Error('Specifications must be an array');
       }
+
+      const normalized = normalizeSpecifications(parsed);
 
       setFormData((prev) => ({
         ...prev,
-        specifications: parsed,
+        specifications: normalized,
       }));
 
       setSpecsError(false);

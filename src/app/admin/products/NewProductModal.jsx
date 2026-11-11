@@ -204,11 +204,11 @@ const NewProductModal = ({ open, onClose, onSave }) => {
 
   const buildSpecifications = () => {
     return specifications
-      .filter((item) => String(item.key || '').trim() || String(item.value || '').trim())
       .map((item) => ({
         key: String(item.key || '').trim(),
         value: String(item.value || '').trim(),
-      }));
+      }))
+      .filter((item) => item.key !== '' && item.value !== '');
   };
 
   /* ------------------------------------------------------------------------ */
@@ -399,16 +399,26 @@ const NewProductModal = ({ open, onClose, onSave }) => {
         final_price: Math.round(Number(formData.final_price) || Number(formData.price) * (1 - Number(formData.discount || 0) / 100)),
 
         colors: parseCommaSeparated(formData.colors),
+
         best_for: parseCommaSeparated(formData.best_for),
+
         features: parseCommaSeparated(formData.features),
 
+        // خروجی قطعی آرایه است
         specifications: buildSpecifications(),
 
         images: uploadedImageUrls,
+
         thumbnail: uploadedImageUrls[0] || null,
 
         requires_physical_item: 0,
       };
+
+      console.log('Specifications:', productData.specifications);
+      console.log('Specifications Is Array:', Array.isArray(productData.specifications));
+      console.log('Specifications JSON:', JSON.stringify(productData.specifications));
+
+      await onSave(productData);
 
       setUploadProgress(95);
 

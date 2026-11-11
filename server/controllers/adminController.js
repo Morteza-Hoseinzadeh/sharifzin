@@ -69,6 +69,29 @@ function normalizePhone(phone) {
   return value;
 }
 
+function normalizeSpecifications(value) {
+  let parsed = value;
+
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch (error) {
+      return [];
+    }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed
+    .filter((item) => item && typeof item === 'object' && !Array.isArray(item) && String(item.key ?? '').trim() !== '' && String(item.value ?? '').trim() !== '')
+    .map((item) => ({
+      key: String(item.key).trim(),
+      value: String(item.value).trim(),
+    }));
+}
+
 // ==================== DASHBOARD ====================
 exports.getAdminDashboard = async (req, res) => {
   try {
@@ -279,14 +302,15 @@ function slugify(title) {
 
 exports.createProduct = async (req, res) => {
   try {
-    // ✅ new: requires_physical_item اضافه شد
     const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications, requires_physical_item } = req.body;
 
-    // if (!title || !title.trim()) {
-    //   return res.status(400).json({ message: 'عنوان محصول الزامی است' });
-    // }
+    console.log('========== CREATE PRODUCT ==========');
+    console.log('Request URL:', req.originalUrl);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('RAW SPECIFICATIONS:', specifications);
+    console.log('RAW IS ARRAY:', Array.isArray(specifications));
 
-    let slug = slugify(title);
+    let slug = slugify(title || '');
 
     if (!slug) {
       slug = `product-${Date.now()}`;
@@ -298,86 +322,232 @@ exports.createProduct = async (req, res) => {
       slug = `${slug}-${Date.now()}`;
     }
 
-    // ✅ was Math.random(0, 999999) - invalid, produced a float, not an id
     const productId = randomUUID();
 
-    // ✅ new: فقط 0 یا 1 ذخیره میشه
     const physicalFlag = Number(requires_physical_item) === 1 ? 1 : 0;
+
+    // همیشه آرایه
+    const normalizedSpecifications = normalizeSpecifications(specifications);
+
+    console.log('NORMALIZED SPECIFICATIONS:', normalizedSpecifications);
+
+    console.log('NORMALIZED SPECIFICATIONS IS ARRAY:', Array.isArray(normalizedSpecifications));
+
+    const specificationsJson = JSON.stringify(normalizedSpecifications);
+
+    console.log('SPECIFICATIONS JSON FOR DATABASE:', specificationsJson);
 
     await db.query(
       `
-      INSERT INTO products (id, slug, title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, best_for, description, features, specifications, requires_physical_item)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [productId, slug, title || null, subtitle || null, brand || null, category || null, category_fa || null, model || null, Number(price) || 0, Number(Math?.floor(discount)) || 0, Number(final_price) || 0, thumbnail || null, JSON.stringify(Array.isArray(images) ? images : []), JSON.stringify(Array.isArray(colors) ? colors : []), material || null, JSON.stringify(Array.isArray(best_for) ? best_for : []), description || null, JSON.stringify(Array.isArray(features) ? features : []), JSON.stringify(specifications && typeof specifications === 'object' ? specifications : {}), physicalFlag]
-    );
-
-    // ✅ پاسخ کل رکورد ساخته‌شده رو برمی‌گردونه تا فرانت بتونه مستقیم نمایشش بده
-    return res.status(201).json({
-      message: 'محصول با موفقیت اضافه شد',
-      product: {
-        id: productId,
+      INSERT INTO products (
+        id,
         slug,
         title,
-        subtitle: subtitle || null,
-        brand: brand || null,
-        category: category || null,
-        category_fa: category_fa || null,
-        model: model || null,
-        price: Number(price) || 0,
-        discount: Number(discount) || 0,
-        final_price: Number(final_price) || 0,
-        thumbnail: thumbnail || null,
-        images: Array.isArray(images) ? images : [],
-        colors: Array.isArray(colors) ? colors : [],
-        material: material || null,
-        best_for: Array.isArray(best_for) ? best_for : [],
-        description: description || null,
-        features: Array.isArray(features) ? features : [],
-        specifications: specifications && typeof specifications === 'object' ? specifications : {},
-        requires_physical_item: physicalFlag, // ✅ new
-      },
+        subtitle,
+        brand,
+        category,
+        category_fa,
+        model,
+        price,
+        discount,
+        final_price,
+        thumbnail,
+        images,
+        colors,
+        material,
+        best_for,
+        description,
+        features,
+        specifications,
+        requires_physical_item
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        productId,
+        slug,
+        title || null,
+        subtitle || null,
+        brand || null,
+        category || null,
+        category_fa || null,
+        model || null,
+        Number(price) || 0,
+        Math.floor(Number(discount) || 0),
+        Number(final_price) || 0,
+        thumbnail || null,
+        JSON.stringify(Array.isArray(images) ? images : []),
+        JSON.stringify(Array.isArray(colors) ? colors : []),
+        material || null,
+        JSON.stringify(Array.isArray(best_for) ? best_for : []),
+        description || null,
+        JSON.stringify(Array.isArray(features) ? features : []),
+
+        // ذخیره آرایه در ستون JSON
+        specificationsJson,
+
+        physicalFlag,
+      ]
+    );
+
+    // خواندن مجدد از دیتابیس برای اطمینان از ذخیره صحیح
+    const [savedRows] = await db.query(
+      `
+      SELECT *
+      FROM products
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [productId]
+    );
+
+    if (!savedRows.length) {
+      throw new Error('محصول ایجاد شد اما از دیتابیس قابل خواندن نیست');
+    }
+
+    const savedProduct = {
+      ...savedRows[0],
+
+      specifications: normalizeSpecifications(savedRows[0].specifications),
+    };
+
+    console.log('SAVED SPECIFICATIONS:', savedProduct.specifications);
+
+    console.log('SAVED SPECIFICATIONS IS ARRAY:', Array.isArray(savedProduct.specifications));
+
+    return res.status(201).json({
+      success: true,
+      message: 'محصول با موفقیت اضافه شد',
+      product: savedProduct,
     });
   } catch (error) {
     console.error('CREATE PRODUCT ERROR:', error);
-    return res.status(500).json({ message: 'خطا در افزودن محصول' });
+
+    return res.status(500).json({
+      success: false,
+      message: 'خطا در افزودن محصول',
+      error: error.message,
+    });
   }
 };
 
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    // ✅ new: requires_physical_item اضافه شد
+
     const { title, subtitle, brand, category, category_fa, model, price, discount, final_price, thumbnail, images, colors, material, description, features, specifications, requires_physical_item } = req.body;
 
-    const [existing] = await db.query('SELECT slug FROM products WHERE id = ?', [id]);
-
-    if (existing.length === 0) {
-      return res.status(404).json({ message: 'محصول یافت نشد' });
-    }
-
-    // ✅ Only regenerate slug when a new title is actually provided.
-    // Previously: if `title` was omitted, slug was set to null and overwrote the existing one.
-    const slug = title ? slugify(title) : existing[0].slug;
-
-    // ✅ new: اگه فرانت این فیلد رو نفرستاد (null)، مقدار قبلی دست‌نخورده می‌مونه
-    const physicalFlag = requires_physical_item === undefined || requires_physical_item === null ? null : Number(requires_physical_item) === 1 ? 1 : 0;
-
-    await db.query(
-      `UPDATE products SET
-        title = ?, subtitle = ?, brand = ?, category = ?, category_fa = ?, model = ?,
-        price = ?, discount = ?, final_price = ?, thumbnail = ?, images = ?, colors = ?,
-        material = ?, description = ?, features = ?, specifications = ?,
-        requires_physical_item = COALESCE(?, requires_physical_item),
-        slug = ?
-       WHERE id = ?`,
-      [title, subtitle, brand, category, category_fa, model, price || 0, Number(Math?.floor(discount)) || 0, final_price || price || 0, thumbnail || null, JSON.stringify(images || []), JSON.stringify(colors || []), material || null, description || null, JSON.stringify(features || []), JSON.stringify(specifications || {}), physicalFlag, slug, id]
+    const [existing] = await db.query(
+      `
+      SELECT slug, specifications
+      FROM products
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id]
     );
 
-    return res.json({ message: 'محصول به‌روزرسانی شد' });
+    if (existing.length === 0) {
+      return res.status(404).json({
+        message: 'محصول یافت نشد',
+      });
+    }
+
+    const slug = title ? slugify(title) || existing[0].slug : existing[0].slug;
+
+    const physicalFlag = requires_physical_item === undefined || requires_physical_item === null ? null : Number(requires_physical_item) === 1 ? 1 : 0;
+
+    // اگر فیلد ارسال نشده، مقدار قبلی حفظ می‌شود
+    // اگر [] ارسال شود، دیتابیس آرایه خالی دریافت می‌کند
+    const normalizedSpecifications = specifications === undefined ? normalizeSpecifications(existing[0].specifications) : normalizeSpecifications(specifications);
+
+    const [result] = await db.query(
+      `
+      UPDATE products SET
+        title = ?,
+        subtitle = ?,
+        brand = ?,
+        category = ?,
+        category_fa = ?,
+        model = ?,
+        price = ?,
+        discount = ?,
+        final_price = ?,
+        thumbnail = ?,
+        images = ?,
+        colors = ?,
+        material = ?,
+        description = ?,
+        features = ?,
+        specifications = ?,
+        requires_physical_item = COALESCE(?, requires_physical_item),
+        slug = ?
+      WHERE id = ?
+      `,
+      [
+        title,
+        subtitle,
+        brand,
+        category,
+        category_fa,
+        model,
+        Number(price) || 0,
+        Math.floor(Number(discount) || 0),
+        Number(final_price) || Number(price) || 0,
+        thumbnail || null,
+        JSON.stringify(Array.isArray(images) ? images : []),
+        JSON.stringify(Array.isArray(colors) ? colors : []),
+        material || null,
+        description || null,
+        JSON.stringify(Array.isArray(features) ? features : []),
+
+        // فقط JSON آرایه‌ای
+        JSON.stringify(normalizedSpecifications),
+
+        physicalFlag,
+        slug,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      const [check] = await db.query('SELECT id FROM products WHERE id = ?', [id]);
+
+      if (!check.length) {
+        return res.status(404).json({
+          message: 'محصول یافت نشد',
+        });
+      }
+    }
+
+    const [updatedRows] = await db.query(
+      `
+      SELECT *
+      FROM products
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    const updatedProduct = {
+      ...updatedRows[0],
+
+      specifications: normalizeSpecifications(updatedRows[0].specifications),
+    };
+
+    return res.json({
+      success: true,
+      message: 'محصول به‌روزرسانی شد',
+      product: updatedProduct,
+    });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'خطا در به‌روزرسانی محصول' });
+    console.error('UPDATE PRODUCT ERROR:', error);
+
+    return res.status(500).json({
+      message: 'خطا در به‌روزرسانی محصول',
+      error: error.message,
+    });
   }
 };
 
