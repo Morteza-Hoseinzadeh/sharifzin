@@ -76,14 +76,14 @@ export default function HeroSection() {
                     transform: 'translateY(1px)',
                     boxShadow: `inset 4px 4px 8px rgba(0,0,0,.25),inset -3px -3px 7px rgba(255,255,255,.08)`,
                   },
-                }}
-              >
+                }}>
                 ثبت سفارش
               </Button>
 
               {/* Secondary */}
               <Button
                 size="large"
+                href="https://www.instagram.com/sharifzin_/"
                 sx={{
                   minHeight: 52,
                   px: { xs: 3, lg: 4 },
@@ -98,8 +98,7 @@ export default function HeroSection() {
                   transition: 'all .25s ease',
                   '&:hover': { background: 'rgba(255,255,255,.12)', borderColor: 'rgba(255,255,255,.2)', transform: 'translateY(-2px)' },
                   '&:active': { boxShadow: neoInset, transform: 'translateY(1px)' },
-                }}
-              >
+                }}>
                 مشاهده نمونه کارها
               </Button>
             </Box>

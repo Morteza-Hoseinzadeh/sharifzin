@@ -171,11 +171,9 @@ export default function Footer() {
             </Box>
           </a>
 
-          <a href="https://www.zarinpal.com/verify/sharifzin" target="_blank" rel="noopener noreferrer">
-            <Box sx={s.trustBadge}>
-              <img src="/assets/trust-symbols/zarinpal.png" alt="نماد اعتماد الکترونیکی زرین‌پال شریف‌زین" width={40} height={40} />
-            </Box>
-          </a>
+          <Box sx={s.trustBadge}>
+            <img src="/assets/trust-symbols/zarinpal.png" alt="نماد اعتماد الکترونیکی زرین‌پال شریف‌زین" width={40} height={40} />
+          </Box>
         </Box>
 
         <a href="https://vortexwebteam.ir" style={{ textDecoration: 'none' }}>

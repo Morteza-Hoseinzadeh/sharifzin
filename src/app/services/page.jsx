@@ -113,7 +113,9 @@ export default function ServicesPage() {
 
           <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.8} justifyContent="center">
             <Button sx={{ px: 4, py: 1.6, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: '#fff', bgcolor: ACCENT_ORANGE, boxShadow: `6px 6px 14px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}`, '&:hover': { bgcolor: '#E06B10' } }}>درخواست مشاوره رایگان</Button>
-            <Button sx={{ px: 4, py: 1.6, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: INK, ...neoSoft, '&:hover': { boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}` } }}>مشاهده نمونه کارها</Button>
+            <Button href="https://www.instagram.com/sharifzin_/" sx={{ px: 4, py: 1.6, borderRadius: '14px', fontWeight: 700, fontSize: 15, color: INK, ...neoSoft, '&:hover': { boxShadow: `4px 4px 10px ${SHADOW_DARK}, -4px -4px 10px ${SHADOW_LIGHT}` } }}>
+              مشاهده نمونه کارها
+            </Button>
           </Stack>
         </Box>
 
